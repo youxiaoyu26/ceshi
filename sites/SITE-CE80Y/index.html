@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多人协作部署大厅</title>
+    <!-- 引入 CryptoJS 用于 AES 解密 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; color: #1c1e21; }
+        .navbar { background: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
+        .admin-trigger { width: 10px; height: 10px; cursor: pointer; opacity: 0.1; }
+        #adminInput { display: none; margin-left: 10px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; }
+        
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
+        .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h3 { margin-bottom: 15px; font-size: 1.1rem; color: #1a73e8; }
+
+        .code-area { width: 100%; height: 300px; font-family: 'Courier New', monospace; border: 1px solid #ddd; border-radius: 8px; padding: 12px; resize: none; margin-bottom: 15px; font-size: 13px; background: #f9f9f9; }
+        .code-area:focus { outline: 2px solid #1a73e8; background: #fff; }
+
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .file-label { flex: 1; text-align: center; padding: 10px; background: #f0f2f5; border: 2px dashed #ccd0d5; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; }
+        .file-label:hover { background: #e4e6eb; }
+
+        .text-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; outline: none; }
+        .deploy-btn { width: 100%; padding: 14px; background: #1a73e8; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .deploy-btn:hover { background: #1557b0; }
+        .deploy-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .site-item { padding: 15px; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .site-item:hover { background: #f8f9fa; }
+        .site-info { flex: 1; min-width: 0; }
+        .site-name { display: block; font-weight: bold; color: #1a73e8; text-decoration: none; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .site-note { font-size: 13px; color: #65676b; }
+        .site-time { font-size: 11px; color: #bcc0c4; margin-top: 4px; }
+        .del-btn { color: #d93025; font-size: 12px; cursor: pointer; display: none; padding: 5px 10px; border: 1px solid #f8d7da; border-radius: 4px; }
+
+        .log-panel { background: #1c1e21; color: #4ade80; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; height: 120px; overflow-y: auto; margin-top: 15px; }
+
+        /* 自定义弹窗样式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; justify-content: center;
+            align-items: center; z-index: 9999; visibility: hidden; opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-box {
+            background: white; border-radius: 16px; padding: 30px;
+            min-width: 300px; max-width: 90%; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-box h4 { margin-bottom: 15px; font-size: 1.2rem; }
+        .modal-box input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin: 10px 0; font-size: 14px; }
+        .modal-box .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+        .modal-box button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-secondary { background: #e4e6eb; color: #1c1e21; }
+
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<!-- 自定义消息弹窗 (代替 alert) -->
+<div class="modal-overlay" id="alertModal">
+    <div class="modal-box">
+        <h4 id="alertTitle">提示</h4>
+        <p id="alertMsg"></p>
+        <button class="btn-primary" style="width:100%; margin-top:15px" onclick="closeAlert()">确定</button>
+    </div>
+</div>
+
+<!-- 自定义确认弹窗 (代替 confirm) -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <h4 id="confirmTitle">确认</h4>
+        <p id="confirmMsg"></p>
+        <div class="btn-row">
+            <button class="btn-secondary" onclick="resolveConfirm(false)">取消</button>
+            <button class="btn-primary" onclick="resolveConfirm(true)">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 登录解密弹窗 (进入时显示) -->
+<div class="modal-overlay active" id="loginModal">
+    <div class="modal-box">
+        <h4>🔐 请输入解密密钥</h4>
+        <input type="password" id="decryptKey" placeholder="输入密钥">
+        <div id="loginError" style="color:#d93025; font-size:13px; margin-top:5px; display:none;"></div>
+        <button class="btn-primary" style="width:100%; margin-top:15px" onclick="tryDecrypt()">解锁进入</button>
+        <p style="font-size:12px; color:#888; margin-top:10px;">Token 已受 AES 加密保护</p>
+    </div>
+</div>
+
+<nav class="navbar">
+    <div style="display: flex; align-items: center;">
+        <div class="admin-trigger" onclick="activeAdmin()"></div>
+        <input type="password" id="adminInput" placeholder="口令" onkeypress="checkAuth(event)">
+        <h2 id="title">🌐 网页分发大厅</h2>
+    </div>
+    <div id="status" style="font-size: 12px; color: #2ecc71;">● 连通中</div>
+</nav>
+
+<div class="container">
+    <div class="main">
+        <div class="card">
+            <h3>📝 源码输入</h3>
+            <textarea id="htmlCode" class="code-area" placeholder="在这里粘贴 HTML 代码，或点击下方按钮导入文件..."></textarea>
+            
+            <div class="btn-group">
+                <label class="file-label" for="fileInput">📁 导入 HTML 文件</label>
+                <input type="file" id="fileInput" hidden accept=".html,.txt" onchange="readFile(this)">
+            </div>
+
+            <input type="text" id="siteNote" class="text-input" placeholder="输入站点备注（必填）">
+            <button class="deploy-btn" id="deployBtn" onclick="doDeploy()">开始云端部署</button>
+            
+            <div class="log-panel" id="logBox">等待任务中...</div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="card">
+            <h3>📂 已发布站点 (永久保存)</h3>
+            <div id="siteList" style="max-height: 600px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: #999;">正在加载列表...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ====== 配置区 (需要你用自己的 Token + 密码生成) ======
+    // 使用 AES 加密后的密文 (Base64 格式)
+    const _ENC = "U2FsdGVkX18tEswoTJpQmkEbnz6cs9xlSzsg/+XlFmLkcHJsjwX5tFFg9q3Kd54tC6/7yAKjOOx1a/4le4OohQ==";  // 替换为你自己的密文
+    const GITHUB_USER = "youxiaoyu26";
+    const GITHUB_REPO = "ceshi";
+    const DB_FILE = "db.json";
+
+    // ====== 自定义弹窗系统 ======
+    let alertResolve = null;
+    let confirmResolve = null;
+
+    function customAlert(msg, title = '提示') {
+        return new Promise(resolve => {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMsg').innerText = msg;
+            document.getElementById('alertModal').classList.add('active');
+            alertResolve = resolve;
+        });
+    }
+    window.alert = async function(msg) {
+        await customAlert(msg);
+    };
+
+    function closeAlert() {
+        document.getElementById('alertModal').classList.remove('active');
+        if (alertResolve) { alertResolve(); alertResolve = null; }
+    }
+
+    function customConfirm(msg, title = '确认') {
+        return new Promise(resolve => {
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMsg').innerText = msg;
+            document.getElementById('confirmModal').classList.add('active');
+            confirmResolve = resolve;
+        });
+    }
+    window.confirm = async function(msg) {
+        return await customConfirm(msg);
+    };
+
+    function resolveConfirm(result) {
+        document.getElementById('confirmModal').classList.remove('active');
+        if (confirmResolve) { confirmResolve(result); confirmResolve = null; }
+    }
+
+    // ====== 解密逻辑 ======
+    let decryptedToken = null;
+
+    function tryDecrypt() {
+        const key = document.getElementById('decryptKey').value;
+        if (!key) {
+            document.getElementById('loginError').style.display = 'block';
+            document.getElementById('loginError').innerText = '密码不能为空';
+            return;
+        }
+        try {
+            // 使用 AES 解密，密文格式：CryptoJS.AES.encrypt 默认输出
+            const bytes = CryptoJS.AES.decrypt(_ENC, key);
+            const original = bytes.toString(CryptoJS.enc.Utf8);
+            if (!original || !original.startsWith('ghp_')) {
+                throw new Error('密码错误或密文无效');
+            }
+            decryptedToken = original;
+            // 隐藏登录弹窗
+            document.getElementById('loginModal').classList.remove('active');
+            // 初始化加载列表
+            loadList();
+            addLog("🔓 Token 解密成功，系统就绪");
+        } catch (e) {
+            document.getElementById('loginError').style.display = 'block';
+            document.getElementById('loginError').innerText = '密码错误，请重试';
+        }
+    }
+
+    // 修改 GITHUB 对象，使用解密后的 Token
+    const GITHUB = {
+        get TOKEN() { return decryptedToken; },
+        USER: GITHUB_USER,
+        REPO: GITHUB_REPO,
+        DB: DB_FILE
+    };
+
+    let isAuth = false;
+
+    // 后台权限
+    function activeAdmin() { document.getElementById('adminInput').style.display = 'block'; }
+    function checkAuth(e) {
+        if (e.key === 'Enter') {
+            if (e.target.value === 'ande123') {
+                isAuth = true;
+                document.getElementById('title').innerText = "🛠️ 管理员模式";
+                document.getElementById('adminInput').style.display = 'none';
+                addLog("✅ 管理员模式已开启");
+                loadList();
+            }
+        }
+    }
+
+    // 文件读取
+    function readFile(input) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('htmlCode').value = e.target.result;
+            addLog(`📂 文件已读取: ${file.name}`);
+        };
+        reader.readAsText(file);
+    }
+
+    // 编码转换 (GitHub 要求 Base64)
+    const toB64 = str => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode('0x' + p1)));
+    const fromB64 = str => decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+
+    // API 通讯
+    async function api(path, method = 'GET', body = null) {
+        if (!decryptedToken) {
+            await customAlert('请先解锁系统', '错误');
+            throw new Error('未解锁');
+        }
+        const url = `https://api.github.com/repos/${GITHUB.USER}/${GITHUB.REPO}/contents/${path}`;
+        const res = await fetch(url, {
+            method,
+            headers: { 'Authorization': `token ${GITHUB.TOKEN}`, 'Accept': 'application/vnd.github.v3+json' },
+            body: body ? JSON.stringify(body) : null
+        });
+        return res;
+    }
+
+    async function loadList() {
+        if (!decryptedToken) return;
+        const res = await api(GITHUB.DB);
+        if (res.ok) {
+            const data = await res.json();
+            const db = JSON.parse(fromB64(data.content));
+            render(db.all_sites || []);
+        } else {
+            addLog("⚠️ 数据库 db.json 不存在，请先在 GitHub 手动创建", "error");
+        }
+    }
+
+    function render(sites) {
+        const box = document.getElementById('siteList');
+        if (!sites.length) { box.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">暂无数据</div>'; return; }
+        
+        box.innerHTML = sites.slice().reverse().map(s => `
+            <div class="site-item">
+                <div class="site-info">
+                    <a href="${s.url}" target="_blank" class="site-name">🔗 ${s.id}</a>
+                    <div class="site-note">${s.note}</div>
+                    <div class="site-time">${s.time}</div>
+                </div>
+                <div class="del-btn" style="display:${isAuth ? 'block' : 'none'}" onclick="doDelete('${s.id}', '${s.path}')">删除</div>
+            </div>
+        `).join('');
+    }
+
+    async function doDeploy() {
+        if (!decryptedToken) {
+            await customAlert('请先解锁系统', '错误');
+            return;
+        }
+        const code = document.getElementById('htmlCode').value.trim();
+        const note = document.getElementById('siteNote').value.trim();
+        if (!code || !note) return alert("请填写代码和备注");
+
+        const btn = document.getElementById('deployBtn');
+        btn.disabled = true;
+        const sid = "SITE-" + Math.random().toString(36).substr(2, 5).toUpperCase();
+        const path = `sites/${sid}/index.html`;
+
+        addLog(`正在部署 ${sid}...`);
+
+        try {
+            let htmlSha = null;
+            const htmlExistRes = await api(path);
+            if(htmlExistRes.ok) {
+                const htmlExistData = await htmlExistRes.json();
+                htmlSha = htmlExistData.sha;
+            }
+
+            const upRes = await api(path, 'PUT', { 
+                message: "deploy site", 
+                content: toB64(code),
+                sha: htmlSha 
+            });
+            
+            if(!upRes.ok) throw new Error("文件上传失败");
+
+            const dbRes = await api(GITHUB.DB);
+            let db = { all_sites: [] }, dbSha = null;
+            if (dbRes.ok) {
+                const data = await dbRes.json();
+                dbSha = data.sha;
+                db = JSON.parse(fromB64(data.content));
+            }
+
+            db.all_sites.push({
+                id: sid, path, note,
+                url: `https://${GITHUB.USER}.github.io/${GITHUB.REPO}/${path}`,
+                time: new Date().toLocaleString()
+            });
+
+            const dbUpRes = await api(GITHUB.DB, 'PUT', {
+                message: "update db",
+                content: toB64(JSON.stringify(db, null, 2)),
+                sha: dbSha
+            });
+
+            if(!dbUpRes.ok) throw new Error("数据库更新失败");
+
+            addLog("✅ 部署完成！", "success");
+            document.getElementById('htmlCode').value = "";
+            document.getElementById('siteNote').value = "";
+            loadList();
+        } catch (e) {
+            addLog(`❌ 部署失败: ${e.message}`, "error");
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function doDelete(sid, path) {
+        if (!(await confirm("确定删除？"))) return;
+        try {
+            const fRes = await api(path);
+            if (fRes.ok) {
+                const fData = await fRes.json();
+                await api(path, 'DELETE', { message: "del site", sha: fData.sha });
+            }
+            const dbRes = await api(GITHUB.DB);
+            const dbData = await dbRes.json();
+            const db = JSON.parse(fromB64(dbData.content));
+            db.all_sites = db.all_sites.filter(s => s.id !== sid);
+            await api(GITHUB.DB, 'PUT', { message: "del db entry", content: toB64(JSON.stringify(db, null, 2)), sha: dbData.sha });
+            addLog("🗑️ 已移除站点");
+            loadList();
+        } catch (e) { addLog("❌ 删除失败", "error"); }
+    }
+
+    function addLog(msg, type = '') {
+        const b = document.getElementById('logBox');
+        const d = document.createElement('div');
+        d.innerText = `> ${msg}`;
+        if (type === 'success') d.style.color = '#4ade80';
+        if (type === 'error') d.style.color = '#ff8787';
+        b.appendChild(d);
+        b.scrollTop = b.scrollHeight;
+    }
+
+    // 页面加载后不自动加载列表，等待解锁
+    // loadList() 将在 tryDecrypt 成功后调用
+</script>
+</body>
+</html>
