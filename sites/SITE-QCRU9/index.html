@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站集合</title>
+ 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f2f5;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #1c1e21;
+        }
+
+        .navbar {
+            background: #ffffff;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .admin-trigger {
+            width: 10px;
+            height: 10px;
+            cursor: pointer;
+            opacity: 0.1;
+            border-radius: 50%;
+            background: #888;
+            transition: opacity 0.2s;
+        }
+        .admin-trigger:hover {
+            opacity: 0.4;
+        }
+
+        #adminInput {
+            display: none;
+            margin-left: 10px;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #adminInput:focus {
+            border-color: #1a73e8;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-bottom: 18px;
+            font-size: 1.15rem;
+            color: #1a73e8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 搜索框样式 */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .search-wrapper .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 15px;
+            color: #999;
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+        .search-input {
+            width: 100%;
+            padding: 11px 14px 11px 40px;
+            border: 2px solid #e8eaed;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            background: #fafbfc;
+            transition: all 0.25s;
+            font-family: inherit;
+        }
+        .search-input::placeholder {
+            color: #b0b5bb;
+        }
+        .search-input:focus {
+            border-color: #1a73e8;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.08);
+        }
+        .search-input:focus+.search-icon {
+            color: #1a73e8;
+        }
+        .search-results-hint {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .search-results-hint.visible {
+            display: block;
+        }
+
+        .site-item {
+            padding: 16px 14px;
+            border-bottom: 1px solid #f0f2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+            border-radius: 8px;
+            margin-bottom: 2px;
+        }
+        .site-item:last-child {
+            border-bottom: none;
+        }
+        .site-item:hover {
+            background: #f8f9fb;
+        }
+        .site-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .site-name {
+            display: block;
+            font-weight: 600;
+            color: #1a73e8;
+            text-decoration: none;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .site-name:hover {
+            color: #1557b0;
+            text-decoration: underline;
+        }
+        .site-note {
+            font-size: 13px;
+            color: #65676b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .site-time {
+            font-size: 11px;
+            color: #bcc0c4;
+            margin-top: 4px;
+        }
+        .del-btn {
+            color: #d93025;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #f8d7da;
+            border-radius: 6px;
+            background: #fff;
+            transition: all 0.2s;
+            white-space: nowrap;
+            margin-left: 10px;
+            font-weight: 500;
+        }
+        .del-btn:hover {
+            background: #fef2f2;
+            border-color: #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: #999;
+            font-size: 14px;
+        }
+        .empty-state .empty-icon {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* 自定义弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-box {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            min-width: 300px;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .modal-box h4 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        .modal-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .modal-box input:focus {
+            border-color: #1a73e8;
+        }
+        .modal-box .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .modal-box button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1557b0;
+        }
+        .btn-secondary {
+            background: #e4e6eb;
+            color: #1c1e21;
+        }
+        .btn-secondary:hover {
+            background: #d8dadf;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 0 10px;
+                margin: 12px auto;
+            }
+            .card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+            .site-item {
+                padding: 12px 8px;
+            }
+            .navbar {
+                padding: 10px 14px;
+            }
+            #title {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 自定义消息弹窗 (代替 alert) -->
+    <div class="modal-overlay" id="alertModal">
+        <div class="modal-box">
+            <h4 id="alertTitle">提示</h4>
+            <p id="alertMsg"></p>
+            <button class="btn-primary" style="width:100%; margin-top:15px" onclick="closeAlert()">确定</button>
+        </div>
+    </div>
+
+    <!-- 自定义确认弹窗 (代替 confirm) -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <h4 id="confirmTitle">确认</h4>
+            <p id="confirmMsg"></p>
+            <div class="btn-row">
+                <button class="btn-secondary" onclick="resolveConfirm(false)">取消</button>
+                <button class="btn-primary" onclick="resolveConfirm(true)">确定</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal-overlay active" id="loginModal">
+        <div class="modal-box">
+            <h4>🔐 请输入解密密钥</h4>
+            <input type="password" id="decryptKey" placeholder="输入密钥">
+            <div id="loginError" style="color:#d93025; font-size:13px; margin-top:5px; display:none;"></div>
+            <button class="btn-primary" style="width:100%; margin-top:15px" onclick="tryDecrypt()">解锁进入</button>
+            <p style="font-size:12px; color:#888; margin-top:10px;">Token 已受 AES 加密保护</p>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div style="display: flex; align-items: center;">
+            <div class="admin-trigger" onclick="activeAdmin()" title="管理员入口"></div>
+            <input type="password" id="adminInput" placeholder="口令" onkeypress="checkAuth(event)">
+            <h2 id="title">🌐 网页大厅</h2>
+        </div>
+        <div id="status" style="font-size: 12px; color: #2ecc71;">● 连通中</div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h3>📂 已发布站点 <span style="font-size:12px;color:#999;font-weight:400;">永久保存</span></h3>
+
+            <!-- 搜索框 -->
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="搜索备注关键词筛选站点..." oninput="applyFilterAndRender()">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="search-results-hint" id="searchHint"></div>
+
+            <div id="siteList" style="max-height: 65vh; overflow-y: auto;">
+                <div class="empty-state">
+                    <span class="empty-icon">📭</span>
+                    正在加载列表...
+                </div>
+            </div>
+
+           
+            <div class="log-panel" id="logBox" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+
+        const _ENC =
+            "U2FsdGVkX18tEswoTJpQmkEbnz6cs9xlSzsg/+XlFmLkcHJsjwX5tFFg9q3Kd54tC6/7yAKjOOx1a/4le4OohQ=="; 
+        const GITHUB_USER = "youxiaoyu26";
+        const GITHUB_REPO = "ceshi";
+        const DB_FILE = "db.json";
+
+
+        let alertResolve = null;
+        let confirmResolve = null;
+
+        function customAlert(msg, title = '提示') {
+            return new Promise(resolve => {
+                document.getElementById('alertTitle').innerText = title;
+                document.getElementById('alertMsg').innerText = msg;
+                document.getElementById('alertModal').classList.add('active');
+                alertResolve = resolve;
+            });
+        }
+        window.alert = async function(msg) {
+            await customAlert(msg);
+        };
+
+        function closeAlert() {
+            document.getElementById('alertModal').classList.remove('active');
+            if (alertResolve) { alertResolve();
+                alertResolve = null; }
+        }
+
+        function customConfirm(msg, title = '确认') {
+            return new Promise(resolve => {
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMsg').innerText = msg;
+                document.getElementById('confirmModal').classList.add('active');
+                confirmResolve = resolve;
+            });
+        }
+        window.confirm = async function(msg) {
+            return await customConfirm(msg);
+        };
+
+        function resolveConfirm(result) {
+            document.getElementById('confirmModal').classList.remove('active');
+            if (confirmResolve) { confirmResolve(result);
+                confirmResolve = null; }
+        }
+
+        let decryptedToken = null;
+
+        function tryDecrypt() {
+            const key = document.getElementById('decryptKey').value;
+            if (!key) {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginError').innerText = '密码不能为空';
+                return;
+            }
+            try {
+
+                const bytes = CryptoJS.AES.decrypt(_ENC, key);
+                const original = bytes.toString(CryptoJS.enc.Utf8);
+                if (!original || !original.startsWith('ghp_')) {
+                    throw new Error('密码错误或密文无效');
+                }
+                decryptedToken = original;
+                
+                document.getElementById('loginModal').classList.remove('active');
+                
+                loadList();
+                addLog("🔓 Token 解密成功，系统就绪");
+            } catch (e) {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginError').innerText = '密码错误，请重试';
+            }
+        }
+
+
+        const GITHUB = {
+            get TOKEN() { return decryptedToken; },
+            USER: GITHUB_USER,
+            REPO: GITHUB_REPO,
+            DB: DB_FILE
+        };
+
+        let isAuth = false;
+        let cachedSites = []; 
+
+        
+        function activeAdmin() { document.getElementById('adminInput').style.display = 'block'; }
+
+        function checkAuth(e) {
+            if (e.key === 'Enter') {
+                if (e.target.value === 'ande123') {
+                    isAuth = true;
+                    document.getElementById('title').innerText = "🛠️ 管理员模式";
+                    document.getElementById('adminInput').style.display = 'none';
+                    addLog("✅ 管理员模式已开启");
+                    loadList();
+                }
+            }
+        }
+
+        const toB64 = str => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode(
+            '0x' + p1)));
+        const fromB64 = str => decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0)
+            .toString(16)).slice(-2)).join(''));
+
+        async function api(path, method = 'GET', body = null) {
+            if (!decryptedToken) {
+                await customAlert('请先解锁系统', '错误');
+                throw new Error('未解锁');
+            }
+            const url = `https://api.github.com/repos/${GITHUB.USER}/${GITHUB.REPO}/contents/${path}`;
+            const res = await fetch(url, {
+                method,
+                headers: { 'Authorization': `token ${GITHUB.TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json' },
+                body: body ? JSON.stringify(body) : null
+            });
+            return res;
+        }
+
+        async function loadList() {
+            if (!decryptedToken) return;
+            const res = await api(GITHUB.DB);
+            if (res.ok) {
+                const data = await res.json();
+                const db = JSON.parse(fromB64(data.content));
+                cachedSites = db.all_sites || [];
+                applyFilterAndRender();
+            } else {
+                addLog("⚠️ 数据库 db.json 不存在，请先在 GitHub 手动创建", "error");
+                cachedSites = [];
+                applyFilterAndRender();
+            }
+        }
+
+        // 搜索过滤并渲染
+        function applyFilterAndRender() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            const hintEl = document.getElementById('searchHint');
+
+            if (!keyword) {
+                hintEl.classList.remove('visible');
+                render(cachedSites);
+            } else {
+                const filtered = cachedSites.filter(s => s.note && s.note.toLowerCase().includes(keyword));
+                if (filtered.length === 0) {
+                    hintEl.textContent = `未找到匹配 "${keyword}" 的站点`;
+                    hintEl.classList.add('visible');
+                } else {
+                    hintEl.textContent = `找到 ${filtered.length} 个匹配站点`;
+                    hintEl.classList.add('visible');
+                }
+                render(filtered);
+            }
+        }
+
+        function render(sites) {
+            const box = document.getElementById('siteList');
+            if (!sites || !sites.length) {
+                box.innerHTML =
+                    '<div class="empty-state"><span class="empty-icon">📭</span>暂无数据</div>';
+                return;
+            }
+
+            box.innerHTML = sites.slice().reverse().map(s => `
+            <div class="site-item">
+                <div class="site-info">
+                    <a href="${s.url}" target="_blank" class="site-name">🔗 ${s.id}</a>
+                    <div class="site-note">${s.note}</div>
+                    <div class="site-time">${s.time}</div>
+                </div>
+                <div class="del-btn" style="display:${isAuth ? 'inline-block' : 'none'}" onclick="doDelete('${s.id}', '${s.path}')">删除</div>
+            </div>
+        `).join('');
+        }
+
+        async function doDeploy() {
+            if (!decryptedToken) {
+                await customAlert('请先解锁系统', '错误');
+                return;
+            }
+            const codeEl = document.getElementById('htmlCode');
+            const noteEl = document.getElementById('siteNote');
+            if (!codeEl || !noteEl) {
+                addLog("❌ 部署面板已移除，无法执行部署", "error");
+                return;
+            }
+            const code = codeEl.value.trim();
+            const note = noteEl.value.trim();
+            if (!code || !note) return alert("请填写代码和备注");
+
+            const btn = document.getElementById('deployBtn');
+            if (btn) btn.disabled = true;
+            const sid = "SITE-" + Math.random().toString(36).substr(2, 5).toUpperCase();
+            const path = `sites/${sid}/index.html`;
+
+            addLog(`正在部署 ${sid}...`);
+
+            try {
+                let htmlSha = null;
+                const htmlExistRes = await api(path);
+                if (htmlExistRes.ok) {
+                    const htmlExistData = await htmlExistRes.json();
+                    htmlSha = htmlExistData.sha;
+                }
+
+                const upRes = await api(path, 'PUT', {
+                    message: "deploy site",
+                    content: toB64(code),
+                    sha: htmlSha
+                });
+
+                if (!upRes.ok) throw new Error("文件上传失败");
+
+                const dbRes = await api(GITHUB.DB);
+                let db = { all_sites: [] },
+                    dbSha = null;
+                if (dbRes.ok) {
+                    const data = await dbRes.json();
+                    dbSha = data.sha;
+                    db = JSON.parse(fromB64(data.content));
+                }
+
+                db.all_sites.push({
+                    id: sid,
+                    path,
+                    note,
+                    url: `https://${GITHUB.USER}.github.io/${GITHUB.REPO}/${path}`,
+                    time: new Date().toLocaleString()
+                });
+
+                const dbUpRes = await api(GITHUB.DB, 'PUT', {
+                    message: "update db",
+                    content: toB64(JSON.stringify(db, null, 2)),
+                    sha: dbSha
+                });
+
+                if (!dbUpRes.ok) throw new Error("数据库更新失败");
+
+                addLog("✅ 部署完成！", "success");
+                if (codeEl) codeEl.value = "";
+                if (noteEl) noteEl.value = "";
+                loadList();
+            } catch (e) {
+                addLog(`❌ 部署失败: ${e.message}`, "error");
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function doDelete(sid, path) {
+            if (!(await confirm("确定删除？"))) return;
+            try {
+                const fRes = await api(path);
+                if (fRes.ok) {
+                    const fData = await fRes.json();
+                    await api(path, 'DELETE', { message: "del site", sha: fData.sha });
+                }
+                const dbRes = await api(GITHUB.DB);
+                const dbData = await dbRes.json();
+                const db = JSON.parse(fromB64(dbData.content));
+                db.all_sites = db.all_sites.filter(s => s.id !== sid);
+                await api(GITHUB.DB, 'PUT', { message: "del db entry", content: toB64(JSON.stringify(db, null, 2)),
+                    sha: dbData.sha });
+                addLog("🗑️ 已移除站点");
+                loadList();
+            } catch (e) { addLog("❌ 删除失败", "error"); }
+        }
+
+        function addLog(msg, type = '') {
+            const b = document.getElementById('logBox');
+            if (!b) return;
+            const d = document.createElement('div');
+            d.innerText = `> ${msg}`;
+            if (type === 'success') d.style.color = '#4ade80';
+            if (type === 'error') d.style.color = '#ff8787';
+            b.appendChild(d);
+            b.scrollTop = b.scrollHeight;
+        }
+
+       
+    </script>
+</body>
+</html>
