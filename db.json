@@ -1,13 +1,6 @@
 {
   "all_sites": [
     {
-      "id": "SITE-TCURG",
-      "path": "sites/SITE-TCURG/index.html",
-      "note": "介绍",
-      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-TCURG/index.html",
-      "time": "2026/4/24 00:14:05"
-    },
-    {
       "id": "SITE-CE80Y",
       "path": "sites/SITE-CE80Y/index.html",
       "note": "部署",
