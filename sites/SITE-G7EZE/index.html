@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES-256 加密工具 | 本地安全加密</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            max-width: 750px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            padding: 28px 32px 36px;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 0.25rem;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge {
+            background: #e2e8f0;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 40px;
+            color: #1e293b;
+        }
+        .sub {
+            color: #475569;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+            margin: 12px 0 20px 0;
+            font-size: 0.85rem;
+        }
+        .warning {
+            background: #fffbeb;
+            border-left: 4px solid #eab308;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            color: #92400e;
+            margin-bottom: 24px;
+        }
+        label {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+            color: #0f172a;
+            font-size: 0.9rem;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 0.9rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            background: #ffffff;
+            transition: 0.2s;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            resize: vertical;
+        }
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .row {
+            margin-bottom: 22px;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 24px 0 20px;
+        }
+        button {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        button.primary {
+            background: #3b82f6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        button.primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        button.secondary {
+            background: #475569;
+        }
+        button.secondary:hover {
+            background: #334155;
+        }
+        button.outline {
+            background: transparent;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+        }
+        button.outline:hover {
+            background: #f8fafc;
+        }
+        .result-area {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .copy-btn {
+            background: none;
+            border: none;
+            color: #3b82f6;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+        .copy-btn:hover {
+            background: #eef2ff;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #0f172a;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        hr {
+            margin: 20px 0;
+            border: 0;
+            border-top: 1px solid #e2e8f0;
+        }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #94a3b8;
+            margin-top: 24px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        @media (max-width: 560px) {
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>🔐 AES-256 加密工具 <span class="badge">浏览器本地 · 零传输</span></h1>
+    <div class="sub">使用 Web Crypto API (PBKDF2 + AES-256-GCM) — 密钥永不离开您的设备</div>
+    <div class="warning">
+        ⚠️ 安全提示：此工具完全在前端运行，不会将您的密钥或密码发送到任何服务器。<br>
+        请妥善保管加密密码，丢失后将无法解密。GitHub 令牌等敏感信息请勿暴露给他人。
+    </div>
+
+    <div class="row">
+        <label>📝 待加密文本 (明文)</label>
+        <textarea id="plaintext" rows="2" placeholder="输入需要 AES-256 加密的内容 ..."></textarea>
+    </div>
+
+    <div class="row">
+        <label>🔑 加密密码 (用于派生出 AES-256 密钥)</label>
+        <input type="password" id="password" placeholder="请输入强密码 (长度建议 >= 12 字符)" autocomplete="off">
+    </div>
+
+    <div class="button-group">
+        <button id="encryptBtn" class="primary">✨ 加密 (AES-256-GCM)</button>
+        <button id="decryptBtn" class="secondary">🔓 解密密文</button>
+        <button id="swapBtn" class="outline">↻ 交换 明文/密文</button>
+        <button id="clearBtn" class="outline">🗑 清空结果</button>
+    </div>
+
+    <div class="row">
+        <label>📦 加密结果 (Base64 格式，包含 salt + iv + authTag + ciphertext)</label>
+        <div class="result-area">
+            <div class="result-header">
+                <span style="font-size:0.7rem; color:#475569;">AES-256-GCM 封装数据</span>
+                <button id="copyEncrypted" class="copy-btn">📋 复制密文</button>
+            </div>
+            <pre id="encryptedOutput">(未加密)</pre>
+        </div>
+    </div>
+
+    <div class="row">
+        <label>🔎 解密结果 (从上方密文解密)</label>
+        <div class="result-area">
+            <div class="result-header">
+                <span style="font-size:0.7rem; color:#475569;">使用相同密码解密后显示</span>
+                <button id="copyDecrypted" class="copy-btn">📋 复制明文</button>
+            </div>
+            <pre id="decryptedOutput">(暂无)</pre>
+        </div>
+    </div>
+    <hr>
+    <footer>
+        💡 工作流程：密码 + 随机盐 → PBKDF2 (100,000次, SHA-256) → 32字节密钥 → AES-256-GCM 加密。<br>
+        每次加密生成独立随机盐和 IV，密文格式：<strong>Salt(16B) + IV(12B) + AuthTag(16B) + Ciphertext</strong> 整体 Base64。
+    </footer>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const plaintextArea = document.getElementById('plaintext');
+        const passwordInput = document.getElementById('password');
+        const encryptedPre = document.getElementById('encryptedOutput');
+        const decryptedPre = document.getElementById('decryptedOutput');
+        const encryptBtn = document.getElementById('encryptBtn');
+        const decryptBtn = document.getElementById('decryptBtn');
+        const swapBtn = document.getElementById('swapBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyEncryptedBtn = document.getElementById('copyEncrypted');
+        const copyDecryptedBtn = document.getElementById('copyDecrypted');
+
+        // ---------- 辅助函数 ----------
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // 使用 PBKDF2 从密码+盐派生 AES-256 密钥 (32字节)
+        async function deriveKey(password, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                enc.encode(password),
+                { name: 'PBKDF2' },
+                false,
+                ['deriveKey']
+            );
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // 加密函数: 输入明文(字符串)和密码(字符串), 返回 Base64 格式的完整密文 (salt+iv+authTag+ciphertext)
+        async function encryptAES256(plaintext, password) {
+            if (!plaintext || !password) throw new Error('明文和密码不能为空');
+            const encoder = new TextEncoder();
+            const data = encoder.encode(plaintext);
+            
+            // 生成随机盐 (16字节) 和 随机 IV (12字节, GCM推荐)
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            
+            // 派生密钥
+            const cryptoKey = await deriveKey(password, salt);
+            
+            // 加密 (GCM模式，返回包含认证标签的密文)
+            const encryptedContent = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv,
+                    tagLength: 128   // 128位认证标签
+                },
+                cryptoKey,
+                data
+            );
+            // encryptedContent 是 ArrayBuffer，末尾已经附加了认证标签 (16字节)
+            // 我们需要将其拆分为 ciphertext 和 authTag？实际上 WebCrypto 返回的是 ciphertext || authTag 连接在一起
+            // 为了便于解析，我们存储时: salt (16) + iv (12) + 完整加密结果(含认证标签)
+            // 解密时再拆分。但注意: 解密时subtle.decrypt需要独立的authTag和ciphertext。
+            // 标准做法：加密返回的ArrayBuffer = 密文(不含tag) + tag(末尾16字节)
+            // 获取tag和密文
+            const encryptedArray = new Uint8Array(encryptedContent);
+            const tagLengthBytes = 16; // 128 bit
+            const ciphertext = encryptedArray.slice(0, encryptedArray.length - tagLengthBytes);
+            const authTag = encryptedArray.slice(encryptedArray.length - tagLengthBytes);
+            
+            // 构建最终存储数据结构: salt(16) + iv(12) + authTag(16) + ciphertext
+            const resultBuffer = new Uint8Array(salt.length + iv.length + authTag.length + ciphertext.length);
+            resultBuffer.set(salt, 0);
+            resultBuffer.set(iv, salt.length);
+            resultBuffer.set(authTag, salt.length + iv.length);
+            resultBuffer.set(ciphertext, salt.length + iv.length + authTag.length);
+            
+            return arrayBufferToBase64(resultBuffer.buffer);
+        }
+
+        // 解密函数: 输入 Base64 密文(格式同上) 和密码, 返回明文字符串
+        async function decryptAES256(encryptedBase64, password) {
+            if (!encryptedBase64 || !password) throw new Error('密文和密码不能为空');
+            const fullBuffer = base64ToArrayBuffer(encryptedBase64);
+            const fullArray = new Uint8Array(fullBuffer);
+            
+            // 解析各段长度
+            const saltLen = 16;
+            const ivLen = 12;
+            const tagLen = 16;
+            if (fullArray.length < saltLen + ivLen + tagLen) throw new Error('无效的密文格式');
+            
+            const salt = fullArray.slice(0, saltLen);
+            const iv = fullArray.slice(saltLen, saltLen + ivLen);
+            const authTag = fullArray.slice(saltLen + ivLen, saltLen + ivLen + tagLen);
+            const ciphertext = fullArray.slice(saltLen + ivLen + tagLen);
+            
+            // 派生密钥
+            const cryptoKey = await deriveKey(password, salt);
+            
+            // 准备 decrypt 需要的参数: 将 ciphertext 和 authTag 合并为一个 ArrayBuffer (因为 decrypt 期望带tag的完整密文)
+            const encryptedWithTag = new Uint8Array(ciphertext.length + authTag.length);
+            encryptedWithTag.set(ciphertext, 0);
+            encryptedWithTag.set(authTag, ciphertext.length);
+            
+            try {
+                const decrypted = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv,
+                        tagLength: 128
+                    },
+                    cryptoKey,
+                    encryptedWithTag.buffer
+                );
+                const decoder = new TextDecoder();
+                return decoder.decode(decrypted);
+            } catch (err) {
+                throw new Error('解密失败：密码错误或数据已损坏');
+            }
+        }
+
+        // 显示提示 (简洁)
+        function showToast(msg, isError = false) {
+            // 简单 alert 风格 (为了轻量，不改动dom太多；也可增加浮动toast)
+            // 使用内置 alert 会打断体验，采用更温和的方式: 临时修改某元素？为了方便，暂用 alert，但会打扰。
+            // 为了友好，我们在控制台输出 + alert (因为用户可能忽略)
+            if (isError) {
+                alert(`❌ ${msg}`);
+            } else {
+                alert(`✅ ${msg}`);
+            }
+        }
+
+        // 加密动作
+        async function onEncrypt() {
+            const plaintext = plaintextArea.value;
+            const password = passwordInput.value;
+            if (!plaintext.trim()) {
+                showToast('请输入需要加密的文本', true);
+                return;
+            }
+            if (!password) {
+                showToast('请设置加密密码', true);
+                return;
+            }
+            try {
+                encryptedPre.innerText = '⏳ 加密中...';
+                const encryptedBase64 = await encryptAES256(plaintext, password);
+                encryptedPre.innerText = encryptedBase64;
+                decryptedPre.innerText = '(解密结果显示在此)';
+                showToast('加密成功！密文已生成 (Base64)');
+            } catch (err) {
+                console.error(err);
+                encryptedPre.innerText = '加密失败: ' + err.message;
+                showToast(err.message, true);
+            }
+        }
+
+        // 解密动作 (使用当前密文框内容 + 密码)
+        async function onDecrypt() {
+            const encryptedBase64 = encryptedPre.innerText;
+            const password = passwordInput.value;
+            if (!encryptedBase64 || encryptedBase64 === '(未加密)' || encryptedBase64.startsWith('加密失败') || encryptedBase64.startsWith('⏳')) {
+                showToast('没有有效的密文，请先执行加密或输入合法Base64密文', true);
+                return;
+            }
+            if (!password) {
+                showToast('请输入加密时使用的密码', true);
+                return;
+            }
+            try {
+                decryptedPre.innerText = '🔓 解密中...';
+                const plaintext = await decryptAES256(encryptedBase64, password);
+                decryptedPre.innerText = plaintext;
+                showToast('解密成功！');
+            } catch (err) {
+                console.error(err);
+                decryptedPre.innerText = '解密失败: ' + err.message;
+                showToast(err.message, true);
+            }
+        }
+
+        // 交换: 将当前解密得到的明文填入明文框，同时清空密码? 不清密码但提高便利
+        function onSwap() {
+            const decryptedText = decryptedPre.innerText;
+            if (decryptedText && !decryptedText.startsWith('解密失败') && !decryptedText.startsWith('🔓') && decryptedText !== '(暂无)' && decryptedText !== '(解密结果显示在此)') {
+                plaintextArea.value = decryptedText;
+                // 可选: 清空密文区域和结果区域提示
+                encryptedPre.innerText = '(未加密)';
+                decryptedPre.innerText = '(交换后请重新加密)';
+                showToast('已将解密结果填入明文区，可重新加密');
+            } else {
+                showToast('没有有效的解密结果可交换', true);
+            }
+        }
+
+        function onClear() {
+            encryptedPre.innerText = '(未加密)';
+            decryptedPre.innerText = '(暂无)';
+            // 不清除明文和密码，方便重新操作
+            showToast('已清空密文/解密结果显示区');
+        }
+
+        async function copyToClipboard(text, type) {
+            if (!text || text === '(未加密)' || text === '(暂无)' || text.startsWith('加密失败') || text.startsWith('解密失败')) {
+                showToast(`没有可复制的${type}内容`, true);
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast(`${type}已复制到剪贴板`);
+            } catch (err) {
+                showToast(`复制失败: ${err.message}`, true);
+            }
+        }
+
+        // 复制密文
+        function onCopyEncrypted() {
+            copyToClipboard(encryptedPre.innerText, '密文');
+        }
+        function onCopyDecrypted() {
+            copyToClipboard(decryptedPre.innerText, '明文');
+        }
+
+        // 绑定事件
+        encryptBtn.addEventListener('click', onEncrypt);
+        decryptBtn.addEventListener('click', onDecrypt);
+        swapBtn.addEventListener('click', onSwap);
+        clearBtn.addEventListener('click', onClear);
+        copyEncryptedBtn.addEventListener('click', onCopyEncrypted);
+        copyDecryptedBtn.addEventListener('click', onCopyDecrypted);
+        
+        // 初始提示: 预置的github token 为示例，提醒用户注意安全
+        console.log('AES-256 加密工具已加载 — 所有操作均在浏览器本地执行');
+    })();
+</script>
+</body>
+</html>
