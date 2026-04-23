@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>云端发布 - 最终修复调试版</title>
+    <title>云端部署</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #f4f7f9; font-family: system-ui, sans-serif; padding: 20px; display: flex; justify-content: center; }
@@ -27,7 +27,7 @@
 
 <div class="app">
     <div class="main-card">
-        <h2>📄 源码编辑器</h2>
+        <h2>📄网站部署</h2>
         <textarea id="codeArea" class="editor" placeholder="在此粘贴你的 HTML 代码..."></textarea>
         <p style="margin-top:10px; font-size:12px; color:#666;">* 请确保你的 GitHub 仓库中已手动创建过一次 db.json 文件，内容为 {}</p>
     </div>
@@ -49,8 +49,6 @@
     (function() {
         "use strict";
 
-        // --- 配置区 ---
-        // 关键：把你的 Base64 后的 Token 拆成两段，拼起来，防止 GitHub 的简单正则扫描
         const P1 = "Z2hwX2ZZdGVNQzllYzFzRW1ZdThS"; 
         const P2 = "ZGp0VUtZTWN3YzE3YTNWWks0bA==";
         
@@ -60,7 +58,7 @@
             DB: "db.json"
         };
 
-        // 解码 Token
+        
         const getToken = () => atob(P1 + P2);
 
         const log = (msg, isErr = false) => {
@@ -72,7 +70,7 @@
             box.scrollTop = box.scrollHeight;
         };
 
-        // 核心请求封装
+    
         async function ghReq(path, method = 'GET', body = null) {
             const url = `https://api.github.com/repos/${CFG.OWNER}/${CFG.REPO}/contents/${path}`;
             const opt = {
@@ -87,7 +85,7 @@
             
             const res = await fetch(url, opt);
             
-            // 如果报错，解析具体的报错原因
+        
             if (!res.ok) {
                 const errInfo = await res.json().catch(() => ({}));
                 if (res.status === 401) throw new Error("Token失效！(GitHub已封禁此Key)");
@@ -98,7 +96,7 @@
             return res.json();
         }
 
-        // 安全的 Base64 编码 (处理中文)
+
         const toB64 = (str) => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p)));
 
         async function startDeploy() {
@@ -114,14 +112,14 @@
             try {
                 log(`正在检查仓库状态...`);
                 
-                // 1. 尝试上传文件
+            
                 log(`正在上传站点文件...`);
                 await ghReq(filePath, 'PUT', {
                     message: `add site ${siteId}`,
                     content: toB64(code)
                 });
 
-                // 2. 更新数据库
+            
                 log(`正在同步数据库...`);
                 let sha = null;
                 let dbData = {};
