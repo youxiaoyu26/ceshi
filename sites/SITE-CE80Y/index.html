@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多人协作部署大厅</title>
-    <!-- 引入 CryptoJS 用于 AES 解密 -->
+    <title>多人部署</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,7 +39,7 @@
 
         .log-panel { background: #1c1e21; color: #4ade80; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; height: 120px; overflow-y: auto; margin-top: 15px; }
 
-        /* 自定义弹窗样式 */
+        
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); display: flex; justify-content: center;
@@ -64,7 +64,7 @@
 </head>
 <body>
 
-<!-- 自定义消息弹窗 (代替 alert) -->
+
 <div class="modal-overlay" id="alertModal">
     <div class="modal-box">
         <h4 id="alertTitle">提示</h4>
@@ -73,7 +73,7 @@
     </div>
 </div>
 
-<!-- 自定义确认弹窗 (代替 confirm) -->
+
 <div class="modal-overlay" id="confirmModal">
     <div class="modal-box">
         <h4 id="confirmTitle">确认</h4>
@@ -85,7 +85,7 @@
     </div>
 </div>
 
-<!-- 登录解密弹窗 (进入时显示) -->
+
 <div class="modal-overlay active" id="loginModal">
     <div class="modal-box">
         <h4>🔐 请输入解密密钥</h4>
@@ -100,7 +100,7 @@
     <div style="display: flex; align-items: center;">
         <div class="admin-trigger" onclick="activeAdmin()"></div>
         <input type="password" id="adminInput" placeholder="口令" onkeypress="checkAuth(event)">
-        <h2 id="title">🌐 网页分发大厅</h2>
+        <h2 id="title">🌐一键部署  作者:柚小屿 QQ群:1102630709</h2>
     </div>
     <div id="status" style="font-size: 12px; color: #2ecc71;">● 连通中</div>
 </nav>
@@ -134,14 +134,13 @@
 </div>
 
 <script>
-    // ====== 配置区 (需要你用自己的 Token + 密码生成) ======
-    // 使用 AES 加密后的密文 (Base64 格式)
+//========配置====如果看到这删掉下面的信息就将彻底无法使用==
     const _ENC = "U2FsdGVkX18tEswoTJpQmkEbnz6cs9xlSzsg/+XlFmLkcHJsjwX5tFFg9q3Kd54tC6/7yAKjOOx1a/4le4OohQ==";  // 替换为你自己的密文
     const GITHUB_USER = "youxiaoyu26";
     const GITHUB_REPO = "ceshi";
     const DB_FILE = "db.json";
 
-    // ====== 自定义弹窗系统 ======
+
     let alertResolve = null;
     let confirmResolve = null;
 
@@ -179,7 +178,7 @@
         if (confirmResolve) { confirmResolve(result); confirmResolve = null; }
     }
 
-    // ====== 解密逻辑 ======
+    
     let decryptedToken = null;
 
     function tryDecrypt() {
@@ -190,16 +189,16 @@
             return;
         }
         try {
-            // 使用 AES 解密，密文格式：CryptoJS.AES.encrypt 默认输出
+
             const bytes = CryptoJS.AES.decrypt(_ENC, key);
             const original = bytes.toString(CryptoJS.enc.Utf8);
             if (!original || !original.startsWith('ghp_')) {
                 throw new Error('密码错误或密文无效');
             }
             decryptedToken = original;
-            // 隐藏登录弹窗
+            
             document.getElementById('loginModal').classList.remove('active');
-            // 初始化加载列表
+            
             loadList();
             addLog("🔓 Token 解密成功，系统就绪");
         } catch (e) {
@@ -208,7 +207,7 @@
         }
     }
 
-    // 修改 GITHUB 对象，使用解密后的 Token
+
     const GITHUB = {
         get TOKEN() { return decryptedToken; },
         USER: GITHUB_USER,
@@ -218,7 +217,7 @@
 
     let isAuth = false;
 
-    // 后台权限
+    
     function activeAdmin() { document.getElementById('adminInput').style.display = 'block'; }
     function checkAuth(e) {
         if (e.key === 'Enter') {
@@ -232,7 +231,7 @@
         }
     }
 
-    // 文件读取
+    
     function readFile(input) {
         const file = input.files[0];
         const reader = new FileReader();
@@ -243,11 +242,11 @@
         reader.readAsText(file);
     }
 
-    // 编码转换 (GitHub 要求 Base64)
+
     const toB64 = str => btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode('0x' + p1)));
     const fromB64 = str => decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
 
-    // API 通讯
+
     async function api(path, method = 'GET', body = null) {
         if (!decryptedToken) {
             await customAlert('请先解锁系统', '错误');
@@ -383,8 +382,7 @@
         b.scrollTop = b.scrollHeight;
     }
 
-    // 页面加载后不自动加载列表，等待解锁
-    // loadList() 将在 tryDecrypt 成功后调用
+    
 </script>
 </body>
 </html>
