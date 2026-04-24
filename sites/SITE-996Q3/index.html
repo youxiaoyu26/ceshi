@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园网</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .theme-dark {
+            background-color: #333;
+            color: #f4f4f4;
+        }
+        .theme-light {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .login-form, .main-content, .settings, .dev-mode {
+            display: none;
+        }
+        .login-form.show, .main-content.show, .settings.show, .dev-mode.show {
+            display: block;
+        }
+        .post {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .theme-dark .post {
+            background: #444;
+            color: #f4f4f4;
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .username {
+            font-weight: bold;
+        }
+        .post-content {
+            margin-top: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #007bff;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            animation: fadeOut 3s forwards;
+            z-index: 1000;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; display: none; }
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .theme-dark .modal-content {
+            background: #444;
+            color: #f4f4f4;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #eee;
+        }
+        .theme-dark .footer {
+            background: #222;
+        }
+        .version {
+            cursor: pointer;
+            user-select: none;
+        }
+        .dev-mode {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .theme-dark .dev-mode {
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="splash" class="splash">
+        <div id="splash-text">欢迎来到校园网</div>
+    </div>
+    <div id="announcement-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>公告</h2>
+            <p id="announcement-text">欢迎使用校园网！</p>
+            <button onclick="closeAnnouncement()">关闭</button>
+        </div>
+    </div>
+    <div class="container">
+        <div id="login-form" class="login-form show">
+            <h1>登录校园网</h1>
+            <div class="form-group">
+                <input type="text" id="username" placeholder="用户名">
+            </div>
+            <div class="form-group">
+                <input type="password" id="password" placeholder="密码">
+            </div>
+            <button onclick="login()">登录</button>
+            <p>没有账号？<a href="#" onclick="register()">注册</a></p>
+        </div>
+        <div id="main-content" class="main-content">
+            <h1>校园网</h1>
+            <button onclick="showSettings()">设置</button>
+            <button onclick="logout()">登出</button>
+            <div class="form-group">
+                <textarea id="post-content" placeholder="写点什么..."></textarea>
+            </div>
+            <button onclick="postMessage()">发布</button>
+            <div id="posts"></div>
+        </div>
+        <div id="settings" class="settings">
+            <h2>设置</h2>
+            <div class="form-group">
+                <label>头像URL:</label>
+                <input type="text" id="avatar-url" placeholder="头像URL">
+            </div>
+            <div class="form-group">
+                <label>姓名:</label>
+                <input type="text" id="display-name" placeholder="显示姓名">
+            </div>
+            <button onclick="saveSettings()">保存</button>
+            <button onclick="backToMain()">返回</button>
+        </div>
+        <div id="dev-mode" class="dev-mode">
+            <h2>开发者模式</h2>
+            <div class="form-group">
+                <label>开屏动画文字:</label>
+                <input type="text" id="splash-text-input" placeholder="开屏文字">
+            </div>
+            <div class="form-group">
+                <label>公告内容:</label>
+                <textarea id="announcement-input" placeholder="公告内容"></textarea>
+            </div>
+            <div class="form-group">
+                <label>主题:</label>
+                <select id="theme-select">
+                    <option value="light">浅色</option>
+                    <option value="dark">深色</option>
+                </select>
+            </div>
+            <button onclick="saveDevSettings()">保存</button>
+            <button onclick="backToMain()">返回</button>
+        </div>
+    </div>
+    <footer class="footer">
+        <p>版本: <span id="version" class="version" onclick="clickVersion()">1.0.0</span></p>
+    </footer>
+    <script>
+        let currentUser = null;
+        let clickCount = 0;
+        let devMode = false;
+
+        // 初始化
+        window.onload = function() {
+            loadSettings();
+            showSplash();
+            showAnnouncement();
+        };
+
+        // 显示开屏动画
+        function showSplash() {
+            const splashText = localStorage.getItem('splashText') || '欢迎来到校园网';
+            document.getElementById('splash-text').textContent = splashText;
+            setTimeout(() => {
+                document.getElementById('splash').style.display = 'none';
+            }, 3000);
+        }
+
+        // 显示公告
+        function showAnnouncement() {
+            const announcement = localStorage.getItem('announcement') || '欢迎使用校园网！';
+            document.getElementById('announcement-text').textContent = announcement;
+            document.getElementById('announcement-modal').style.display = 'flex';
+        }
+
+        function closeAnnouncement() {
+            document.getElementById('announcement-modal').style.display = 'none';
+        }
+
+        // 登录
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.username === username && u.password === password);
+            if (user) {
+                currentUser = user;
+                showMain();
+            } else {
+                alert('用户名或密码错误');
+            }
+        }
+
+        // 注册
+        function register() {
+            const username = prompt('输入用户名');
+            const password = prompt('输入密码');
+            if (username && password) {
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                if (users.find(u => u.username === username)) {
+                    alert('用户名已存在');
+                    return;
+                }
+                const newUser = {
+                    username,
+                    password,
+                    avatar: '',
+                    displayName: username
+                };
+                users.push(newUser);
+                localStorage.setItem('users', JSON.stringify(users));
+                alert('注册成功，请登录');
+            }
+        }
+
+        // 显示主页面
+        function showMain() {
+            document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+            document.getElementById('main-content').classList.add('show');
+            loadPosts();
+        }
+
+        // 登出
+        function logout() {
+            currentUser = null;
+            document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+            document.getElementById('login-form').classList.add('show');
+        }
+
+        // 发布帖子
+        function postMessage() {
+            const content = document.getElementById('post-content').value;
+            if (content.trim()) {
+                const posts = JSON.parse(localStorage.getItem('posts') || '[]');
+                posts.push({
+                    id: Date.now(),
+                    user: currentUser.username,
+                    avatar: currentUser.avatar,
+                    displayName: currentUser.displayName,
+                    content,
+                    timestamp: new Date().toLocaleString()
+                });
+                localStorage.setItem('posts', JSON.stringify(posts));
+                document.getElementById('post-content').value = '';
+                loadPosts();
+            }
+        }
+
+        // 加载帖子
+        function loadPosts() {
+            const posts = JSON.parse(localStorage.getItem('posts') || '[]');
+            const postsDiv = document.getElementById('posts');
+            postsDiv.innerHTML = '';
+            posts.reverse().forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post';
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <img src="${post.avatar || 'https://via.placeholder.com/40'}" alt="头像" class="avatar">
+                        <span class="username">${post.displayName}</span>
+                        <span>${post.timestamp}</span>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                `;
+                postsDiv.appendChild(postDiv);
+            });
+        }
+
+        // 显示设置
+        function showSettings() {
+            document.getElementById('avatar-url').value = currentUser.avatar;
+            document.getElementById('display-name').value = currentUser.displayName;
+            document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+            document.getElementById('settings').classList.add('show');
+        }
+
+        // 保存设置
+        function saveSettings() {
+            currentUser.avatar = document.getElementById('avatar-url').value;
+            currentUser.displayName = document.getElementById('display-name').value;
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const index = users.findIndex(u => u.username === currentUser.username);
+            users[index] = currentUser;
+            localStorage.setItem('users', JSON.stringify(users));
+            backToMain();
+        }
+
+        // 返回主页面
+        function backToMain() {
+            document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+            document.getElementById('main-content').classList.add('show');
+        }
+
+        // 点击版本号
+        function clickVersion() {
+            clickCount++;
+            if (clickCount >= 6) {
+                devMode = true;
+                showDevMode();
+                clickCount = 0;
+            }
+        }
+
+        // 显示开发者模式
+        function showDevMode() {
+            document.getElementById('splash-text-input').value = localStorage.getItem('splashText') || '欢迎来到校园网';
+            document.getElementById('announcement-input').value = localStorage.getItem('announcement') || '欢迎使用校园网！';
+            document.getElementById('theme-select').value = localStorage.getItem('theme') || 'light';
+            document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+            document.getElementById('dev-mode').classList.add('show');
+        }
+
+        // 保存开发者设置
+        function saveDevSettings() {
+            const splashText = document.getElementById('splash-text-input').value;
+            const announcement = document.getElementById('announcement-input').value;
+            const theme = document.getElementById('theme-select').value;
+            localStorage.setItem('splashText', splashText);
+            localStorage.setItem('announcement', announcement);
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+            backToMain();
+        }
+
+        // 应用主题
+        function applyTheme(theme) {
+            document.body.className = `theme-${theme}`;
+        }
+
+        // 加载设置
+        function loadSettings() {
+            const theme = localStorage.getItem('theme') || 'light';
+            applyTheme(theme);
+        }
+    </script>
+</body>
+</html>
