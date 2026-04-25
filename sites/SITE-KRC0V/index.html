@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>柚小屿 云端管理器</title>
+    <style>
+        :root { --primary: #2da44e; --danger: #cf222e; --admin: #0969da; --bg: #f6f8fa; --border: #d0d7de; }
+        body { font-family: -apple-system, system-ui; background: var(--bg); margin: 0; padding: 12px; box-sizing: border-box; }
+        .container { max-width: 800px; margin: 0 auto; width: 100%; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+   
+        .upload-section { display: flex; align-items: center; gap: 8px; padding: 10px; background: #f1f5f9; border-radius: 8px; box-sizing: border-box; width: 100%; overflow: hidden; }
+        #fileSelector { flex: 1; min-width: 0; font-size: 12px; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid rgba(27,31,36,0.1); border-radius: 6px; white-space: nowrap; transition: 0.2s; }
+        .btn-primary { color: white; background: var(--primary); border: none; }
+        .btn-outline { color: var(--admin); background: white; border-color: var(--border); }
+        .btn-danger { color: var(--danger); border-color: var(--danger); }
+        .btn-admin-group { display: none; gap: 4px; }
+
+     
+        .file-list { list-style: none; padding: 0; margin: 0; }
+        .file-item { display: flex; padding: 12px 8px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; gap: 10px; }
+        .file-name { font-weight: 600; color: var(--admin); word-break: break-all; font-size: 14px; }
+        .file-meta { font-size: 11px; color: #57606a; margin-top: 2px; }
+
+      
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px); }
+        .modal-content { background: white; width: 90%; max-width: 400px; margin: 40px auto; padding: 20px; border-radius: 12px; box-sizing: border-box; position: relative; max-height: 85vh; overflow-y: auto; }
+        input[type="text"], textarea { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
+        .modal-btns { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+        
+        #noticeImgDisplay { max-width: 100%; border-radius: 6px; margin-top: 10px; display: none; }
+        .version-tag { text-align: center; margin-top: 40px; color: #ccc; font-size: 10px; cursor: default; }
+        .crypt-result { background: #f6f8fa; padding: 10px; font-family: monospace; font-size: 12px; word-break: break-all; border: 1px dashed #ccc; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin:0; font-size: 18px;">柚小屿 管理器</h2>
+        <div id="adminGroup" class="btn-admin-group">
+            <button class="btn btn-outline" style="padding:4px 6px; font-size:11px" onclick="openCryptTool()">加密工具</button>
+            <button class="btn btn-outline" style="padding:4px 6px; font-size:11px" onclick="openNoticeEditor()">公告</button>
+            <button class="btn btn-outline" style="padding:4px 6px; font-size:11px" onclick="toggleView()" id="viewToggleBtn">临时 D</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="action-bar" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+            <div class="upload-section">
+                <input type="file" id="fileSelector">
+                <button class="btn btn-primary" onclick="openUploadModal()">开始上传</button>
+            </div>
+            <input type="text" id="searchInput" placeholder="搜索文件名或备注..." oninput="filterFiles()" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; box-sizing:border-box;">
+        </div>
+        <h3 id="viewTitle" style="margin:0 0 10px 0; font-size: 15px; color: #666;">正式文件库</h3>
+        <ul class="file-list" id="mainFileList"></ul>
+    </div>
+    <div class="version-tag" id="versionNode">ver 5.1.0.0425</div>
+</div>
+
+<div id="cryptModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0">/////////</h3>
+        <p style="font-size:12px; color:#666">知道你们会看，自己猜</p>
+        <input type="text" id="rawTokenInput" placeholder="自己猜">
+        <button class="btn btn-primary" style="width:100%; margin-top:10px" onclick="generateSecret()">/////////</button>
+        <div id="cryptOutput" class="crypt-result" style="display:none"></div>
+        <p style="font-size:11px; color:var(--danger); margin-top:10px">知道你们会看，自己猜</p>
+        <div class="modal-btns"><button class="btn btn-outline" onclick="closeModal('cryptModal')">关闭</button></div>
+    </div>
+</div>
+
+<div id="noticeViewModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 id="noticeTitleDisplay" style="margin-top:0;"></h3>
+        <div id="noticeContentDisplay" style="font-size:14px; color:#444; white-space:pre-wrap; line-height:1.5;"></div>
+        <img id="noticeImgDisplay" src="">
+        <div class="modal-btns"><button class="btn btn-primary" style="width:100%" onclick="closeModal('noticeViewModal')">知道了</button></div>
+    </div>
+</div>
+
+<div id="noticeEditModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0">配置公告</h3>
+        <input type="text" id="editNoticeTitle" placeholder="标题">
+        <textarea id="editNoticeContent" rows="4" placeholder="正文内容"></textarea>
+        <input type="file" id="editNoticeImgFile" accept="image/*" style="margin-top:10px">
+        <div class="modal-btns">
+            <button class="btn" onclick="closeModal('noticeEditModal')">取消</button>
+            <button class="btn btn-primary" id="saveNoticeBtn" onclick="saveNotice()">保存并发布</button>
+        </div>
+    </div>
+</div>
+
+<div id="memoModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0">上传备注 (必填)</h3>
+        <textarea id="fileMemo" rows="3" placeholder="写点什么..."></textarea>
+        <div class="modal-btns">
+            <button class="btn" onclick="closeModal('memoModal')">取消</button>
+            <button class="btn btn-primary" id="memoSubmitBtn">确认上传</button>
+        </div>
+    </div>
+</div>
+
+<div id="infoModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 id="infoTitle">提示</h3>
+        <p id="infoMsg"></p>
+        <div class="modal-btns"><button class="btn btn-primary" onclick="closeModal('infoModal')">确定</button></div>
+    </div>
+</div>
+
+<script>
+   
+    const _secretChain = ["S==wNYF1ZpJjaVJmZnVkcPVHebBlYHZnNwRHb5gUN1dVMjJUMpZEYxlGa"]; 
+
+    function _resolve() {
+        try {
+            let raw = _secretChain[0].substring(1).split("").reverse().join(""); 
+            return atob(raw).split("").map(c => String.fromCharCode(c.charCodeAt(0) - 1)).join(""); 
+        } catch(e) { return ""; }
+    }
+
+  
+    function openCryptTool() { document.getElementById('cryptOutput').style.display='none'; openModal('cryptModal'); }
+    function generateSecret() {
+        const t = document.getElementById('rawTokenInput').value.trim();
+        if(!t) return;
+        const shift = t.split("").map(c => String.fromCharCode(c.charCodeAt(0) + 1)).join("");
+        const b64 = btoa(shift);
+        const final = "S" + b64.split("").reverse().join("");
+        const out = document.getElementById('cryptOutput');
+        out.innerText = final;
+        out.style.display = 'block';
+    }
+
+    const TOKEN = _resolve();
+    const API_URL = `https://api.github.com/repos/youxiaoyu26/sxx/contents`;
+
+    let currentMode = "MAIN";
+    let noticeData = { title: "", content: "", img: "" };
+    let noticeSha = "";
+    let allFiles = [];
+
+  
+    let clickCount = 0;
+    document.getElementById('versionNode').onclick = () => { if (++clickCount === 7) document.getElementById('adminGroup').style.display = 'flex'; };
+
+    function openModal(id) { document.getElementById(id).style.display = 'block'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function showMsg(title, msg) { document.getElementById('infoTitle').innerText = title; document.getElementById('infoMsg').innerText = msg; openModal('infoModal'); }
+
+
+    async function initNotice() {
+        try {
+            const res = await fetch(`${API_URL}/notice.json?t=${Date.now()}`, { headers: { 'Authorization': `token ${TOKEN}` } });
+            if (res.ok) {
+                const data = await res.json();
+                noticeSha = data.sha;
+                noticeData = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                if (noticeData.title) {
+                    document.getElementById('noticeTitleDisplay').innerText = noticeData.title;
+                    document.getElementById('noticeContentDisplay').innerText = noticeData.content;
+                    if (noticeData.img) { const img = document.getElementById('noticeImgDisplay'); img.src = noticeData.img; img.style.display = 'block'; }
+                    openModal('noticeViewModal');
+                }
+            }
+        } catch (e) {}
+    }
+
+    async function loadFiles() {
+        const list = document.getElementById('mainFileList');
+        list.innerHTML = '<li style="text-align:center;padding:20px;color:#999">正在云端同步...</li>';
+        const path = currentMode === "MAIN" ? "main" : "temp";
+        try {
+            const res = await fetch(`${API_URL}/${path}?t=${Date.now()}`, { headers: { 'Authorization': `token ${TOKEN}` } });
+            const data = await res.json();
+            allFiles = (!Array.isArray(data)) ? [] : data.filter(f => f.name !== ".keep");
+            renderFiles(allFiles);
+        } catch (e) { list.innerHTML = "拉取失败"; }
+    }
+
+    function renderFiles(files) {
+        const list = document.getElementById('mainFileList');
+        list.innerHTML = files.length ? "" : '<li style="text-align:center;padding:20px;color:#999">空空如也</li>';
+        files.forEach(file => {
+            const parts = file.name.split('_');
+            const name = parts.length >= 3 ? parts.slice(2).join('_') : file.name;
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.innerHTML = `<div style="flex:1; min-width:0"><div class="file-name">${name}</div><div class="file-meta">备注: ${parts[1]||"无"}</div></div>
+                <div style="display:flex; gap:5px">
+                    <a href="${file.download_url}" download class="btn btn-outline" style="padding:4px 8px; font-size:11px">下载</a>
+                    ${currentMode === "TEMP" ? `<button class="btn btn-primary" style="padding:4px 8px; font-size:11px" onclick="approveFile('${file.path}','${file.sha}','${file.name}')">通过</button>` : ""}
+                </div>`;
+            list.appendChild(li);
+        });
+    }
+
+    function openUploadModal() {
+        if (!document.getElementById('fileSelector').files[0]) return showMsg("提示", "先选个文件吧");
+        document.getElementById('fileMemo').value = "";
+        openModal('memoModal');
+        document.getElementById('memoSubmitBtn').onclick = async () => {
+            const memo = document.getElementById('fileMemo').value.trim();
+            if(!memo) return;
+            closeModal('memoModal');
+            const file = document.getElementById('fileSelector').files[0];
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const content = reader.result.split(',')[1];
+                const res = await fetch(`${API_URL}/temp/${Date.now()}_${memo.replace(/_/g,'-')}_${file.name}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${TOKEN}` },
+                    body: JSON.stringify({ message: "upload", content })
+                });
+                if (res.ok) { showMsg("完成", "已进入审核队列"); loadFiles(); }
+            };
+            reader.readAsDataURL(file);
+        };
+    }
+
+    function filterFiles() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        renderFiles(allFiles.filter(f => f.name.toLowerCase().includes(q)));
+    }
+
+    function toggleView() {
+        currentMode = currentMode === "MAIN" ? "TEMP" : "MAIN";
+        document.getElementById('viewTitle').innerText = currentMode === "MAIN" ? "正式文件库" : "临时审核库";
+        document.getElementById('viewToggleBtn').innerText = currentMode === "MAIN" ? "临时 D" : "返回";
+        loadFiles();
+    }
+
+    async function saveNotice() {
+        const title = document.getElementById('editNoticeTitle').value.trim();
+        const content = document.getElementById('editNoticeContent').value.trim();
+        const imgFile = document.getElementById('editNoticeImgFile').files[0];
+        let base64Img = noticeData.img;
+        if (imgFile) {
+            base64Img = await new Promise(r => {
+                const reader = new FileReader(); reader.readAsDataURL(imgFile);
+                reader.onload = () => {
+                    const img = new Image(); img.src = reader.result;
+                    img.onload = () => {
+                        const cvs = document.createElement('canvas'); const s = Math.min(1, 600/img.width);
+                        cvs.width = img.width*s; cvs.height = img.height*s;
+                        cvs.getContext('2d').drawImage(img, 0,0, cvs.width, cvs.height);
+                        r(cvs.toDataURL('image/jpeg', 0.6));
+                    }
+                }
+            });
+        }
+        const body = btoa(unescape(encodeURIComponent(JSON.stringify({title, content, img: base64Img}))));
+        await fetch(`${API_URL}/notice.json`, { method: 'PUT', headers: { 'Authorization': `token ${TOKEN}` }, body: JSON.stringify({message:"up", content:body, sha:noticeSha}) });
+        location.reload();
+    }
+
+    
+    loadFiles(); initNotice();
+</script>
+</body>
+</html>
