@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专属告白生成器</title>
+    <style>
+        :root {
+            --primary-color: #ff4d6d;
+            --radius: 10px;
+            --speed: 0.5s;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #fdf2f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        /* 卡片容器 */
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 360px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .step { display: none; }
+        .step.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 { color: var(--primary-color); margin-bottom: 20px; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button {
+            flex: 1;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        button.secondary { background: #ffb3c1; }
+
+        /* 动态弹窗样式 */
+        .wish-popup {
+            position: fixed;
+            background: white;
+            padding: 15px 25px;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            z-index: 999;
+            pointer-events: none;
+            transform: scale(0);
+            transition: transform var(--speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 底部提示 */
+        .stop-tip {
+            position: fixed;
+            bottom: 20px;
+            color: #666;
+            font-size: 12px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="step active" id="step1">
+        <h2>💖 谁是你的唯一？</h2>
+        <input type="text" id="targetName" placeholder="输入对方的名字...">
+        <button onclick="goNext(2)">下一步</button>
+    </div>
+
+    <div class="step" id="step2">
+        <h2>✍️ 想说的话</h2>
+        <input type="text" id="customWish" placeholder="在这里输入专属告白...">
+        <div class="btn-group">
+            <button class="secondary" onclick="setRandomWish()">随机祝福</button>
+            <button onclick="goNext(3)">下一步</button>
+        </div>
+    </div>
+
+    <div class="step" id="step3">
+        <h2>🎨 选择氛围</h2>
+        <select id="bgSelect" onchange="updateBg(this.value)">
+            <option value="#fdf2f4">柔和粉</option>
+            <option value="#e0f2fe">静谧蓝</option>
+            <option value="linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)">梦幻渐变</option>
+            <option value="#1a1a1a">高级黑</option>
+        </select>
+        <button onclick="goNext(4)">下一步</button>
+    </div>
+
+    <div class="step" id="step4">
+        <h2>🎵 背景音乐</h2>
+        <select id="musicSelect">
+            <option value="">(无音乐 - 或在此填入链接)</option>
+            <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">甜蜜曲目 1</option>
+        </select>
+        <p style="font-size: 11px; color: #999;">注：部分浏览器需点击页面后播放</p>
+        <button onclick="goNext(5)">最后一步</button>
+    </div>
+
+    <div class="step" id="step5">
+        <h2>⚙️ 弹窗设置</h2>
+        <div style="text-align: left; font-size: 14px; color: #666;">
+            <label>弹窗圆角: <input type="range" id="radiusInp" min="0" max="50" value="15"></label>
+            <label>弹出频率 (秒): <input type="number" id="speedInp" step="0.1" value="0.6" min="0.1"></label>
+        </div>
+        <button onclick="startLoveBomb()">生成表白页面</button>
+    </div>
+</div>
+
+<div class="stop-tip" id="stopTip">点击屏幕任何地方停止轰炸 🌸</div>
+<audio id="bgMusic" loop></audio>
+
+<script>
+    const officialWishes = [
+        "遇见你，所有的星星都落在我头上。",
+        "你是我漫长岁万里挑一的惊喜。",
+        "往后余生，风雪是你，平淡也是你。",
+        "我喜欢的样子你都有。",
+        "众生皆苦，唯独你是草莓味的。"
+    ];
+
+    let bombInterval = null;
+
+    function goNext(num) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + num).classList.add('active');
+    }
+
+    function setRandomWish() {
+        const rnd = officialWishes[Math.floor(Math.random() * officialWishes.length)];
+        document.getElementById('customWish').value = rnd;
+    }
+
+    function updateBg(val) {
+        document.body.style.background = val;
+    }
+
+    function startLoveBomb() {
+        const name = document.getElementById('targetName').value || "亲爱的";
+        const musicUrl = document.getElementById('musicSelect').value;
+        const radius = document.getElementById('radiusInp').value + 'px';
+        const speed = parseFloat(document.getElementById('speedInp').value) || 0.6;
+        
+        // 1. 处理音乐
+        if (musicUrl) {
+            const audio = document.getElementById('bgMusic');
+            audio.src = musicUrl;
+            audio.play().catch(() => console.log("等待交互后播放"));
+        }
+
+        // 2. 隐藏设置框
+        document.querySelector('.container').style.display = 'none';
+        document.getElementById('stopTip').style.display = 'block';
+
+        // 3. 开始弹窗轰炸
+        const intervalMs = speed * 1000;
+        bombInterval = setInterval(() => {
+            createPopup(name, radius, speed);
+        }, intervalMs);
+    }
+
+    function createPopup(name, radius, speed) {
+        const popup = document.createElement('div');
+        popup.className = 'wish-popup';
+        
+        // 随机选择内容（自定义或官方）
+        const userWish = document.getElementById('customWish').value;
+        const finalWish = (userWish && Math.random() > 0.5) ? userWish : officialWishes[Math.floor(Math.random() * officialWishes.length)];
+        
+        popup.innerHTML = `<b style="color:var(--primary-color)">To ${name}:</b><br>${finalWish}`;
+        
+        // 样式设置
+        Object.assign(popup.style, {
+            borderRadius: radius,
+            left: Math.random() * (window.innerWidth - 200) + 'px',
+            top: Math.random() * (window.innerHeight - 100) + 'px',
+            transition: `transform ${speed}s cubic-bezier(0.175, 0.885, 0.32, 1.275)`
+        });
+
+        document.body.appendChild(popup);
+
+        // 触发弹出动画
+        setTimeout(() => {
+            popup.style.transform = 'scale(1)';
+        }, 50);
+
+        // 自动清理，防止页面过载
+        setTimeout(() => {
+            popup.style.transform = 'scale(0)';
+            setTimeout(() => popup.remove(), 1000);
+        }, 4000);
+    }
+
+    // 停止功能
+    document.addEventListener('click', () => {
+        if (bombInterval) {
+            clearInterval(bombInterval);
+            bombInterval = null;
+            alert("愿每一份心意都能抵达目的地。💕");
+        }
+    });
+</script>
+
+</body>
+</html>
