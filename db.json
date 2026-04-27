@@ -55,6 +55,13 @@
       "note": "文件管理器（所有用户可以上传自己的文件到这里面供大家观看）",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-V7JF1/index.html",
       "time": "2026/4/25 22:55:18"
+    },
+    {
+      "id": "PROD-96SVR",
+      "path": "sites/PROD-96SVR/index.html",
+      "note": "测试",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/PROD-96SVR/index.html",
+      "time": "2026/4/28 02:01:02"
     }
   ]
 }
