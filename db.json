@@ -56,5 +56,14 @@
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-V7JF1/index.html",
       "time": "2026/4/25 22:55:18"
     }
+  ],
+  "all_products": [
+    {
+      "id": "PROD-PKNUC",
+      "path": "sites/PROD-PKNUC/index.html",
+      "note": "测试",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/PROD-PKNUC/index.html",
+      "time": "2026/4/28 02:05:33"
+    }
   ]
 }
