@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纯净视频-懂得都懂</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+video {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 16px;
+  object-fit: contain;
+}
+/* 强制播放按钮（兜底用） */
+#forcePlayBtn {
+  margin-top: 20px;
+  padding: 12px 30px;
+  background: #4a8eff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: none;
+}
+#forcePlayBtn.show {
+  display: block;
+}
+</style>
+</head>
+<body>
+<video id="videoPlayer" autoplay loop playsinline controls volume="1">
+  <source src="https://v26-default.365yg.com/b41e8c6c17abd7cb496c9cde98e1d27d/69fe2be6/video/tos/cn/tos-cn-ve-15/oIBaEI1MLtSTUhLZiiRvOEIhz5U1vGABJAP5Q/?a=6383&ch=26&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=1114&bt=1114&cs=0&ds=3&ft=rVWEerwwZRdzskPo0PDS6kwc3RZtGl3qBg9eF3x5XqO12nzXT&mime_type=video_mp4&qs=0&rc=OGdkZTRkZjpoZDxmN2c5aEBpajw3d205cjRvNjMzNGkzM0AuX2A0M182NmExM2FeY2IyYSNwYGNgMmRrMWphLS1kLWFzcw%3D%3D&btag=c0000e00008000&cquery=100z_100o_100w_100B_100x&dy_q=1778254257&feature_id=fea919893f650a8c49286568590446ef&l=20260508233057BB8B4E1FCE2B52ABEE03" type="video/mp4">
+</video>
+<button id="forcePlayBtn">点击立即播放（带声音）</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const video = document.getElementById('videoPlayer');
+  const forcePlayBtn = document.getElementById('forcePlayBtn');
+  
+  // 核心设置：开声音、最大音量
+  video.muted = false;
+  video.volume = 1;
+  
+  // 方案1：页面加载完立即强制播放（突破大部分限制）
+  setTimeout(() => {
+    video.play().then(() => {
+      forcePlayBtn.classList.remove('show');
+    }).catch(err => {
+      forcePlayBtn.classList.add('show'); // 失败则显示按钮
+    });
+  }, 100); // 延迟100ms确保视频资源加载完成
+  
+  // 方案2：备用按钮，点击必播（兜底所有浏览器）
+  forcePlayBtn.addEventListener('click', () => {
+    video.play();
+    forcePlayBtn.classList.remove('show');
+  });
+  
+  // 防止视频加载慢，额外监听资源就绪
+  video.addEventListener('loadeddata', () => {
+    video.play().catch(() => {});
+  });
+});
+</script>
+</body>
+</html>
