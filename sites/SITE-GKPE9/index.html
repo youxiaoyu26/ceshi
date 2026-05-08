@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>懂得都懂👌</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: system-ui, sans-serif; }
+        .container { position: relative; width: 100%; max-width: 600px; }
+        video { width: 100%; display: none; }
+        #status { color: #aaa; text-align: center; margin-top: 40px; }
+        #fallback { display: none; text-align: center; margin-top: 20px; }
+        #fallback a { color: #fff; background: #fe2c55; padding: 12px 30px; text-decoration: none; border-radius: 30px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <video id="v" controls autoplay playsinline></video>
+        <div id="status">正在获取视频...</div>
+        <div id="fallback">
+            <a href="https://v.douyin.com/8q0zdOELifM/" target="_blank">▶ 直接观看视频</a>
+        </div>
+    </div>
+    <script>
+        const shareUrl = "https://v.douyin.com/8q0zdOELifM/";
+        const apis = [
+            "https://api.xygeng.cn/douyin/api.php?url=",
+            "https://api.pearktrue.cn/api/video/douyin.php?url="
+        ];
+
+        async function tryApi(url) {
+            try {
+                const r = await fetch(url);
+                const d = await r.json();
+                return d.url || d.data?.url || d.video_url || null;
+            } catch { return null; }
+        }
+
+        async function load() {
+            for (let base of apis) {
+                const vurl = await tryApi(base + encodeURIComponent(shareUrl));
+                if (vurl) {
+                    document.getElementById('v').src = vurl;
+                    document.getElementById('v').style.display = 'block';
+                    document.getElementById('status').style.display = 'none';
+                    document.getElementById('fallback').style.display = 'none';
+                    return;
+                }
+            }
+            // 全部失败
+            document.getElementById('status').innerText = '😞 自动播放失败';
+            document.getElementById('fallback').style.display = 'block';
+        }
+        load();
+    </script>
+</body>
+</html>
