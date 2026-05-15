@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>暗影冒险者（霸王版）</title>
+    <style>
+        :root {
+            --bg: #1a1a2e; --panel: #16213e; --gold: #ffd700;
+            --hp: #ff4444; --mp: #4444ff; --exp: #44ff44; --text: #e0e0e0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body {
+            background: #0a0a1a; font-family: -apple-system, 'Courier New', monospace;
+            color: var(--text); width: 100vw; height: 100vh; height: 100dvh;
+            overflow: hidden; touch-action: manipulation;
+        }
+        .game-container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+        .status-bar {
+            background: linear-gradient(180deg, #16213e, #0f1a30); padding: 6px 10px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+            border-bottom: 2px solid #2a2a4e; z-index: 10; font-size: 11px;
+        }
+        .player-main { display: flex; align-items: center; gap: 4px; }
+        .player-avatar { font-size: 22px; animation: avatarBounce 2s ease-in-out infinite; }
+        @keyframes avatarBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+        .player-info-text { display: flex; flex-direction: column; gap: 1px; }
+        .player-name { font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 3px; }
+        .player-level { font-size: 9px; color: var(--gold); }
+        .player-title-display { font-size: 8px; color: #ff69b4; font-style: italic; }
+        .player-resources { display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; font-size: 9px; }
+        .resource { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+        .resource-icon { font-size: 11px; }
+        .resource-bar { width: 100%; height: 4px; background: #000; border-radius: 2px; overflow: hidden; border: 1px solid #333; }
+        .hp-fill { height: 100%; background: linear-gradient(90deg,#ff4444,#ff6666); transition: width 0.3s; }
+        .mp-fill { height: 100%; background: linear-gradient(90deg,#4444ff,#6666ff); transition: width 0.3s; }
+        .exp-fill { height: 100%; background: linear-gradient(90deg,#44ff44,#66ff66); transition: width 0.3s; }
+        .resource-text { font-size: 7px; color: #aaa; }
+        .equipment-display { display: flex; gap: 6px; justify-content: center; padding: 2px 0; font-size: 9px; background: rgba(0,0,0,0.2); border-bottom: 1px solid #222; }
+        .quick-info { background: rgba(0,0,0,0.3); padding: 3px 10px; display: flex; justify-content: space-between; font-size: 9px; border-bottom: 1px solid #222; flex-wrap: wrap; gap: 3px; }
+        .map-name { color: #4fc3f7; } .potion-count { color: #66bb6a; } .weather-display { color: #ffd700; }
+        .game-screen {
+            flex: 1; position: relative; display: flex; justify-content: center; align-items: center;
+            background: radial-gradient(ellipse at center, #1a1a3e, #0a0a1a 70%);
+            overflow: hidden; min-height: 0; transition: background 1s;
+        }
+        .particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .particle { position: absolute; background: white; border-radius: 50%; animation: floatUp 3s ease-in infinite; }
+        @keyframes floatUp { 0%{transform:translateY(100vh) scale(0);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-100px) scale(1);opacity:0} }
+        .scene { text-align: center; z-index: 1; }
+        .enemy-container { position: relative; cursor: pointer; padding: 12px; }
+        .enemy-sprite { font-size: 65px; animation: enemyFloat 2s ease-in-out infinite; transition: transform 0.15s; filter: drop-shadow(0 8px 15px rgba(0,0,0,0.5)); }
+        .enemy-sprite:active { transform: scale(0.85); }
+        @keyframes enemyFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-12px) rotate(1deg)} }
+        .enemy-hp-bar { width: 90px; height: 5px; background: rgba(0,0,0,0.5); border-radius: 3px; margin: 6px auto; overflow: hidden; border: 1px solid #444; }
+        .enemy-hp-fill { height: 100%; background: linear-gradient(90deg,#ff4444,#ff6666); transition: width 0.3s; }
+        .enemy-name { font-size: 13px; color: #ff6b6b; margin-top: 4px; }
+        .enemy-level { font-size: 9px; color: #888; }
+        .damage-popup { position: absolute; font-weight: bold; animation: popup 0.8s ease-out forwards; pointer-events: none; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .damage-popup.normal { color: #ff6666; font-size: 22px; }
+        .damage-popup.crit { color: #ff8800; font-size: 30px; }
+        .damage-popup.skill { color: #6666ff; font-size: 24px; }
+        .damage-popup.pet { color: #ff69b4; font-size: 18px; }
+        .damage-popup.heal { color: #44ff44; font-size: 20px; }
+        .damage-popup.gold { color: #ffd700; font-size: 18px; }
+        .damage-popup.exp { color: #44ff44; font-size: 16px; }
+        .damage-popup.miss { color: #888; font-size: 18px; }
+        @keyframes popup { 0%{transform:translateY(0) scale(0.5);opacity:1} 50%{transform:translateY(-20px) scale(1.2);opacity:1} 100%{transform:translateY(-45px) scale(0.8);opacity:0} }
+        .achievement-popup {
+            position: fixed; top: 15%; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg,#2a2a00,#1a1a00); border: 2px solid var(--gold);
+            border-radius: 12px; padding: 10px 18px; z-index: 200;
+            animation: achievementSlide 3s ease-out forwards; pointer-events: none;
+            display: flex; align-items: center; gap: 6px; font-size: 12px;
+        }
+        @keyframes achievementSlide { 0%{opacity:0;transform:translateX(-50%) translateY(15px)} 10%{opacity:1;transform:translateX(-50%) translateY(0)} 80%{opacity:1} 100%{opacity:0;transform:translateX(-50%) translateY(-40px)} }
+        .achievement-icon { font-size: 22px; }
+        .levelup-effect {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            font-size: 36px; color: #ffd700; z-index: 400; pointer-events: none;
+            animation: levelupBurst 1.5s ease-out forwards;
+        }
+        @keyframes levelupBurst { 0%{transform:translate(-50%,-50%) scale(0);opacity:1} 50%{transform:translate(-50%,-50%) scale(1.5);opacity:1} 100%{transform:translate(-50%,-50%) scale(2);opacity:0} }
+        .action-bar {
+            background: linear-gradient(0deg,#0f1a30,#16213e); padding: 6px;
+            border-top: 2px solid #2a2a4e; display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; z-index: 10;
+        }
+        .action-btn {
+            aspect-ratio: 1; max-height: 50px; border: 2px solid #444; border-radius: 10px;
+            background: linear-gradient(135deg,#1a1a3e,#0f1a30); color: var(--text);
+            font-size: 9px; font-weight: bold; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 1px; cursor: pointer; transition: all 0.15s;
+        }
+        .action-btn:active { transform: scale(0.92); border-color: #888; }
+        .action-btn .btn-icon { font-size: 18px; }
+        .action-btn.attack { border-color: #ff4444; background: linear-gradient(135deg,#3a1a1a,#2a1010); }
+        .action-btn.skill { border-color: #4444ff; background: linear-gradient(135deg,#1a1a3a,#10102a); }
+        .action-btn.item { border-color: #44ff44; background: linear-gradient(135deg,#1a3a1a,#102a10); }
+        .action-btn.menu { border-color: #ffd700; background: linear-gradient(135deg,#3a3a1a,#2a2a10); }
+        .action-btn.auto { border-color: #ff69b4; background: linear-gradient(135deg,#3a1a2a,#2a1020); }
+        .boss-timer {
+            position: fixed; bottom: 145px; right: 15px; background: rgba(0,0,0,0.8);
+            border: 1px solid #ff4444; border-radius: 8px; padding: 4px 8px;
+            font-size: 10px; color: #ff6b6b; z-index: 20; display: none;
+        }
+        .checkin-btn {
+            position: fixed; bottom: 108px; right: 15px; background: rgba(255,215,0,0.2);
+            border: 2px solid #ffd700; border-radius: 50%; width: 42px; height: 42px;
+            font-size: 18px; z-index: 20; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .world-boss-btn {
+            position: fixed; bottom: 65px; right: 15px; background: rgba(255,0,0,0.3);
+            border: 2px solid #ff0000; border-radius: 50%; width: 45px; height: 45px;
+            font-size: 22px; z-index: 20; display: none; cursor: pointer; align-items: center; justify-content: center;
+        }
+        .world-boss-btn.boss-available { display: flex; animation: bossBtnPulse 1s infinite; }
+        @keyframes bossBtnPulse { 0%,100%{box-shadow:0 0 10px #ff0000} 50%{box-shadow:0 0 30px #ff0000,0 0 60px #ff4444} }
+        .auto-fight-indicator {
+            position: fixed; top: 8px; right: 8px; background: rgba(0,255,0,0.2);
+            border: 1px solid #44ff44; border-radius: 8px; padding: 3px 6px;
+            font-size: 9px; z-index: 20; display: none; animation: autoPulse 2s infinite;
+        }
+        @keyframes autoPulse { 0%,100%{opacity:0.7} 50%{opacity:1} }
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center;
+            align-items: center; z-index: 100; backdrop-filter: blur(3px);
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: linear-gradient(135deg,#16213e,#0f1a30); border: 2px solid #444;
+            border-radius: 14px; padding: 12px; width: 92%; max-width: 400px;
+            max-height: 80vh; overflow-y: auto; animation: modalSlideIn 0.3s ease-out;
+        }
+        @keyframes modalSlideIn { 0%{transform:translateY(40px) scale(0.9);opacity:0} 100%{transform:translateY(0) scale(1);opacity:1} }
+        .modal-title { text-align: center; font-size: 16px; margin-bottom: 10px; color: var(--gold); }
+        .modal-close { display: block; width: 100%; padding: 8px; margin-top: 6px; background: #ff4444; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .tab-buttons { display: flex; gap: 3px; margin-bottom: 8px; flex-wrap: wrap; }
+        .tab-btn { padding: 4px 8px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 5px; color: var(--text); font-size: 9px; cursor: pointer; white-space: nowrap; }
+        .tab-btn.active { background: rgba(255,215,0,0.2); border-color: var(--gold); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .list-item {
+            display: flex; align-items: center; justify-content: space-between; padding: 6px;
+            margin: 3px 0; background: rgba(255,255,255,0.03); border: 1px solid #333;
+            border-radius: 5px; font-size: 11px; gap: 4px;
+        }
+        .list-item.unlocked { border-color: var(--gold); background: rgba(255,215,0,0.05); }
+        .list-item.locked { opacity: 0.5; }
+        .buy-btn { padding: 4px 8px; background: #44ff44; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 9px; white-space: nowrap; }
+        .buy-btn:disabled { background: #555; color: #999; }
+        .buy-btn.owned { background: #666; color: #333; }
+        .skill-node {
+            display: flex; align-items: center; gap: 4px; padding: 6px; margin: 3px 0;
+            background: rgba(255,255,255,0.03); border: 1px solid #333; border-radius: 5px;
+            font-size: 10px; cursor: pointer;
+        }
+        .skill-node.learned { border-color: #4444ff; background: rgba(68,68,255,0.1); }
+        .skill-node.equipped { border-color: #ff4444; background: rgba(255,68,68,0.1); }
+        .skill-desc { font-size: 8px; color: #888; margin-top: 2px; }
+        .log-toast {
+            position: fixed; bottom: 25%; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 6px 14px;
+            border-radius: 14px; font-size: 11px; z-index: 50; pointer-events: none;
+            animation: toastFade 2s ease-out forwards; white-space: nowrap;
+        }
+        @keyframes toastFade { 0%{opacity:0;transform:translateX(-50%) translateY(15px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 85%{opacity:1} 100%{opacity:0;transform:translateX(-50%) translateY(-15px)} }
+        .offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 299; display: none; }
+        .offline-overlay.active { display: block; }
+        .offline-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: linear-gradient(135deg,#1a1a3e,#0f1a30); border: 2px solid var(--gold);
+            border-radius: 14px; padding: 20px; z-index: 300; text-align: center; display: none;
+        }
+        .offline-modal.active { display: block; }
+        .stat-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .save-code-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 500; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .save-code-content {
+            background: #16213e; border: 2px solid #ffd700; border-radius: 12px;
+            padding: 15px; width: 90%; max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="status-bar">
+            <div class="player-main">
+                <div class="player-avatar">⚔️</div>
+                <div class="player-info-text">
+                    <div class="player-name"><span id="playerName">冒险者</span><span id="petDisplay"></span></div>
+                    <div class="player-level" id="level">Lv.1</div>
+                    <div class="player-title-display" id="titleDisplay">🌱 初出茅庐</div>
+                </div>
+            </div>
+            <div class="player-resources">
+                <div class="resource"><span class="resource-icon">❤️</span><div class="resource-bar"><div class="hp-fill" id="hpBar" style="width:100%"></div></div><span class="resource-text" id="hpText">100/100</span></div>
+                <div class="resource"><span class="resource-icon">💎</span><div class="resource-bar"><div class="mp-fill" id="mpBar" style="width:100%"></div></div><span class="resource-text" id="mpText">50/50</span></div>
+                <div class="resource"><span class="resource-icon">⭐</span><div class="resource-bar"><div class="exp-fill" id="expBar" style="width:0%"></div></div><span class="resource-text" id="expText">0/100</span></div>
+            </div>
+        </div>
+        <div class="equipment-display">
+            <span>⚔️ <span id="weaponDisplay">木剑</span></span>
+            <span>🛡️ <span id="armorDisplay">布甲</span></span>
+            <span>💍 <span id="rebirthDisplay"></span></span>
+        </div>
+        <div class="quick-info">
+            <span class="map-name" id="mapDisplay">🌲 暗影森林</span>
+            <span class="weather-display" id="weatherDisplay">☀️ 晴天</span>
+            <span>💰 <span id="gold">0</span></span>
+            <span class="potion-count">🧪 x<span id="potionCount">3</span></span>
+        </div>
+        <div class="auto-fight-indicator" id="autoFightIndicator">🤖 自动中...</div>
+        <div class="boss-timer" id="bossTimer">🐲 可挑战</div>
+        <button class="checkin-btn" id="checkinBtn" onclick="doCheckIn()">📅</button>
+        <button class="world-boss-btn" id="worldBossBtn" onclick="fightWorldBoss()">🐲</button>
+        <div class="game-screen" id="gameScreen">
+            <div class="particles" id="particles"></div>
+            <div class="scene">
+                <div class="enemy-container" id="enemyContainer">
+                    <div class="enemy-sprite" id="enemySprite">👾</div>
+                    <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemyHpBar" style="width:100%"></div></div>
+                    <div class="enemy-name" id="enemyName">史莱姆</div>
+                    <div class="enemy-level" id="enemyLevel">Lv.1</div>
+                </div>
+            </div>
+        </div>
+        <div class="action-bar">
+            <button class="action-btn attack" onclick="playerAttack()"><span class="btn-icon">⚔️</span><span>攻击</span></button>
+            <button class="action-btn skill" onclick="useEquippedSkill()"><span class="btn-icon" id="skillIcon">💥</span><span id="skillName">重击</span></button>
+            <button class="action-btn item" onclick="usePotion()"><span class="btn-icon">🧪</span><span>药水</span></button>
+            <button class="action-btn menu" onclick="toggleModal('mainModal')"><span class="btn-icon">📋</span><span>菜单</span></button>
+            <button class="action-btn auto" onclick="toggleAutoFight()"><span class="btn-icon" id="autoIcon">🤖</span><span id="autoText">自动</span></button>
+        </div>
+        <div class="offline-overlay" id="offlineOverlay"></div>
+        <div class="offline-modal" id="offlineModal">
+            <h3 style="color:var(--gold);">⏰ 离线收益</h3>
+            <div id="offlineContent"></div>
+            <button class="modal-close" style="margin-top:12px;" onclick="closeOfflineModal()">领取</button>
+        </div>
+        <div class="modal" id="mainModal">
+            <div class="modal-content">
+                <div class="modal-title">📋 菜单</div>
+                <div class="tab-buttons" id="mainTabs">
+                    <button class="tab-btn active" onclick="switchTab('map')">🗺️地图</button>
+                    <button class="tab-btn" onclick="switchTab('quests')">📋任务</button>
+                    <button class="tab-btn" onclick="switchTab('achievements')">🏆成就</button>
+                    <button class="tab-btn" onclick="switchTab('pets')">🐾宠物</button>
+                    <button class="tab-btn" onclick="switchTab('skills')">✨技能</button>
+                    <button class="tab-btn" onclick="switchTab('craft')">🔨合成</button>
+                    <button class="tab-btn" onclick="switchTab('dungeon')">🕳️副本</button>
+                    <button class="tab-btn" onclick="switchTab('rebirth')">🔄转生</button>
+                    <button class="tab-btn" onclick="switchTab('shop')">🏪商店</button>
+                    <button class="tab-btn" onclick="switchTab('cards')">🃏卡牌</button>
+                    <button class="tab-btn" onclick="switchTab('stats')">📊统计</button>
+                    <button class="tab-btn" onclick="switchTab('life')">🎣生活</button>
+                    <button class="tab-btn" onclick="switchTab('arena')">⚔️竞技</button>
+                </div>
+                <div class="tab-content active" id="tab-map"></div>
+                <div class="tab-content" id="tab-quests"></div>
+                <div class="tab-content" id="tab-achievements"></div>
+                <div class="tab-content" id="tab-pets"></div>
+                <div class="tab-content" id="tab-skills"></div>
+                <div class="tab-content" id="tab-craft"></div>
+                <div class="tab-content" id="tab-dungeon"></div>
+                <div class="tab-content" id="tab-rebirth"></div>
+                <div class="tab-content" id="tab-shop"></div>
+                <div class="tab-content" id="tab-cards"></div>
+                <div class="tab-content" id="tab-stats"></div>
+                <div class="tab-content" id="tab-life"></div>
+                <div class="tab-content" id="tab-arena"></div>
+                <button class="modal-close" onclick="toggleModal('mainModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+       
+        class SoundSystem {
+            constructor() {
+                this.ctx = null; this.enabled = true;
+                const h = () => { if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); };
+                document.addEventListener('touchstart', h, {once:true}); document.addEventListener('click', h, {once:true});
+            }
+            play(t) {
+                if(!this.enabled||!this.ctx) return;
+                const n = { attack:[200,'square',0.1], skill:[400,'sawtooth',0.15], crit:[600,'square',0.12], kill:[800,'sine',0.2], heal:[500,'sine',0.15], buy:[700,'triangle',0.1], craft:[500,'triangle',0.12], fish:[300,'sine',0.2], card:[600,'sine',0.15], event:[400,'sine',0.2] };
+                if(t==='levelup'){ this.melody([300,500,800]); return; }
+                if(t==='achievement'){ this.melody([400,600,800,1000]); return; }
+                if(t==='boss'){ this.melody([200,300,200,300,400]); return; }
+                if(t==='rebirth'){ this.melody([200,400,600,800,1000]); return; }
+                const v = n[t]||[440,'sine',0.1];
+                const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination);
+                o.frequency.value=v[0]; o.type=v[1]; g.gain.value=0.06;
+                o.start(); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime+v[2]);
+                o.stop(this.ctx.currentTime+v[2]);
+            }
+            melody(notes) { notes.forEach((f,i) => { setTimeout(() => { const o=this.ctx.createOscillator(),g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination); o.frequency.value=f;o.type='sine';g.gain.value=0.06; o.start();g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+0.12); o.stop(this.ctx.currentTime+0.12); }, i*100); }); }
+        }
+        const sound = new SoundSystem();
+
+   
+        const player = {
+            name:'冒险者',level:1,hp:100,maxHp:100,mp:50,maxMp:50,exp:0,expToLevel:100,
+            attack:15,defense:5,gold:0,potions:3,currentMap:'forest',
+            totalKills:0,dailyKills:0,dailySkills:0,dailyGold:0,dailyBossKills:0,
+            skillPoints:0,title:'初出茅庐',titleIcon:'🌱',rebirthCount:0,rebirthBonus:0,
+            equipment:{weapon:{name:'木剑',emoji:'🗡️',attack:3,level:1},armor:{name:'布甲',emoji:'👘',defense:2,level:1}},
+            pet:null,inventory:[],learnedSkills:['heavy_strike'],equippedSkill:'heavy_strike',
+            tempDefense:0,shieldTurns:0,weatherAttackMod:1,weatherExpMod:1,weatherGoldMod:1,
+            currentDungeon:null,dungeonFloor:1,autoFight:false,autoFightSpeed:1.5,
+            arenaWins:0,cardCollection:[],killStreak:0,killStreakTimer:null,rebirthPoints:0
+        };
+
+        const battleStats = { totalDamageDealt:0,totalDamageTaken:0,maxHit:0,critsLanded:0,potionsUsed:0,playTime:0,bossesKilled:0,dungeonsCleared:0 };
+
+        const equipmentDB = {
+            weapons:[
+                {name:'木剑',emoji:'🗡️',attack:3,price:0,level:1},
+                {name:'铁剑',emoji:'⚔️',attack:8,price:200,level:3},
+                {name:'秘银剑',emoji:'🔪',attack:15,price:500,level:7},
+                {name:'魔杖',emoji:'🪄',attack:22,price:1000,level:12},
+                {name:'龙牙刃',emoji:'🗡️',attack:35,price:2500,level:18}
+            ],
+            armors:[
+                {name:'布甲',emoji:'👘',defense:2,price:0,level:1},
+                {name:'皮甲',emoji:'🧥',defense:6,price:180,level:3},
+                {name:'锁子甲',emoji:'🛡️',defense:12,price:450,level:7},
+                {name:'魔法袍',emoji:'👗',defense:18,price:900,level:12},
+                {name:'龙鳞甲',emoji:'🛡️',defense:28,price:2200,level:18}
+            ]
+        };
+
+        const achievements = [
+            {id:'first_kill',name:'初次击杀',desc:'击败第一个敌人',icon:'⚔️',unlocked:false},
+            {id:'slayer_10',name:'猎手',desc:'击杀10个敌人',icon:'💀',target:10,unlocked:false},
+            {id:'slayer_50',name:'百人斩',desc:'击杀50个敌人',icon:'☠️',target:50,unlocked:false},
+            {id:'rich_500',name:'小富',desc:'拥有500金币',icon:'💰',target:500,unlocked:false},
+            {id:'rich_2000',name:'富翁',desc:'拥有2000金币',icon:'💎',target:2000,unlocked:false},
+            {id:'level_10',name:'冒险者',desc:'达到10级',icon:'⬆️',target:10,unlocked:false},
+            {id:'level_20',name:'英雄',desc:'达到20级',icon:'👑',target:20,unlocked:false},
+            {id:'level_30',name:'传说',desc:'达到30级',icon:'🌟',target:30,unlocked:false},
+            {id:'dragon_slayer',name:'屠龙者',desc:'击败远古巨龙',icon:'🐉',unlocked:false},
+            {id:'rebirth_1',name:'涅槃',desc:'完成1次转生',icon:'🔄',target:1,unlocked:false},
+            {id:'card_collector',name:'卡牌大师',desc:'收集全部7张卡牌',icon:'🃏',unlocked:false},
+            {id:'combo_10',name:'连杀高手',desc:'达成10连杀',icon:'🔥',target:10,unlocked:false}
+        ];
+
+        const titles = [
+            {id:'newbie',name:'初出茅庐',icon:'🌱',condition:()=>true},
+            {id:'warrior',name:'勇者',icon:'⚔️',condition:()=>player.totalKills>=50},
+            {id:'slayer',name:'屠戮者',icon:'💀',condition:()=>player.totalKills>=100},
+            {id:'rich',name:'富豪',icon:'💎',condition:()=>player.gold>=5000},
+            {id:'legend',name:'传说',icon:'🌟',condition:()=>player.level>=30},
+            {id:'reborn',name:'涅槃者',icon:'🔥',condition:()=>player.rebirthCount>=1},
+            {id:'arena_champion',name:'竞技冠军',icon:'🏆',condition:()=>player.arenaWins>=10}
+        ];
+
+        const dailyQuests = [
+            {id:'kill',desc:'击败10个敌人',icon:'⚔️',target:10,progress:0,reward:100,claimed:false},
+            {id:'skill',desc:'使用5次技能',icon:'✨',target:5,progress:0,reward:80,claimed:false},
+            {id:'gold',desc:'获得200金币',icon:'💰',target:200,progress:0,reward:150,claimed:false},
+            {id:'boss',desc:'击败1个BOSS',icon:'👑',target:1,progress:0,reward:300,claimed:false}
+        ];
+
+        const petsDB = [
+            {name:'小火龙',emoji:'🦎',attack:5,evolveLevel:10,evolvedEmoji:'🐉',evolvedAttack:20,desc:'每回合自动攻击'},
+            {name:'冰精灵',emoji:'❄️',attack:3,heal:10,evolveLevel:8,evolvedEmoji:'🧊',evolvedHeal:25,desc:'攻击时有概率治疗'},
+            {name:'暗影狼',emoji:'🐺',attack:7,evolveLevel:12,evolvedEmoji:'🐺',evolvedAttack:25,desc:'高攻击力'},
+            {name:'小凤凰',emoji:'🐣',attack:4,heal:5,evolveLevel:15,evolvedEmoji:'🦅',evolvedAttack:30,evolvedHeal:20,desc:'攻击+治疗全能'}
+        ];
+
+        const skillTree = {
+            attack:[
+                {id:'heavy_strike',name:'重击',level:1,damage:1.5,mpCost:15,emoji:'💥',unlocked:true,desc:'造成150%攻击力的伤害',req:null},
+                {id:'whirlwind',name:'旋风斩',level:2,damage:2.0,mpCost:25,emoji:'🌪️',unlocked:false,desc:'造成200%攻击力的伤害',req:'heavy_strike'},
+                {id:'earthquake',name:'地裂斩',level:3,damage:3.0,mpCost:40,emoji:'💢',unlocked:false,desc:'造成300%攻击力的伤害',req:'whirlwind'}
+            ],
+            magic:[
+                {id:'fireball',name:'火球术',level:1,damage:2.0,mpCost:20,emoji:'🔥',unlocked:false,desc:'造成200%攻击力的火焰伤害',req:null},
+                {id:'blizzard',name:'暴风雪',level:2,damage:2.8,mpCost:35,emoji:'❄️',unlocked:false,desc:'造成280%攻击力的冰霜伤害',req:'fireball'},
+                {id:'meteor',name:'陨石术',level:3,damage:4.5,mpCost:55,emoji:'☄️',unlocked:false,desc:'造成450%攻击力的毁灭伤害',req:'blizzard'}
+            ],
+            support:[
+                {id:'heal',name:'治愈术',level:1,heal:80,mpCost:20,emoji:'💚',unlocked:false,desc:'恢复80点生命值',req:null},
+                {id:'shield',name:'护盾',level:2,defense:15,duration:3,mpCost:30,emoji:'🛡️',unlocked:false,desc:'获得15点护盾持续3回合',req:'heal'},
+                {id:'revive',name:'复活术',level:3,healPercent:0.5,mpCost:60,emoji:'✨',unlocked:false,desc:'恢复50%最大生命值',req:'shield'}
+            ]
+        };
+
+        const recipes = [
+            {name:'火焰剑',emoji:'🔥⚔️',materials:{'铁剑':1,'史莱姆黏液':5},result:{type:'weapon',name:'火焰剑',attack:20,emoji:'🔥⚔️',desc:'+20攻击'}},
+            {name:'冰霜甲',emoji:'❄️🛡️',materials:{'锁子甲':1,'冰晶碎片':3},result:{type:'armor',name:'冰霜甲',defense:16,emoji:'❄️🛡️',desc:'+16防御'}},
+            {name:'力量药水',emoji:'💪🧪',materials:{'史莱姆黏液':3,'石头碎片':2},result:{type:'potion',name:'力量药水',heal:80,emoji:'💪🧪',desc:'恢复80HP'}}
+        ];
+
+        const dungeons = [
+            {name:'史莱姆巢穴',emoji:'🕳️',minLevel:3,floors:3,boss:{name:'史莱姆王',emoji:'🟢',hp:200,maxHp:200,attack:25,exp:200,gold:300,level:5,isBoss:true},reward:{gold:500,exp:300}}
+        ];
+
+        const worldBoss = {name:'灭世魔龙',emoji:'🐲',hp:5000,maxHp:5000,attack:150,exp:3000,gold:3000,level:30,isBoss:true,lastKilled:null,respawnTime:1800};
+
+        const allCards = [
+            {id:'slime',name:'绿色史莱姆',emoji:'🟢',rarity:'普通',dropRate:0.15},
+            {id:'goblin',name:'哥布林',emoji:'👺',rarity:'普通',dropRate:0.12},
+            {id:'bat',name:'洞穴蝙蝠',emoji:'🦇',rarity:'普通',dropRate:0.1},
+            {id:'skeleton',name:'骷髅战士',emoji:'💀',rarity:'稀有',dropRate:0.06},
+            {id:'ghost',name:'幽灵',emoji:'👻',rarity:'稀有',dropRate:0.05},
+            {id:'demon',name:'恶魔领主',emoji:'😈',rarity:'史诗',dropRate:0.03},
+            {id:'dragon',name:'远古巨龙',emoji:'🐉',rarity:'传说',dropRate:0.02}
+        ];
+
+        const lifeSkills = {fishing:{level:1,exp:0,expToLevel:100},mining:{level:1,exp:0,expToLevel:100}};
+
+        const arenaOpponents = [
+            {name:'剑圣',level:5,hp:200,attack:30,emoji:'⚔️',gold:200},
+            {name:'大法师',level:8,hp:250,attack:40,emoji:'🔮',gold:300}
+        ];
+
+        const monsters = {
+            forest:[
+                {name:'绿色史莱姆',emoji:'🟢',hp:30,maxHp:30,attack:8,exp:2010000000000000000000,gold:10,level:1},
+                {name:'哥布林',emoji:'👺',hp:50,maxHp:50,attack:12,exp:3510000000000000000000,gold:20,level:2},
+                {name:'巨型蜘蛛',emoji:'🕷️',hp:70,maxHp:70,attack:15,exp:5010000000000000000000,gold:30,level:4}
+            ],
+            cave:[
+                {name:'洞穴蝙蝠',emoji:'🦇',hp:80,maxHp:80,attack:20,exp:7010000000000000000000,gold:40,level:6},
+                {name:'骷髅战士',emoji:'💀',hp:120,maxHp:120,attack:25,exp:10010000000000000000000,gold:60,level:8},
+                {name:'岩石巨人',emoji:'🗿',hp:200,maxHp:200,attack:30,exp:15010000000000000000000,gold:100,level:10}
+            ],
+            castle:[
+                {name:'幽灵',emoji:'👻',hp:150,maxHp:150,attack:35,exp:20010000000000000000000,gold:150,level:12},
+                {name:'恶魔领主',emoji:'😈',hp:400,maxHp:400,attack:50,exp:50010000000000000000000,gold:400,level:16}
+            ],
+            dragon:[
+                {name:'远古巨龙',emoji:'🐉',hp:1000,maxHp:1000,attack:80,exp:1000000000000000000010000000000000000000,gold:1000,level:20,isBoss:true,phases:[{hpPercent:100,attack:80},{hpPercent:50,attack:100,message:'🐉巨龙狂暴！'},{hpPercent:20,attack:130,message:'🔥垂死挣扎！'}],currentPhase:0}
+            ]
+        };
+
+        const weatherSystem = {
+            current:'clear',
+            effects:{clear:{desc:'晴天',attackMod:1,expMod:1,goldMod:1,emoji:'☀️'},rain:{desc:'雨天',attackMod:0.9,expMod:1.3,goldMod:1.1,emoji:'🌧️'},night:{desc:'黑夜',attackMod:0.8,expMod:1.4,goldMod:1.2,emoji:'🌙'}},
+            update(){
+                const h=new Date().getHours();
+                this.current=(h>=20||h<6)?'night':(Math.random()<0.3?'rain':'clear');
+                const e=this.effects[this.current];
+                player.weatherAttackMod=e.attackMod;player.weatherExpMod=e.expMod;player.weatherGoldMod=e.goldMod;
+                const el=document.getElementById('weatherDisplay');if(el)el.textContent=e.emoji+' '+e.desc;
+            }
+        };
+
+        const randomEvents = [
+            {name:'宝箱',emoji:'📦',chance:0.08,effect:()=>{const g=Math.floor(Math.random()*80+30);player.gold+=g;showToast('📦宝箱！+'+g+'💰');sound.play('event');showFloatingText('+'+g+'💰',200,250,'gold');}},
+            {name:'商人',emoji:'🧑‍💼',chance:0.04,effect:()=>{player.potions=Math.min(player.potions+2,99);showToast('🧑‍💼商人送你2瓶药水！');}},
+            {name:'经验书',emoji:'📖',chance:0.06,effect:()=>{const e=Math.floor(player.expToLevel*0.2);player.exp+=e;showToast('📖经验书！+'+e+'EXP');showFloatingText('+'+e+'EXP',250,200,'exp');checkLevelUp();}}
+        ];
+
+        const checkIn = {
+            streak:0,lastCheckIn:null,rewards:[50,80,120,180,250,350,500],
+            load(){const s=localStorage.getItem('checkInData');if(s){try{const d=JSON.parse(s);this.streak=d.streak||0;this.lastCheckIn=d.lastCheckIn||null;}catch(e){}}},
+            save(){localStorage.setItem('checkInData',JSON.stringify({streak:this.streak,lastCheckIn:this.lastCheckIn}));}
+        };
+
+        const materialDropTable = {
+            '绿色史莱姆':[{item:'史莱姆黏液',emoji:'💧',chance:0.6,qty:1}],
+            '岩石巨人':[{item:'石头碎片',emoji:'🪨',chance:0.5,qty:2}],
+            '哥布林':[{item:'破布',emoji:'🧵',chance:0.4,qty:1}],
+            '远古巨龙':[{item:'龙鳞碎片',emoji:'🔶',chance:0.8,qty:3},{item:'冰晶碎片',emoji:'❄️',chance:0.5,qty:2}],
+            '骷髅战士':[{item:'冰晶碎片',emoji:'❄️',chance:0.3,qty:1}],
+            '恶魔领主':[{item:'冰晶碎片',emoji:'❄️',chance:0.4,qty:2}]
+        };
+
+        let currentEnemy = null, isFighting = false, isArenaFight = false;
+
+   
+        function saveGame(){
+            const d={player,achievements,dailyQuests,battleStats,lifeSkills,worldBossKilled:worldBoss.lastKilled,checkInStreak:checkIn.streak,checkInDate:checkIn.lastCheckIn,timestamp:Date.now()};
+            try{localStorage.setItem('shadowAdventurer_final',JSON.stringify(d));}catch(e){}
+            localStorage.setItem('lastOnlineTime',Date.now());
+        }
+        function loadGame(){
+            const s=localStorage.getItem('shadowAdventurer_final');
+            if(!s)return false;
+            try{
+                const d=JSON.parse(s);
+                if(d.player){
+                    const p=d.player;
+                    ['level','hp','maxHp','mp','maxMp','exp','attack','defense','gold','potions','currentMap','totalKills','dailyKills','dailySkills','dailyGold','dailyBossKills','skillPoints','rebirthCount','rebirthBonus','title','titleIcon','equipment','pet','inventory','learnedSkills','equippedSkill','cardCollection','arenaWins','rebirthPoints'].forEach(k=>{if(p[k]!==undefined)player[k]=p[k];});
+                    player.expToLevel=p.expToLevel||100;
+                    if(!player.expToLevel||player.expToLevel<=0||isNaN(player.expToLevel)){player.expToLevel=100;for(let i=1;i<player.level;i++)player.expToLevel=Math.floor(player.expToLevel*1.3);}
+                    player.hp=Math.min(player.hp,player.maxHp);player.mp=Math.min(player.mp,player.maxMp);
+                    player.exp=Math.max(0,player.exp);player.gold=Math.max(0,player.gold);
+                }
+                if(d.achievements)d.achievements.forEach((s,i)=>{if(achievements[i])achievements[i].unlocked=s.unlocked||false;});
+                if(d.dailyQuests)d.dailyQuests.forEach((s,i)=>{if(dailyQuests[i]){dailyQuests[i].progress=s.progress||0;dailyQuests[i].claimed=s.claimed||false;}});
+                if(d.battleStats)Object.assign(battleStats,d.battleStats);
+                if(d.lifeSkills)Object.assign(lifeSkills,d.lifeSkills);
+                if(d.worldBossKilled)worldBoss.lastKilled=d.worldBossKilled;
+                if(d.checkInStreak!==undefined)checkIn.streak=d.checkInStreak;
+                if(d.checkInDate)checkIn.lastCheckIn=d.checkInDate;
+                updatePlayerStats();return true;
+            }catch(e){localStorage.removeItem('shadowAdventurer_final');return false;}
+        }
+        function autoSave(){saveGame();}
+        setInterval(autoSave,30000);
+
+       
+        function calculateOfflineRewards(){
+            const last=localStorage.getItem('lastOnlineTime');if(!last)return;
+            const sec=Math.floor((Date.now()-parseInt(last))/1000);if(sec<60)return;
+            const min=Math.floor(sec/60),gold=Math.floor(min*player.level*1.5),exp=Math.floor(min*player.level*2);
+            player.gold+=gold;player.exp+=exp;
+            document.getElementById('offlineContent').innerHTML=`<p>离开<span style="color:var(--gold);">${min}</span>分钟</p><p>💰+${gold}</p><p>⭐+${exp}</p>`;
+            document.getElementById('offlineOverlay').classList.add('active');document.getElementById('offlineModal').classList.add('active');
+            checkLevelUp();autoSave();
+        }
+        function closeOfflineModal(){
+            document.getElementById('offlineOverlay').classList.remove('active');document.getElementById('offlineModal').classList.remove('active');
+            if(!isFighting)spawnEnemy();updateUI();autoSave();
+        }
+
+       
+        function toggleAutoFight(){
+            player.autoFight=!player.autoFight;
+            document.getElementById('autoFightIndicator').style.display=player.autoFight?'block':'none';
+            document.getElementById('autoIcon').textContent=player.autoFight?'⏹️':'🤖';
+            document.getElementById('autoText').textContent=player.autoFight?'停止':'自动';
+            if(player.autoFight)autoFightLoop();
+        }
+        function autoFightLoop(){
+            if(!player.autoFight)return;
+            if(isFighting&&currentEnemy&&!isArenaFight){
+                if(player.hp<player.maxHp*0.3&&player.potions>0)usePotion();
+                else if(player.mp>=10)useEquippedSkill();
+                else playerAttack();
+            }
+            setTimeout(autoFightLoop,player.autoFightSpeed*1000);
+        }
+
+       
+        function updateBossTimer(){
+            const el=document.getElementById('bossTimer');if(!el)return;
+            if(worldBoss.lastKilled){const r=Math.max(0,worldBoss.respawnTime-Math.floor((Date.now()-worldBoss.lastKilled)/1000));el.textContent=r>0?`🐲${Math.floor(r/60)}:${(r%60).toString().padStart(2,'0')}`:'🐲已刷新！';}
+            else{el.textContent='🐲可挑战';}el.style.display='block';
+            const btn=document.getElementById('worldBossBtn');if(btn){btn.classList.toggle('boss-available',!worldBoss.lastKilled||(Date.now()-worldBoss.lastKilled)>worldBoss.respawnTime*1000);}
+        }
+        function fightWorldBoss(){
+            if(player.level<20){showToast('❌需Lv.20');return;}
+            if(worldBoss.lastKilled&&(Date.now()-worldBoss.lastKilled)<worldBoss.respawnTime*1000){showToast('❌Boss未刷新');return;}
+            currentEnemy={...worldBoss,maxHp:worldBoss.maxHp};isFighting=true;showToast('🌍灭世魔龙出现！');sound.play('boss');updateUI();
+        }
+
+      
+        function doCheckIn(){
+            const today=new Date().toDateString();
+            if(checkIn.lastCheckIn===today){showToast('✅今日已签到');return;}
+            const yesterday=new Date(Date.now()-86400000).toDateString();
+            checkIn.streak=(checkIn.lastCheckIn===yesterday)?Math.min(checkIn.streak+1,7):1;checkIn.lastCheckIn=today;
+            const reward=checkIn.rewards[checkIn.streak-1];player.gold+=reward;
+            let extra='';if(checkIn.streak===7){player.potions+=3;extra='+3🧪';}else if(checkIn.streak===5){player.skillPoints+=1;extra='+1✨';}
+            checkIn.save();autoSave();showToast(`📅签到第${checkIn.streak}天+${reward}💰${extra}`);updateCheckinBtn();
+        }
+        function updateCheckinBtn(){
+            const btn=document.getElementById('checkinBtn');if(!btn)return;
+            const today=new Date().toDateString();btn.textContent=checkIn.lastCheckIn===today?'✅':'📅';btn.style.opacity=checkIn.lastCheckIn===today?'0.5':'1';
+        }
+
+       
+        function exportData(){
+            const data={gameSave:localStorage.getItem('shadowAdventurer_final'),checkinData:localStorage.getItem('checkInData'),exportDate:new Date().toISOString(),info:`Lv.${player.level}|💰${player.gold}|击杀${player.totalKills}`};
+            const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');a.href=url;a.download=`冒险者存档_Lv${player.level}_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
+            document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+            showToast('💾存档已下载到下载文件夹');setTimeout(()=>showToast('📁如未下载请检查浏览器设置'),2000);
+        }
+        function importData(){
+            const input=document.createElement('input');input.type='file';input.accept='.json';
+            input.onchange=(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();
+                reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);if(!data.gameSave){showToast('❌无效文件');return;}
+                    if(confirm(`确认导入？\n${data.info}\n⚠️当前进度将被覆盖！`)){localStorage.setItem('shadowAdventurer_final',data.gameSave);if(data.checkinData)localStorage.setItem('checkInData',data.checkinData);showToast('📂导入成功刷新中...');setTimeout(()=>location.reload(),1000);}}catch(err){showToast('❌格式错误');}};reader.readAsText(file);};input.click();
+        }
+
+       
+        function showSaveCode(){
+            const data=localStorage.getItem('shadowAdventurer_final');
+            if(!data){showToast('❌没有存档');return;}
+            const modal=document.createElement('div');modal.className='save-code-modal';
+            modal.innerHTML=`<div class="save-code-content"><h3 style="color:#ffd700;text-align:center;">💾存档代码</h3>
+                <p style="font-size:10px;color:#aaa;text-align:center;margin:6px 0;">👇长按全选复制后粘贴到备忘录保存</p>
+                <textarea id="saveCodeText" style="width:100%;height:150px;background:#000;color:#0f0;border:1px solid #444;border-radius:8px;padding:8px;font-size:9px;resize:none;word-break:break-all;" readonly>${data}</textarea>
+                <button onclick="copySaveCode()" style="width:100%;padding:10px;margin-top:8px;background:#44ff44;color:#000;border:none;border-radius:8px;font-size:14px;font-weight:bold;">📋一键复制</button>
+                <button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:10px;margin-top:4px;background:#ff4444;color:white;border:none;border-radius:8px;font-size:14px;">关闭</button></div>`;
+            document.body.appendChild(modal);
+        }
+        function copySaveCode(){
+            const textarea=document.getElementById('saveCodeText');
+            if(!textarea)return;
+            textarea.select();
+            try{navigator.clipboard.writeText(textarea.value).then(()=>showToast('✅已复制！去备忘录粘贴保存'));}catch(e){document.execCommand('copy');showToast('✅已复制！去备忘录粘贴保存');}
+        }
+
+       
+        function screenShake(intensity=5){
+            const screen=document.getElementById('gameScreen');const orig=screen.style.transform||'';let count=0;
+            const interval=setInterval(()=>{const x=(Math.random()-0.5)*intensity*2,y=(Math.random()-0.5)*intensity*2;screen.style.transform=`translate(${x}px,${y}px)`;count++;if(count>8){clearInterval(interval);screen.style.transform=orig;}},30);
+        }
+
+       
+        function updateKillStreak(){
+            clearTimeout(player.killStreakTimer);player.killStreak++;
+            if(player.killStreak>=10){const a=achievements.find(a=>a.id==='combo_10');if(a&&!a.unlocked){a.unlocked=true;showAchievementPopup(a);}}
+            player.killStreakTimer=setTimeout(()=>{if(player.killStreak>=5){const bonus=player.killStreak*15;player.gold+=bonus;showToast(`🔥${player.killStreak}连杀！+${bonus}💰`);}player.killStreak=0;},5000);
+        }
+
+       
+        function checkRandomEvent(){randomEvents.forEach(e=>{if(Math.random()<e.chance)e.effect();});}
+
+       
+        function updateUI(){
+            const st=(i,t)=>{const e=document.getElementById(i);if(e)e.textContent=t;};
+            const ss=(i,p,v)=>{const e=document.getElementById(i);if(e)e.style[p]=v;};
+            st('level',`Lv.${player.level}`);st('hpText',`${player.hp}/${player.maxHp}`);st('mpText',`${player.mp}/${player.maxMp}`);st('expText',`${player.exp}/${player.expToLevel}`);st('gold',player.gold);st('potionCount',player.potions);
+            st('titleDisplay',`${player.titleIcon}${player.title}`);
+            ss('hpBar','width',Math.max(0,(player.hp/Math.max(1,player.maxHp))*100)+'%');ss('mpBar','width',Math.max(0,(player.mp/Math.max(1,player.maxMp))*100)+'%');ss('expBar','width',Math.max(0,(player.exp/Math.max(1,player.expToLevel))*100)+'%');
+            st('mapDisplay',player.currentDungeon?`🕳️${player.currentDungeon.name}F${player.dungeonFloor}`:getMapDisplayName());
+            st('weaponDisplay',player.equipment?.weapon?.name||'木剑');st('armorDisplay',player.equipment?.armor?.name||'布甲');st('rebirthDisplay',player.rebirthCount>0?`转生${player.rebirthCount}`:'');
+            if(player.pet){const ev=player.level>=(player.pet.evolveLevel||999);st('petDisplay',ev?(player.pet.evolvedEmoji||player.pet.emoji):player.pet.emoji);}else{st('petDisplay','');}
+            if(currentEnemy){st('enemySprite',currentEnemy.emoji||'👾');st('enemyName',currentEnemy.name||'未知');st('enemyLevel',`Lv.${currentEnemy.level||1}`);ss('enemyHpBar','width',Math.max(0,(currentEnemy.hp/Math.max(1,currentEnemy.maxHp))*100)+'%');}
+            const sk=findSkill(player.equippedSkill);if(sk){st('skillIcon',sk.emoji);st('skillName',sk.name);}
+            updateBossTimer();updateCheckinBtn();
+        }
+        function getMapDisplayName(){const n={forest:'🌲暗影森林',cave:'🕳️幽暗洞穴',castle:'🏰诅咒城堡',dragon:'🐉龙之巢穴'};return n[player.currentMap]||'🌲暗影森林';}
+        function showToast(msg){const t=document.createElement('div');t.className='log-toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2000);}
+        function showAchievementPopup(a){const p=document.createElement('div');p.className='achievement-popup';p.innerHTML=`<span class="achievement-icon">${a.icon}</span><div><b>🏆${a.name}</b><br><small>${a.desc}</small></div>`;document.body.appendChild(p);sound.play('achievement');if(navigator.vibrate)navigator.vibrate([100,50,100,50,200]);setTimeout(()=>p.remove(),3000);}
+        function showLevelUpEffect(){const e=document.createElement('div');e.className='levelup-effect';e.textContent='⬆️LEVEL UP!';document.body.appendChild(e);setTimeout(()=>e.remove(),1500);}
+        function showFloatingText(text,x,y,type='normal'){const el=document.createElement('div');el.className='damage-popup '+type;el.textContent=text;const screen=document.getElementById('gameScreen');el.style.left=x+'px';el.style.top=y+'px';screen.appendChild(el);setTimeout(()=>el.remove(),800);}
+
+       
+        function toggleModal(id){const m=document.getElementById(id);m.classList.toggle('active');if(id==='mainModal'&&m.classList.contains('active'))updateAllTabs();}
+        function switchTab(name){
+            document.querySelectorAll('#mainTabs .tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+            const tab=document.getElementById('tab-'+name);if(tab)tab.classList.add('active');
+            const em={map:'🗺️',quests:'📋',achievements:'🏆',pets:'🐾',skills:'✨',craft:'🔨',dungeon:'🕳️',rebirth:'🔄',shop:'🏪',cards:'🃏',stats:'📊',life:'🎣',arena:'⚔️'};
+            const btn=Array.from(document.querySelectorAll('#mainTabs .tab-btn')).find(b=>b.textContent.includes(em[name]||''));if(btn)btn.classList.add('active');
+            updateAllTabs();
+        }
+        function updateAllTabs(){
+            document.getElementById('tab-map').innerHTML=`<div class="list-item"onclick="selectMap('forest')"><span>🌲暗影森林</span><span>Lv.1-5</span></div><div class="list-item"onclick="selectMap('cave')"><span>🕳️幽暗洞穴</span><span>Lv.5-10</span></div><div class="list-item"onclick="selectMap('castle')"><span>🏰诅咒城堡</span><span>Lv.10-15</span></div><div class="list-item"onclick="selectMap('dragon')"><span>🐉龙之巢穴</span><span>Lv.15+</span></div>`;
+            document.getElementById('tab-quests').innerHTML=dailyQuests.map(q=>`<div class="list-item"><span>${q.icon}${q.desc}</span><span>${q.progress}/${q.target}${q.claimed?'✅':q.progress>=q.target?'🎁':''}</span></div>`).join('');
+            document.getElementById('tab-achievements').innerHTML=achievements.map(a=>`<div class="list-item ${a.unlocked?'unlocked':'locked'}"><span>${a.icon}${a.name}</span><span style="font-size:9px;">${a.desc}</span></div>`).join('');
+            document.getElementById('tab-pets').innerHTML=petsDB.map((p,i)=>{const ad=player.pet&&player.pet.name===p.name;const ev=ad&&player.level>=p.evolveLevel;return`<div class="list-item ${ad?'unlocked':''}"onclick="adoptPet(${i})"><span>${ev?(p.evolvedEmoji||p.emoji):p.emoji}${p.name}</span><span style="font-size:9px;">攻+${ev?(p.evolvedAttack||p.attack):p.attack}${p.heal?'治+'+ (ev?(p.evolvedHeal||p.heal):p.heal):''}</span><span style="font-size:8px;color:#888;">${p.desc||''}</span>${ad?'✓':''}</div>`;}).join('');
+            document.getElementById('tab-skills').innerHTML=`<div style="margin-bottom:6px;">技能点:<span style="color:var(--gold);">${player.skillPoints}</span></div>`+Object.entries(skillTree).map(([tree,skills])=>`<div style="color:var(--gold);margin:8px 0 4px;font-size:11px;">${tree==='attack'?'⚔️攻击系':tree==='magic'?'🔮魔法系':'💚辅助系'}</div>`+skills.map(s=>{const learned=player.learnedSkills.includes(s.id);const equipped=player.equippedSkill===s.id;const canLearn=!learned&&player.skillPoints>0&&(!s.req||player.learnedSkills.includes(s.req));return`<div class="skill-node ${learned?'learned':''}${equipped?'equipped':''}"onclick="${learned?`equipSkill('${s.id}')`:canLearn?`learnSkill('${s.id}')`:''}"><span>${s.emoji}</span><div style="flex:1;"><div style="font-weight:bold;">${s.name}<span style="font-size:9px;color:#888;">Lv.${s.level}</span></div><div class="skill-desc">${s.desc||''}${s.damage?'|伤害x'+s.damage:''}${s.heal?'|恢复+'+s.heal:''}${s.defense?'|护盾+'+s.defense:''}|MP:${s.mpCost}</div></div>${equipped?'<span style="color:#ff4444;">装备中</span>':learned?'<span style="color:#4444ff;">已学会</span>':canLearn?'<span style="color:#44ff44;">可学习</span>':'<span style="color:#666;">🔒需:'+(s.req?findSkill(s.req)?.name||s.req:'无')+'</span>'}</div>`;}).join('')).join('');
+            document.getElementById('tab-craft').innerHTML=recipes.map((r,i)=>{const can=Object.entries(r.materials).every(([m,q])=>{const inv=player.inventory.find(it=>it.name===m);return inv&&inv.quantity>=q;});return`<div class="list-item"><span>${r.emoji}${r.name}</span><div style="flex:1;font-size:9px;"><div>${Object.entries(r.materials).map(([m,q])=>`${m}x${q}`).join(' ')}</div><div style="color:#888;">${r.result.desc||''}</div></div><button class="buy-btn"${!can?'disabled':''}onclick="craftItem(${i})">合成</button></div>`;}).join('')+'<div style="color:var(--gold);margin:10px 0;font-size:11px;">📦材料背包</div>'+(player.inventory.filter(i=>i.type==='material').length===0?'<div style="font-size:10px;color:#666;">暂无材料(击败怪物获取)</div>':player.inventory.filter(i=>i.type==='material').map(m=>`<div class="list-item"><span>${m.emoji||'💧'}${m.name}</span><span>x${m.quantity}</span></div>`).join(''));
+            document.getElementById('tab-dungeon').innerHTML=dungeons.map((d,i)=>`<div class="list-item"><span>${d.emoji}${d.name}</span><span style="font-size:9px;">${d.floors}层Lv.${d.minLevel}</span><button class="buy-btn"${player.level<d.minLevel?'disabled':''}onclick="enterDungeon(${i})">进入</button></div>`).join('');
+            document.getElementById('tab-rebirth').innerHTML=`<div>转生:${player.rebirthCount}次|加成:+${Math.floor(player.rebirthBonus*100)}%</div><button class="buy-btn"style="width:100%;margin:4px 0;"${player.level<30?'disabled':''}onclick="rebirth()">🔄转生(需Lv.30)</button><div style="margin-top:12px;padding-top:12px;border-top:1px solid #444;"><div style="color:var(--gold);margin-bottom:6px;">💾数据管理</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="buy-btn"style="flex:1;background:#4fc3f7;min-width:80px;"onclick="exportData()">📤导出文件</button><button class="buy-btn"style="flex:1;background:#ff9800;min-width:80px;"onclick="importData()">📥导入文件</button><button class="buy-btn"style="flex:1;background:#9c27b0;min-width:80px;"onclick="showSaveCode()">📋查看存档码</button></div><div style="font-size:8px;color:#666;text-align:center;margin-top:4px;">💡导出文件会下载到Download文件夹<br>💡查看存档码可直接复制保存</div></div>`;
+            document.getElementById('tab-shop').innerHTML=[...equipmentDB.weapons,...equipmentDB.armors].map(item=>{const type=equipmentDB.weapons.includes(item)?'weapon':'armor';const owned=player.inventory.some(i=>i.name===item.name)||player.equipment[type].name===item.name;const equipped=player.equipment[type].name===item.name;return`<div class="list-item"><span>${item.emoji}</span><span>${item.name}${type==='weapon'?'攻':'防'}+${type==='weapon'?item.attack:item.defense}</span><span>💰${item.price}</span>${equipped?'<button class="buy-btn owned"disabled>已装备</button>':owned?`<button class="buy-btn"onclick="equipItem('${type}','${item.name}')">装备</button>`:`<button class="buy-btn"${player.gold<item.price||player.level<item.level?'disabled':''}onclick="buyItem('${type}','${item.name}')">购买</button>`}</div>`;}).join('');
+            document.getElementById('tab-cards').innerHTML=allCards.map(c=>{const col=player.cardCollection.find(cc=>cc.id===c.id);return`<div class="list-item ${col?'unlocked':'locked'}"><span>${c.emoji}${c.name}</span><span style="font-size:9px;">[${c.rarity}]${col?'✅':'❌'}</span></div>`;}).join('')+`<div style="margin-top:6px;">收集:${player.cardCollection.length}/${allCards.length}</div>`;
+            document.getElementById('tab-stats').innerHTML=`<div class="stat-item"><span>游戏时间</span><span>${Math.floor(battleStats.playTime/3600)}h</span></div><div class="stat-item"><span>总伤害</span><span>${battleStats.totalDamageDealt}</span></div><div class="stat-item"><span>最高伤害</span><span>${battleStats.maxHit}</span></div><div class="stat-item"><span>暴击次数</span><span>${battleStats.critsLanded}</span></div><div class="stat-item"><span>击杀数</span><span>${player.totalKills}</span></div><div class="stat-item"><span>竞技胜</span><span>${player.arenaWins}</span></div><div class="stat-item"><span>转生</span><span>${player.rebirthCount}</span></div>`;
+            document.getElementById('tab-life').innerHTML=`<div class="list-item"onclick="fish()"><span>🎣钓鱼Lv.${lifeSkills.fishing.level}</span><span>${lifeSkills.fishing.exp}/${lifeSkills.fishing.expToLevel}</span></div><div class="list-item"onclick="mine()"><span>⛏️挖矿Lv.${lifeSkills.mining.level}</span><span>${lifeSkills.mining.exp}/${lifeSkills.mining.expToLevel}</span></div>`;
+            document.getElementById('tab-arena').innerHTML=arenaOpponents.map(o=>`<div class="list-item"onclick="enterArena();toggleModal('mainModal')"><span>${o.emoji}${o.name}Lv.${o.level}</span><span>💰${o.gold}</span></div>`).join('')+`<div>累计胜利:${player.arenaWins}</div>`;
+        }
+
+      
+        function updatePlayerStats(){let ba=12+(player.level-1)*3;let bd=5+(player.level-1);if(player.equipment?.weapon)ba+=player.equipment.weapon.attack||0;if(player.equipment?.armor)bd+=player.equipment.armor.defense||0;const bonus=1+(player.rebirthBonus||0);player.attack=Math.max(1,Math.floor(ba*bonus));player.defense=Math.max(0,Math.floor(bd*bonus));}
+        function updateTitle(){const av=titles.filter(t=>t.condition());const best=av[av.length-1];if(best&&best.name!==player.title){player.title=best.name;player.titleIcon=best.icon;showToast(`🏅${best.icon}${best.name}`);}}
+        function findSkill(id){for(const skills of Object.values(skillTree)){const f=skills.find(s=>s.id===id);if(f)return f;}return null;}
+        function learnSkill(id){if(player.skillPoints<=0){showToast('❌技能点不足');return;}const skill=findSkill(id);if(!skill||player.learnedSkills.includes(id))return;if(skill.req&&!player.learnedSkills.includes(skill.req)){showToast('❌需前置技能:'+(findSkill(skill.req)?.name||skill.req));return;}player.learnedSkills.push(id);player.skillPoints--;sound.play('buy');showToast(`✅学会${skill.name}`);updateAllTabs();autoSave();}
+        function equipSkill(id){if(!player.learnedSkills.includes(id))return;player.equippedSkill=id;showToast(`⚔️装备${findSkill(id).name}`);updateUI();updateAllTabs();}
+        function adoptPet(i){player.pet={...petsDB[i]};sound.play('buy');showToast(`🐾${player.pet.name}`);updateUI();updateAllTabs();autoSave();}
+        function buyItem(type,name){const db=type==='weapon'?equipmentDB.weapons:equipmentDB.armors;const item=db.find(i=>i.name===name);if(!item||player.gold<item.price||player.level<item.level){showToast('❌无法购买');return;}player.gold-=item.price;player.inventory.push({...item,type});equipItem(type,name);sound.play('buy');showToast(`✅${item.name}`);updateAllTabs();updateUI();autoSave();}
+        function equipItem(type,name){const db=type==='weapon'?equipmentDB.weapons:equipmentDB.armors;const item=db.find(i=>i.name===name)||player.inventory.find(i=>i.name===name&&i.type===type);if(!item)return;player.equipment[type]={...item};updatePlayerStats();showToast(`⚔️装备${name}`);updateAllTabs();updateUI();autoSave();}
+        function craftItem(i){const r=recipes[i];for(const[m,q]of Object.entries(r.materials)){const inv=player.inventory.find(it=>it.name===m);if(!inv||inv.quantity<q){showToast(`❌缺少${m}x${q}`);return;}}for(const[m,q]of Object.entries(r.materials)){const inv=player.inventory.find(it=>it.name===m);inv.quantity-=q;if(inv.quantity<=0)player.inventory=player.inventory.filter(it=>it.name!==m);}const result=r.result;if(result.type==='potion'){player.potions+=1;showToast(`✅合成${result.name}！`);}else{player.inventory.push({...result,type:result.type});showToast(`✅合成${result.name}！`);}sound.play('craft');updateAllTabs();autoSave();}
+        function enterDungeon(i){player.currentDungeon=dungeons[i];player.dungeonFloor=1;showToast(`🕳️${dungeons[i].name}`);spawnDungeonMonster();toggleModal('mainModal');}
+        function exitDungeon(){player.currentDungeon=null;player.dungeonFloor=1;isFighting=false;showToast('🚪退出副本');spawnEnemy();}
+        function rebirth(){if(player.level<30){showToast('❌需Lv.30');return;}player.rebirthCount++;player.rebirthBonus=player.rebirthCount*0.1;player.rebirthPoints++;const kg=player.gold,kp=player.pet,ki=player.inventory,ks=[...player.learnedSkills],kc=[...player.cardCollection];player.level=1;player.exp=0;player.expToLevel=100;player.maxHp=Math.floor(100*(1+player.rebirthBonus));player.hp=player.maxHp;player.maxMp=Math.floor(50*(1+player.rebirthBonus));player.mp=player.maxMp;player.gold=kg;player.pet=kp;player.inventory=ki;player.learnedSkills=ks;player.cardCollection=kc;player.skillPoints+=3;updatePlayerStats();sound.play('rebirth');showToast(`🔄转生${player.rebirthCount}次！+${Math.floor(player.rebirthBonus*100)}%`);isFighting=false;spawnEnemy();updateUI();updateAllTabs();autoSave();}
+        function enterArena(){const opp={...arenaOpponents[Math.floor(Math.random()*arenaOpponents.length)]};currentEnemy={...opp,maxHp:opp.hp};isFighting=true;isArenaFight=true;showToast(`⚔️竞技场:${opp.name}`);updateUI();}
+        function fish(){if(player.mp<5){showToast('❌精力不足');return;}player.mp-=5;if(Math.random()<0.5+lifeSkills.fishing.level*0.05){const fs=['🐟小鱼','🐠热带鱼','🐡河豚'];const f=fs[Math.floor(Math.random()*Math.min(lifeSkills.fishing.level,fs.length))];const g=Math.floor(Math.random()*30*lifeSkills.fishing.level+10);player.gold+=g;lifeSkills.fishing.exp+=20;sound.play('fish');showToast(`🎣${f}+${g}💰`);}else{showToast('🎣跑了...');lifeSkills.fishing.exp+=5;}checkLifeSkill('fishing');}
+        function mine(){if(player.mp<8){showToast('❌精力不足');return;}player.mp-=8;if(Math.random()<0.4+lifeSkills.mining.level*0.05){const os=['🪨石头','⛏️铁矿','💎宝石'];const o=os[Math.floor(Math.random()*Math.min(lifeSkills.mining.level,os.length))];const g=Math.floor(Math.random()*40*lifeSkills.mining.level+15);player.gold+=g;lifeSkills.mining.exp+=25;showToast(`⛏️${o}+${g}💰`);}else{showToast('⛏️没挖到...');lifeSkills.mining.exp+=8;}checkLifeSkill('mining');}
+        function checkLifeSkill(s){if(lifeSkills[s].exp>=lifeSkills[s].expToLevel){lifeSkills[s].level++;lifeSkills[s].exp-=lifeSkills[s].expToLevel;lifeSkills[s].expToLevel=Math.floor(lifeSkills[s].expToLevel*1.5);showToast(`⬆️${s==='fishing'?'🎣钓鱼':'⛏️挖矿'}Lv.${lifeSkills[s].level}`);}}
+
+        // ==================== 战斗系统 ====================
+        function spawnEnemy(){if(player.currentDungeon){spawnDungeonMonster();return;}const mm=monsters[player.currentMap];const av=mm.filter(m=>m.level<=player.level+3);currentEnemy={...(av.length>0?av[Math.floor(Math.random()*av.length)]:mm[0])};currentEnemy.maxHp=currentEnemy.hp;if(currentEnemy.phases)currentEnemy.currentPhase=0;isFighting=true;updateUI();if(currentEnemy.isBoss)sound.play('boss');}
+        function spawnDungeonMonster(){if(player.dungeonFloor===player.currentDungeon.floors){currentEnemy={...player.currentDungeon.boss};showToast(`👑Boss:${currentEnemy.name}`);sound.play('boss');}else{const mm=monsters[player.currentMap]||monsters.forest;currentEnemy={...mm[Math.floor(Math.random()*mm.length)]};currentEnemy.hp=Math.floor(currentEnemy.hp*0.8);currentEnemy.maxHp=currentEnemy.hp;}isFighting=true;updateUI();}
+        function playerAttack(){if(!isFighting||!currentEnemy)return;const base=Math.floor((player.attack*player.weatherAttackMod)+Math.random()*10);const isCrit=Math.random()<0.15;const dmg=isCrit?Math.floor(base*1.5):base;currentEnemy.hp-=dmg;battleStats.totalDamageDealt+=dmg;if(dmg>battleStats.maxHit)battleStats.maxHit=dmg;if(isCrit)battleStats.critsLanded++;showFloatingText(isCrit?`${dmg}!!`:`-${dmg}`,150+Math.random()*50,100+Math.random()*30,isCrit?'crit':'normal');sound.play(isCrit?'crit':'attack');if(isCrit)screenShake(3);if(navigator.vibrate)navigator.vibrate(isCrit?30:15);updateUI();if(currentEnemy.phases)checkBossPhase();if(currentEnemy.hp<=0){enemyDefeated();return;}setTimeout(enemyAttack,800);}
+        function useEquippedSkill(){const skill=findSkill(player.equippedSkill);if(!skill||player.mp<skill.mpCost){showToast('❌魔力不足');return;}player.mp-=skill.mpCost;player.dailySkills++;if(skill.damage){const dmg=Math.floor(player.attack*skill.damage*player.weatherAttackMod+Math.random()*20);currentEnemy.hp-=dmg;battleStats.totalDamageDealt+=dmg;if(dmg>battleStats.maxHit)battleStats.maxHit=dmg;showFloatingText(`-${dmg}`,180,80,skill.id.includes('fire')||skill.id.includes('meteor')?'crit':'skill');}if(skill.heal){player.hp=Math.min(player.maxHp,player.hp+skill.heal);showFloatingText(`+${skill.heal}`,50,200,'heal');}if(skill.defense){player.tempDefense=skill.defense;player.shieldTurns=skill.duration;}sound.play('skill');screenShake(4);if(navigator.vibrate)navigator.vibrate([20,30,20,30,50]);updateUI();updateDailyQuests();if(currentEnemy.phases)checkBossPhase();if(currentEnemy.hp<=0){enemyDefeated();return;}setTimeout(enemyAttack,900);}
+        function enemyAttack(){if(!isFighting||!currentEnemy||currentEnemy.hp<=0)return;const dmg=Math.max(1,currentEnemy.attack-player.defense-player.tempDefense+Math.floor(Math.random()*5));player.hp-=dmg;battleStats.totalDamageTaken+=dmg;if(player.shieldTurns>0){player.shieldTurns--;if(player.shieldTurns<=0)player.tempDefense=0;}updateUI();checkPlayerDeath();}
+        function checkBossPhase(){if(!currentEnemy?.phases||currentEnemy.hp<=0)return;const hpPct=(currentEnemy.hp/currentEnemy.maxHp)*100;for(let i=currentEnemy.phases.length-1;i>=0;i--){if(hpPct<=currentEnemy.phases[i].hpPercent&&i!==currentEnemy.currentPhase){currentEnemy.currentPhase=i;currentEnemy.attack=currentEnemy.phases[i].attack;if(currentEnemy.phases[i].message)showToast(currentEnemy.phases[i].message);sound.play('boss');screenShake(8);break;}}}
+        function enemyDefeated(){isFighting=false;const expGain=Math.max(1,Math.floor((currentEnemy.exp||10)*player.weatherExpMod));const goldGain=Math.max(1,Math.floor((currentEnemy.gold||5)*player.weatherGoldMod));player.exp+=expGain;player.gold+=goldGain;player.totalKills++;player.dailyKills++;player.dailyGold+=goldGain;if(currentEnemy.isBoss){player.dailyBossKills=(player.dailyBossKills||0)+1;battleStats.bossesKilled++;}updateKillStreak();showToast(`🎉击败${currentEnemy.name}！+${expGain}EXP+${goldGain}💰`);sound.play('kill');dropMaterials();tryDropCard();checkRandomEvent();if(Math.random()<0.3){player.potions++;showToast('🧪获得药水');}if(player.currentDungeon){if(player.dungeonFloor>=player.currentDungeon.floors){player.gold+=player.currentDungeon.reward.gold;player.exp+=player.currentDungeon.reward.exp;battleStats.dungeonsCleared++;showToast('🏆副本通关！');player.currentDungeon=null;player.dungeonFloor=1;}else{player.dungeonFloor++;}}if(currentEnemy.name==='灭世魔龙'){worldBoss.lastKilled=Date.now();updateBossTimer();}if(isArenaFight){player.arenaWins++;showToast(`🏆竞技胜利！累计${player.arenaWins}胜`);isArenaFight=false;}checkLevelUp();checkAchievements();updateDailyQuests();updateTitle();updateUI();if(navigator.vibrate)navigator.vibrate([30,20,30,20,50]);autoSave();setTimeout(()=>{if(player.currentDungeon)spawnDungeonMonster();else spawnEnemy();},2000);}
+        function dropMaterials(){(materialDropTable[currentEnemy.name]||[]).forEach(d=>{if(Math.random()<d.chance){const ex=player.inventory.find(i=>i.name===d.item);if(ex)ex.quantity+=d.qty;else player.inventory.push({type:'material',name:d.item,emoji:d.emoji,quantity:d.qty});showToast(`${d.emoji}${d.item}x${d.qty}`);}});}
+        function tryDropCard(){const card=allCards.find(c=>c.name===currentEnemy.name);if(card&&!player.cardCollection.find(c=>c.id===card.id)&&Math.random()<card.dropRate){player.cardCollection.push({...card,obtainedAt:Date.now()});showToast(`🃏${card.emoji}${card.name}[${card.rarity}]`);sound.play('card');if(player.cardCollection.length>=allCards.length){const a=achievements.find(a=>a.id==='card_collector');if(a&&!a.unlocked){a.unlocked=true;showAchievementPopup(a);}}}}
+        function checkPlayerDeath(){if(player.hp<=0){player.hp=0;isFighting=false;showToast('💀被击败...');updateUI();setTimeout(()=>{player.hp=Math.floor(player.maxHp*0.5);player.mp=Math.floor(player.maxMp*0.5);showToast('✨复活');updateUI();if(player.currentDungeon){player.currentDungeon=null;player.dungeonFloor=1;}spawnEnemy();},2000);}}
+        function checkLevelUp(){let leveled=false;while(player.exp>=player.expToLevel&&player.expToLevel>0&&player.level<999){player.level++;player.exp-=player.expToLevel;player.expToLevel=Math.floor(player.expToLevel*1.3);player.skillPoints++;player.maxHp+=Math.floor(20*(1+(player.rebirthBonus||0)));player.hp=player.maxHp;player.maxMp+=Math.floor(10*(1+(player.rebirthBonus||0)));player.mp=player.maxMp;leveled=true;}if(leveled){updatePlayerStats();sound.play('levelup');showLevelUpEffect();showToast(`🎊升级！Lv.${player.level}！`);screenShake(6);checkAchievements();updateTitle();updateUI();autoSave();}}
+        function checkAchievements(){achievements.forEach(a=>{if(!a.unlocked){let u=false;if(a.id==='first_kill')u=player.totalKills>=1;else if(a.target&&a.id.includes('slayer_'))u=player.totalKills>=a.target;else if(a.target&&a.id.includes('rich_'))u=player.gold>=a.target;else if(a.target&&a.id.includes('level_'))u=player.level>=a.target;else if(a.id==='dragon_slayer')u=currentEnemy?.name==='远古巨龙'&&currentEnemy?.hp<=0;else if(a.id==='rebirth_1')u=player.rebirthCount>=1;else if(a.id==='card_collector')u=player.cardCollection.length>=allCards.length;else if(a.id==='combo_10')u=player.killStreak>=10;if(u){a.unlocked=true;showAchievementPopup(a);}}});}
+        function checkDailyReset(){const today=new Date().toDateString();if(localStorage.getItem('questDate')!==today){dailyQuests.forEach(q=>{q.progress=0;q.claimed=false;});player.dailyKills=0;player.dailySkills=0;player.dailyGold=0;player.dailyBossKills=0;localStorage.setItem('questDate',today);}}
+        function updateDailyQuests(){dailyQuests[0].progress=Math.min(player.dailyKills,10);dailyQuests[1].progress=Math.min(player.dailySkills,5);dailyQuests[2].progress=Math.min(player.dailyGold,200);dailyQuests[3].progress=Math.min(player.dailyBossKills||0,1);dailyQuests.forEach(q=>{if(q.progress>=q.target&&!q.claimed){player.gold+=q.reward;q.claimed=true;showToast(`✅任务+${q.reward}💰`);}});}
+        function usePotion(){if(player.potions<=0){showToast('❌没药水');return;}if(player.hp>=player.maxHp){showToast('❤️HP已满');return;}player.potions--;battleStats.potionsUsed++;player.hp=Math.min(player.maxHp,player.hp+50);showFloatingText('+50',50,200,'heal');sound.play('heal');updateUI();autoSave();}
+        function selectMap(map){player.currentMap=map;player.currentDungeon=null;isFighting=false;showToast(`🗺️${getMapDisplayName()}`);spawnEnemy();autoSave();toggleModal('mainModal');}
+        function createParticles(){const c=document.getElementById('particles');for(let i=0;i<12;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'%';p.style.width=p.style.height=Math.random()*2+1+'px';p.style.animationDuration=Math.random()*3+2+'s';p.style.animationDelay=Math.random()*3+'s';c.appendChild(p);}}
+
+       
+        let tc=0,tt;
+        document.getElementById('enemyContainer').addEventListener('touchstart',e=>{e.preventDefault();tc++;clearTimeout(tt);tt=setTimeout(()=>{if(tc===1)playerAttack();if(tc>=2)useEquippedSkill();tc=0;},300);});
+        document.getElementById('enemyContainer').addEventListener('click',()=>playerAttack());
+        let sx=0;
+        document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
+        document.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>100&&!player.currentDungeon){const maps=['forest','cave','castle','dragon'];const idx=maps.indexOf(player.currentMap);const ni=d>0?Math.max(0,idx-1):Math.min(maps.length-1,idx+1);if(ni!==idx)selectMap(maps[ni]);}},{passive:true});
+
+       
+        function initGame(){
+            createParticles();weatherSystem.update();checkDailyReset();checkIn.load();
+            const loaded=loadGame();if(!loaded){player.expToLevel=100;updatePlayerStats();}
+            updatePlayerStats();calculateOfflineRewards();spawnEnemy();updateUI();updateTitle();updateBossTimer();updateCheckinBtn();
+            setInterval(updateBossTimer,1000);
+            setInterval(()=>{if(document.hasFocus())battleStats.playTime++;},1000);
+            setInterval(()=>weatherSystem.update(),300000);
+            window.addEventListener('beforeunload',()=>{saveGame();localStorage.setItem('lastOnlineTime',Date.now());});
+            console.log('柚小屿/霸王版');
+        }
+        initGame();
+    </script>
+</body>
+</html>
