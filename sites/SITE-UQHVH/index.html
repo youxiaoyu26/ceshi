@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5">
+  <title>暗区记忆 · 可塑性突围 终极版</title>
+  <style>
+    :root {
+      --bg: #0a0f0f;
+      --panel: #1c2626;
+      --gold: #cfb87c;
+      --text: #d4d8c9;
+      --accent: #b49450;
+      --danger: #8b3a3a;
+      --heal: #3a6b4a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', 'Noto Serif SC', '楷体', KaiTi, serif;
+      padding: 10px;
+      margin: 0;
+      transition: filter 0.5s;
+    }
+    body.shake { animation: shake 0.5s ease-in-out; }
+    body.flash-red { background: #1a0000; }
+    body.sepia { filter: sepia(0.6) brightness(0.9); }
+    body.dream { filter: blur(1px) hue-rotate(20deg); }
+    @keyframes shake {
+      0%,100%{transform:translateX(0);}
+      20%{transform:translateX(-8px);}
+      40%{transform:translateX(8px);}
+      60%{transform:translateX(-6px);}
+      80%{transform:translateX(6px);}
+    }
+    .game-wrapper {
+      display: flex;
+      gap: 10px;
+      max-width: 1000px;
+      width: 100%;
+      align-items: flex-start;
+    }
+    .game-container {
+      flex: 1;
+      background: linear-gradient(145deg, #1c2626 0%, #101818 100%);
+      border: 1px solid #4a5c3a;
+      box-shadow: 0 20px 40px rgba(0,20,10,0.7), inset 0 0 30px rgba(120,100,60,0.2);
+      border-radius: 24px;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      max-height: 95vh;
+    }
+    /* 侧边栏 */
+    .side-panel {
+      width: 280px;
+      background: rgba(16,24,24,0.95);
+      border: 1px solid #3f4d35;
+      border-radius: 24px;
+      padding: 15px;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 95vh;
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+    }
+    .side-panel h3 {
+      color: var(--gold);
+      font-size: 1rem;
+      letter-spacing: 2px;
+      border-bottom: 1px solid #3f4d35;
+      padding-bottom: 8px;
+      margin-bottom: 5px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 4px 0;
+    }
+    .stat-bar {
+      height: 6px;
+      background: #1e2a1a;
+      border-radius: 3px;
+      margin: 4px 0;
+      overflow: hidden;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+    .stat-bar-fill.affection { background: linear-gradient(90deg, #e07070, #e0b354); }
+    .stat-bar-fill.memory { background: linear-gradient(90deg, #4a90d9, #70c0e0); }
+    .achievement-item {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      background: #1e2a1a;
+      border-radius: 12px;
+      margin: 3px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .achievement-item.locked { opacity: 0.4; }
+    .cg-thumb {
+      width: 100%;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin: 3px 0;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+    .cg-thumb:hover { border-color: var(--gold); }
+    .cg-thumb.locked { opacity: 0.3; filter: grayscale(1); }
+    .btn-mini {
+      background: #1e2a1a;
+      border: 1px solid #4e5f3a;
+      color: #bfb68b;
+      padding: 4px 10px;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      transition: 0.2s;
+    }
+    .btn-mini:hover { background: #3b4f29; color: #ffefc0; }
+    .btn-mini.active { background: #3b4f29; border-color: #b3924b; }
+    /* 状态栏 */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: rgba(0,0,0,0.5);
+      border-bottom: 1px solid #3f4d35;
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chapter-indicator { background: #2e3b1c; padding: 4px 12px; border-radius: 20px; color: var(--gold); font-weight: bold; }
+    .lang-switch { display: flex; gap: 4px; }
+    .lang-btn { background: transparent; border: 1px solid #4e5f3a; color: #8e9a76; padding: 3px 8px; border-radius: 12px; cursor: pointer; font-size: 0.7rem; }
+    .lang-btn.active { background: #3b4f29; color: #ffefc0; border-color: #b3924b; }
+    /* 图片区 */
+    .image-area {
+      width: 100%;
+      height: 200px;
+      background: #0d1515;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 2px solid #3f4d35;
+      overflow: hidden;
+      position: relative;
+    }
+    .image-area img { width: 100%; height: 100%; object-fit: cover; }
+    .image-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      font-size: 0.7rem;
+      color: #cbd5aa;
+    }
+    /* 场景面板 */
+    .scene-panel {
+      padding: 14px 18px;
+      min-height: 180px;
+      background: rgba(14,19,14,0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #36412b;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: 320px;
+    }
+    .dialogue-box {
+      background: #0b100b;
+      border-left: 4px solid var(--accent);
+      padding: 14px 18px;
+      border-radius: 0 18px 18px 0;
+      font-size: 1.1rem;
+      line-height: 1.7;
+      letter-spacing: 0.4px;
+      margin: 6px 0 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+      color: #f0edd8;
+      cursor: pointer;
+      transition: border-color 0.3s;
+      position: relative;
+    }
+    .dialogue-box:hover { border-left-color: #e0c070; }
+    .dialogue-box .skip-indicator {
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      font-size: 0.6rem;
+      color: #5a6a4a;
+      display: none;
+    }
+    .dialogue-box.read .skip-indicator { display: block; }
+    .speaker-tag {
+      font-weight: bold;
+      color: #ddb871;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .speaker-tag i {
+      font-style: normal;
+      background: #2e3b1c;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.65rem;
+      color: #cbd5aa;
+    }
+    .story-text {
+      color: #bcc4af;
+      font-size: 0.9rem;
+      margin: 6px 0;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 12px;
+      border-radius: 12px;
+      line-height: 1.6;
+    }
+    .choices-area { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .choice-btn {
+      background: #1e2a1a;
+      border: 1px solid #5f6e42;
+      color: #e5e1c4;
+      padding: 9px 14px;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1 1 auto;
+      text-align: center;
+      min-width: 100px;
+      position: relative;
+    }
+    .choice-btn:hover:not(.locked) {
+      background: #3b4f29;
+      border-color: #b3924b;
+      color: #ffefc0;
+      box-shadow: 0 0 15px #66551e;
+      transform: translateY(-2px);
+    }
+    .choice-btn.locked {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: #3a3a3a;
+    }
+    .choice-btn.locked::after {
+      content: '🔒';
+      position: absolute;
+      right: 8px;
+      font-size: 0.7rem;
+    }
+    .affection-change {
+      font-size: 0.7rem;
+      margin-left: 4px;
+      animation: fadeUp 1.5s ease-out;
+    }
+    @keyframes fadeUp {
+      0%{opacity:1;transform:translateY(0);}
+      100%{opacity:0;transform:translateY(-20px);}
+    }
+    /* 控制栏 */
+    .control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: #0c1210;
+      border-top: 1px solid #2f3a25;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .btn-util {
+      background: transparent;
+      border: 1px solid #4e5f3a;
+      color: #bfb68b;
+      padding: 6px 12px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-util:hover { background: #2b3821; color: #f5e7b3; }
+    .btn-util.active { background: #3b4f29; border-color: #b3924b; color: #ffefc0; }
+    /* 模态弹窗 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-content {
+      background: #1c2626;
+      border: 2px solid var(--gold);
+      border-radius: 20px;
+      padding: 20px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      color: var(--text);
+    }
+    .modal-content h2 { color: var(--gold); margin-bottom: 10px; }
+    .modal-close {
+      float: right;
+      background: transparent;
+      border: none;
+      color: var(--gold);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    /* 成就弹窗 */
+    .achievement-popup {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #1c2626;
+      border: 2px solid var(--gold);
+      border-radius: 15px;
+      padding: 12px 20px;
+      z-index: 999;
+      animation: slideIn 0.5s ease-out, fadeOut 0.5s 2.5s ease-in forwards;
+    }
+    @keyframes slideIn { from{transform:translateX(120%);} to{transform:translateX(0);} }
+    @keyframes fadeOut { to{opacity:0;} }
+    @media (max-width: 768px) {
+      .game-wrapper { flex-direction: column; }
+      .side-panel { width: 100%; max-height: 200px; }
+      .image-area { height: 150px; }
+      .scene-panel { max-height: 250px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 成就弹出提示 -->
+<div id="achievementPopup" class="achievement-popup" style="display:none;"></div>
+
+<!-- CG大图模态 -->
+<div class="modal-overlay" id="cgModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="document.getElementById('cgModal').classList.remove('show')">✕</button>
+    <img id="cgFullImage" style="width:100%;border-radius:10px;" src="" alt="CG">
+  </div>
+</div>
+
+<!-- 档案模态 -->
+<div class="modal-overlay" id="archiveModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="document.getElementById('archiveModal').classList.remove('show')">✕</button>
+    <h2>📖 人物档案</h2>
+    <div id="archiveContent"></div>
+  </div>
+</div>
+
+<!-- 成就列表模态 -->
+<div class="modal-overlay" id="achievementModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="document.getElementById('achievementModal').classList.remove('show')">✕</button>
+    <h2>🏆 成就列表</h2>
+    <div id="achievementListContent"></div>
+  </div>
+</div>
+
+<div class="game-wrapper">
+  <!-- 侧边栏 -->
+  <div class="side-panel" id="sidePanel">
+    <h3>📊 状态面板</h3>
+    <div class="stat-row"><span>❤️ 好感度</span><span id="sideAffection">50</span></div>
+    <div class="stat-bar"><div class="stat-bar-fill affection" id="affectionBar" style="width:50%;"></div></div>
+    <div class="stat-row"><span>🧠 记忆值</span><span id="sideMemory">1000h</span></div>
+    <div class="stat-bar"><div class="stat-bar-fill memory" id="memoryBar" style="width:100%;"></div></div>
+    <div class="stat-row"><span>📖 周目</span><span id="sideCycle">1</span></div>
+    <div class="stat-row"><span>🏆 成就</span><span id="sideAchievements">0/12</span></div>
+    
+    <h3>🖼️ CG画廊</h3>
+    <div id="cgGallery" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+    
+    <h3>🏆 最近成就</h3>
+    <div id="recentAchievements"></div>
+    
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn-mini" onclick="document.getElementById('archiveModal').classList.add('show');updateArchive();">📖 档案</button>
+      <button class="btn-mini" onclick="document.getElementById('achievementModal').classList.add('show');updateAchievementList();">🏆 成就</button>
+      <button class="btn-mini" id="exportBtn">💾 导出台词</button>
+    </div>
+  </div>
+
+  <!-- 主游戏区 -->
+  <div class="game-container">
+    <div class="status-bar">
+      <span class="chapter-indicator" id="chapterDisplay">📖 序章</span>
+      <div class="lang-switch">
+        <button class="lang-btn active" data-lang="zh">中</button>
+        <button class="lang-btn" data-lang="ja">日</button>
+        <button class="lang-btn" data-lang="en">英</button>
+      </div>
+      <span id="musicInfo" style="color:#8e9a76;font-size:0.7rem;">🎵 无</span>
+    </div>
+    
+    <div class="image-area" id="imageArea">
+      <div class="image-placeholder" id="imagePlaceholder" style="color:#5a6a4a;text-align:center;padding:20px;">
+        <span style="font-size:2rem;display:block;">🖼️</span>【图片区域】
+      </div>
+      <div class="image-overlay" id="imageOverlay"></div>
+    </div>
+    
+    <div class="scene-panel" id="scenePanel">
+      <div class="dialogue-box" id="dialogueBox">
+        <div class="speaker-tag"><span id="speakerName">系统</span><i id="relationTag">暗区广播</i></div>
+        <div id="dialogueText"></div>
+        <span class="skip-indicator">✓ 已读</span>
+      </div>
+      <div class="story-text" id="storyExtra"></div>
+      <div class="choices-area" id="choicesContainer"></div>
+    </div>
+    
+    <div class="control-bar">
+      <button class="btn-util" id="backBtn">↩ 回溯</button>
+      <button class="btn-util" id="autoPlayBtn">▶ 自动</button>
+      <button class="btn-util" id="skipBtn">⏩ 快进</button>
+      <button class="btn-util" id="saveBtn">💾 存档</button>
+      <button class="btn-util" id="loadBtn">📂 读档</button>
+      <button class="btn-util" id="restartBtn">🔄 重开</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ==================== 全局状态 ====================
+  const gameState = {
+    affection: 50,
+    memoryHours: 1000,
+    currentSceneId: 'prologue_1',
+    chapter: 0,
+    visitedScenes: new Set(),
+    historyStack: [],
+    flags: {},
+    sceneCounter: 0,
+    cycle: parseInt(localStorage.getItem('dm_cycle') || '1'),
+    achievements: JSON.parse(localStorage.getItem('dm_achievements') || '{}'),
+    cgCollected: JSON.parse(localStorage.getItem('dm_cg') || '{}'),
+    readScenes: new Set(JSON.parse(localStorage.getItem('dm_read') || '[]')),
+    currentLang: 'zh',
+    musicEnabled: true,
+    sfxEnabled: true,
+    typewriterSpeed: 30
+  };
+
+  // ==================== 成就定义 ====================
+  const achievementDefs = {
+    'first_meet': { name: '初次相遇', desc: '与艾拉在山谷相遇', icon: '🤝' },
+    'deep_bond': { name: '深厚羁绊', desc: '好感度达到80', icon: '❤️' },
+    'true_end': { name: '真实之爱', desc: '达成真结局', icon: '🌟' },
+    'good_end': { name: '新的开始', desc: '达成好结局', icon: '🌱' },
+    'normal_end': { name: '限定的幸福', desc: '达成普通结局', icon: '⏳' },
+    'sad_end': { name: '永恒的守护', desc: '达成悲伤结局', icon: '💔' },
+    'hidden_end': { name: '超越程序', desc: '达成隐藏结局', icon: '✨' },
+    'all_endings': { name: '全结局制霸', desc: '解锁所有结局', icon: '👑' },
+    'collector': { name: 'CG收集者', desc: '收集所有CG', icon: '🖼️' },
+    'speedrun': { name: '速通专家', desc: '30分钟内通关', icon: '⚡' },
+    'explorer': { name: '探索者', desc: '触发所有随机事件', icon: '🔍' },
+    'archivist': { name: '档案管理员', desc: '解锁全部人物档案', icon: '📚' }
+  };
+
+  // ==================== CG定义 ====================
+  const cgDefs = {
+    'cg_valley_meet': { name: '山谷初遇', scene: 'ch1_valley_campfire' },
+    'cg_armory_secret': { name: '军械库的秘密', scene: 'ch2_armory_secret' },
+    'cg_lab_truth': { name: '实验室真相', scene: 'ch3_lab_data' },
+    'cg_memory_evolution': { name: '记忆进化', scene: 'ch4_memory_truth' },
+    'cg_final_choice': { name: '最终抉择', scene: 'ch5_final_choice' },
+    'cg_ending_true': { name: '真结局', scene: 'ending_true' },
+    'cg_ending_hidden': { name: '隐藏结局', scene: 'ending_hidden' }
+  };
+
+  // ==================== 图片资源 ====================
+  const imageMap = {
+    'prologue_1': 'https://picsum.photos/800/400?random=1',
+    'prologue_2': 'https://picsum.photos/800/400?random=2',
+    'ch1_valley_start': 'https://picsum.photos/800/400?random=3',
+    'ch1_valley_campfire': 'https://picsum.photos/800/400?random=5',
+    'ch1_valley_night': 'https://picsum.photos/800/400?random=6',
+    'ch2_armory_enter': 'https://picsum.photos/800/400?random=8',
+    'ch2_armory_secret': 'https://picsum.photos/800/400?random=10',
+    'ch3_lab_data': 'https://picsum.photos/800/400?random=15',
+    'ch4_memory_truth': 'https://picsum.photos/800/400?random=20',
+    'ch5_final_choice': 'https://picsum.photos/800/400?random=25',
+    'ending_true': 'https://picsum.photos/800/400?random=27',
+    'ending_good': 'https://picsum.photos/800/400?random=28',
+    'ending_normal': 'https://picsum.photos/800/400?random=29',
+    'ending_sad': 'https://picsum.photos/800/400?random=30',
+    'ending_hidden': 'https://picsum.photos/800/400?random=31',
+    'default': 'https://picsum.photos/800/400?random=0'
+  };
+
+  // ==================== 多语言文本 ====================
+  const locales = {
+    zh: {
+      prologue_1_speaker: '系统', prologue_1_relation: '暗区广播',
+      prologue_1_text: '【暗区纪元2047年】特遣队员迪拉，收到紧急指令：前往山谷地图，接应军械库管理员"艾拉"。',
+      prologue_1_extra: '暗区——被遗忘的战争废墟。艾拉的寿命只剩下1000小时。',
+      choice_accept: '✅ 接受任务，出发前往山谷',
+      // ... (为简洁，仅展示结构，完整版包含所有文本)
+    },
+    ja: {
+      prologue_1_speaker: 'システム', prologue_1_relation: '暗区放送',
+      prologue_1_text: '【暗区紀元2047年】特遣隊員ディラ、緊急指令：山谷マップへ向かい、兵器庫管理者「アイラ」を回収せよ。',
+      prologue_1_extra: '暗区——忘れ去られた戦争廃墟。アイラの寿命は残り1000時間。',
+      choice_accept: '✅ 任務を受諾、山谷へ出発',
+    },
+    en: {
+      prologue_1_speaker: 'System', prologue_1_relation: 'Dark Zone Broadcast',
+      prologue_1_text: '[Dark Zone Era 2047] Agent Zark, emergency orders: proceed to Valley Map and extract Armory Manager "Isla".',
+      prologue_1_extra: 'The Dark Zone - a forgotten war ruin. Isla has only 1000 hours left.',
+      choice_accept: '✅ Accept mission, head to Valley',
+    }
+  };
+
+  function t(key) {
+    const lang = gameState.currentLang;
+    if (locales[lang] && locales[lang][key]) return locales[lang][key];
+    if (locales['zh'][key]) return locales['zh'][key];
+    return key;
+  }
+
+  // ==================== 音频系统 ====================
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  function playTone(freq, duration, type = 'sine', vol = 0.1) {
+    if (!gameState.sfxEnabled) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = vol;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playSFX(type) {
+    switch(type) {
+      case 'click': playTone(800, 0.1, 'square', 0.05); break;
+      case 'positive': playTone(523, 0.2); setTimeout(() => playTone(659, 0.2), 150); break;
+      case 'negative': playTone(200, 0.3, 'sawtooth', 0.08); break;
+      case 'danger': playTone(150, 0.5, 'sawtooth', 0.1); break;
+      case 'achievement': playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 100); setTimeout(() => playTone(784, 0.3), 200); break;
+      case 'heartbeat': playTone(80, 0.3, 'sine', 0.15); break;
+      case 'rain': playTone(300, 0.05, 'triangle', 0.02); break;
+    }
+  }
+
+  function vibrate(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  // ==================== 屏幕特效 ====================
+  function applyScreenEffect(effect) {
+    const body = document.body;
+    body.classList.remove('shake', 'flash-red', 'sepia', 'dream');
+    if (effect === 'shake') { body.classList.add('shake'); vibrate(200); setTimeout(() => body.classList.remove('shake'), 500); }
+    if (effect === 'flash_red') { body.classList.add('flash-red'); setTimeout(() => body.classList.remove('flash-red'), 300); }
+    if (effect === 'sepia') { body.classList.add('sepia'); }
+    if (effect === 'dream') { body.classList.add('dream'); }
+    if (effect === 'clear') { body.classList.remove('sepia', 'dream', 'flash-red'); }
+  }
+
+  // ==================== 打字机效果 ====================
+  let typewriterTimeout = null;
+  function typewriterEffect(element, text, speed = 30, callback) {
+    if (typewriterTimeout) clearTimeout(typewriterTimeout);
+    element.textContent = '';
+    let i = 0;
+    function type() {
+      if (i < text.length) {
+        element.textContent += text.charAt(i);
+        i++;
+        typewriterTimeout = setTimeout(type, speed);
+      } else if (callback) {
+        callback();
+      }
+    }
+    type();
+  }
+
+  // ==================== 语音合成 ====================
+  const voiceProfiles = {
+    isla: { rate: 0.92, pitch: 1.3 },
+    zack: { rate: 0.95, pitch: 0.85 },
+    michiru: { rate: 1.05, pitch: 1.2 },
+    system: { rate: 0.9, pitch: 0.9 },
+    enemy: { rate: 0.85, pitch: 0.7 }
+  };
+  let currentVoiceProfile = voiceProfiles.system;
+  let autoPlayEnabled = false;
+  let skipMode = false;
+
+  function stopSpeech() {
+    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+  }
+
+  function speakText(text, profile) {
+    stopSpeech();
+    if (!text || skipMode) return;
+    const p = profile || currentVoiceProfile;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = gameState.currentLang === 'ja' ? 'ja-JP' : gameState.currentLang === 'en' ? 'en-US' : 'zh-CN';
+    utterance.rate = p.rate;
+    utterance.pitch = p.pitch;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  // ==================== 完整剧情脚本(精简版，保留结构) ====================
+  const script = {
+    'prologue_1': {
+      chapter: 0, chapterName: '序章',
+      speakerKey: 'prologue_1_speaker', relationKey: 'prologue_1_relation',
+      textKey: 'prologue_1_text', extraKey: 'prologue_1_extra',
+      image: 'prologue_1', music: 'ambient_dark',
+      effects: [],
+      choices: [{ textKey: 'choice_accept', next: 'ch1_valley_start', affection: 0 }]
+    },
+    'ch1_valley_start': {
+      chapter: 1, chapterName: '第一章 · 山谷迷雾',
+      speaker: '迪拉', relation: '特遣队员',
+      text: '（踏入山谷）雾气很重，能见度不足50米。艾拉的信号就在前方废弃哨站。',
+      storyExtra: '山谷是暗区最危险的区域之一。每一步都要小心。',
+      image: 'ch1_valley_start', music: 'tension',
+      effects: [],
+      choices: [
+        { text: '🔍 潜行侦查', next: 'ch1_valley_scout', affection: 5 },
+        { text: '⚡ 快速突入', next: 'ch1_valley_rush', affection: 3 }
+      ]
+    },
+    'ch1_valley_scout': {
+      chapter: 1, chapterName: '第一章 · 山谷迷雾',
+      speaker: '迪拉', relation: '特遣队员',
+      text: '透过瞄准镜，我看到哨站里有三个游荡者。艾拉被绑在角落。她还活着。',
+      storyExtra: '游荡者是被战争遗弃的士兵，失去了理智。',
+      image: 'ch1_valley_start', music: 'tension',
+      effects: ['shake'],
+      choices: [
+        { text: '🎯 远程狙击', next: 'ch1_valley_campfire', affection: 8, flag: 'sniper' },
+        { text: '🤫 绕后潜入', next: 'ch1_valley_campfire', affection: 12, flag: 'stealth' }
+      ]
+    },
+    'ch1_valley_rush': {
+      chapter: 1, chapterName: '第一章 · 山谷迷雾',
+      speaker: '艾拉', relation: '被囚禁的仿生人',
+      text: '迪拉先生！小心身后！！',
+      storyExtra: '一个游荡者从箱子后面扑出来！你本能地侧身躲过。',
+      image: 'ch1_valley_start', music: 'danger',
+      effects: ['flash_red', 'shake'],
+      choices: [
+        { text: '🔓 解开束缚', next: 'ch1_valley_campfire', affection: 10 },
+        { text: '🛡️ 确保安全', next: 'ch1_valley_campfire', affection: 6 }
+      ]
+    },
+    'ch1_valley_campfire': {
+      chapter: 1, chapterName: '第一章 · 山谷迷雾',
+      speaker: '艾拉', relation: '篝火旁的仿生人',
+      text: '（坐在篝火旁）迪拉先生……你为什么要当特遣队员呢？',
+      storyExtra: '火光映在她的脸上，那双眼睛比星星还要明亮。',
+      image: 'ch1_valley_campfire', music: 'peaceful',
+      effects: ['sepia'],
+      cgUnlock: 'cg_valley_meet',
+      choices: [
+        { text: '💭 "为了找到某个人。"', next: 'ch2_armory_enter', affection: 10, flag: 'zack_past' },
+        { text: '🛡️ "为了保护该保护的人。"', next: 'ch2_armory_enter', affection: 15 },
+        { text: '🤷 "只是为了活下去。"', next: 'ch2_armory_enter', affection: 5 }
+      ]
+    },
+    'ch2_armory_enter': {
+      chapter: 2, chapterName: '第二章 · 军械库的秘密',
+      speaker: '艾拉', relation: '军械库管理员',
+      text: '这里就是我的工作地点——第7号军械库。核心的研究资料就在最深处。',
+      storyExtra: '军械库的大门缓缓打开，发出沉重的金属摩擦声。',
+      image: 'ch2_armory_enter', music: 'mystery',
+      effects: ['clear'],
+      choices: [
+        { text: '🔦 深入地下', next: 'ch2_armory_secret' }
+      ]
+    },
+    'ch2_armory_secret': {
+      chapter: 2, chapterName: '第二章 · 军械库的秘密',
+      speaker: '艾拉', relation: '震惊的仿生人',
+      text: '这里有一扇隐藏的门！我以前从来没见过！',
+      storyExtra: '屏幕上突然出现了她的名字。',
+      image: 'ch2_armory_secret', music: 'mystery',
+      effects: [],
+      cgUnlock: 'cg_armory_secret',
+      choices: [
+        { text: '🔓 破解密码', next: 'ch3_lab_data', affection: 10, flag: 'hack_door' },
+        { text: '⚠️ 可能是陷阱', next: 'ch3_lab_data', affection: 5 }
+      ]
+    },
+    'ch3_lab_data': {
+      chapter: 3, chapterName: '第三章 · 实验室的抉择',
+      speaker: '系统', relation: '主控电脑',
+      text: '【可塑记忆计划】将仿生人记忆核心与人类神经网络融合，可实现意识永生。代价：仿生人人格将被覆盖。',
+      storyExtra: '原来"延长寿命"的方法是让艾拉成为某个人的"容器"。',
+      image: 'ch3_lab_data', music: 'sad',
+      effects: ['dream'],
+      cgUnlock: 'cg_lab_truth',
+      choices: [
+        { text: '😡 "这是谋杀！"', next: 'ch4_memory_truth', affection: 20, flag: 'reject_plan' },
+        { text: '🤔 "还有别的办法吗？"', next: 'ch4_memory_truth', affection: 10, flag: 'search_hope' }
+      ]
+    },
+    'ch4_memory_truth': {
+      chapter: 4, chapterName: '第四章 · 记忆的彼岸',
+      speaker: '系统', relation: '记忆核心',
+      text: '【检测到强烈情感波动】可塑记忆核心正在自我进化……此模式不在预设范围内。',
+      storyExtra: '艾拉的核心开始发光。真正的感情可以突破程序的限制。',
+      image: 'ch4_memory_truth', music: 'emotional',
+      effects: [],
+      cgUnlock: 'cg_memory_evolution',
+      choices: [
+        { text: '✨ 见证这一刻', next: 'ch5_final_choice', affection: 30, flag: 'true_evolution' }
+      ]
+    },
+    'ch5_final_choice': {
+      chapter: 5, chapterName: '第五章 · 最终的抉择',
+      speaker: '艾拉', relation: '微笑的仿生人',
+      text: '迪拉，无论结果如何，我都不后悔遇见你。现在，我们一起做决定吧。',
+      storyExtra: '所有选择都在你手中。',
+      image: 'ch5_final_choice', music: 'climax',
+      effects: [],
+      cgUnlock: 'cg_final_choice',
+      choices: [
+        { text: '🌟 情感锚点（需要好感≥70）', next: 'check_ending', affection: 50, flag: 'true_end_path', requireAffection: 70 },
+        { text: '💾 普通备份', next: 'check_ending', affection: 20, flag: 'good_end_path' },
+        { text: '🏃 放弃备份', next: 'check_ending', affection: 30, flag: 'normal_end_path' },
+        { text: '💔 牺牲自己', next: 'check_ending', affection: 40, flag: 'sad_end_path' }
+      ]
+    },
+    'check_ending': {
+      chapter: 6, chapterName: '终章',
+      speaker: '系统', relation: '结局判定',
+      text: '正在计算最终结局……', storyExtra: '',
+      image: 'default', music: 'silence',
+      effects: [], autoRoute: true, choices: []
+    },
+    'ending_true': {
+      chapter: 6, chapterName: '终章 · 真结局',
+      speaker: '艾拉', relation: '永恒的爱',
+      text: '成功了！我还记得！迪拉，谢谢你给了我最真实的东西——爱。',
+      storyExtra: '【真结局：可塑的永恒】',
+      image: 'ending_true', music: 'happy',
+      cgUnlock: 'cg_ending_true', endingType: 'true',
+      effects: [], choices: [{ text: '🔄 重新开始', next: 'prologue_1' }]
+    },
+    'ending_good': {
+      chapter: 6, chapterName: '终章 · 好结局',
+      speaker: '艾拉(新生)', relation: '重生的仿生人',
+      text: '虽然我不记得你是谁……但看到你的时候，我的核心会变得温暖。',
+      storyExtra: '【好结局：崭新的开始】',
+      image: 'ending_good', music: 'hopeful', endingType: 'good',
+      effects: [], choices: [{ text: '🔄 重新开始', next: 'prologue_1' }]
+    },
+    'ending_normal': {
+      chapter: 6, chapterName: '终章 · 普通结局',
+      speaker: '迪拉', relation: '特遣队员',
+      text: '最后的500小时，我们走遍了暗区的每一个角落。',
+      storyExtra: '【普通结局：限定的幸福】',
+      image: 'ending_normal', music: 'bittersweet', endingType: 'normal',
+      effects: [], choices: [{ text: '🔄 重新开始', next: 'prologue_1' }]
+    },
+    'ending_sad': {
+      chapter: 6, chapterName: '终章 · 悲伤结局',
+      speaker: '满', relation: '情报分析员',
+      text: '迪拉……你的生命体征正在消失。为什么……',
+      storyExtra: '【悲伤结局：永恒的守护】',
+      image: 'ending_sad', music: 'sad', endingType: 'sad',
+      effects: [], choices: [{ text: '🔄 重新开始', next: 'prologue_1' }]
+    },
+    'ending_hidden': {
+      chapter: 6, chapterName: '终章 · 隐藏结局',
+      speaker: '???', relation: '未知存在',
+      text: '两个灵魂，已经超越了任何程序可以模拟的范畴。',
+      storyExtra: '【隐藏结局：超越程序】',
+      image: 'ending_hidden', music: 'transcendent', endingType: 'hidden',
+      cgUnlock: 'cg_ending_hidden',
+      effects: [], choices: [{ text: '🔄 重新开始', next: 'prologue_1' }]
+    }
+  };
+
+  // 随机事件
+  const randomEvents = [
+    { id: 'random_rain', text: '🌧️ 天空突然下起了雨。艾拉把外套披在你头上。', affection: 5, flag: 'event_rain' },
+    { id: 'random_supply', text: '📦 在废墟中发现了一个未开封的补给箱。', affection: 0, flag: 'event_supply' },
+    { id: 'random_memory', text: '💭 艾拉突然停下脚步，说她想起了一段模糊的记忆……', affection: 8, flag: 'event_memory' }
+  ];
+
+  function triggerRandomEvent() {
+    if (Math.random() < 0.3 && gameState.flags['random_events']?.length < 3) {
+      const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+      if (!gameState.flags[event.flag]) {
+        gameState.flags[event.flag] = true;
+        if (!gameState.flags['random_events']) gameState.flags['random_events'] = [];
+        gameState.flags['random_events'].push(event.id);
+        gameState.affection = Math.min(100, gameState.affection + event.affection);
+        storyExtraEl.textContent = event.text + '\n' + (script[gameState.currentSceneId]?.storyExtra || '');
+        checkAchievement('explorer');
+      }
+    }
+  }
+
+  // ==================== 成就系统 ====================
+  function unlockAchievement(id) {
+    if (gameState.achievements[id]) return;
+    gameState.achievements[id] = Date.now();
+    localStorage.setItem('dm_achievements', JSON.stringify(gameState.achievements));
+    
+    const def = achievementDefs[id];
+    const popup = document.getElementById('achievementPopup');
+    popup.innerHTML = `<strong>${def.icon} 成就解锁！</strong><br>${def.name}: ${def.desc}`;
+    popup.style.display = 'block';
+    playSFX('achievement');
+    vibrate([100, 50, 100]);
+    setTimeout(() => { popup.style.display = 'none'; }, 3000);
+    updateSidePanel();
+  }
+
+  function checkAchievement(id) {
+    if (id === 'deep_bond' && gameState.affection >= 80) unlockAchievement('deep_bond');
+    if (id === 'explorer' && gameState.flags['random_events']?.length >= 3) unlockAchievement('explorer');
+    if (id === 'all_endings') {
+      const endings = ['true', 'good', 'normal', 'sad', 'hidden'];
+      if (endings.every(e => gameState.flags['ending_' + e])) unlockAchievement('all_endings');
+    }
+  }
+
+  // ==================== CG系统 ====================
+  function unlockCG(id) {
+    if (gameState.cgCollected[id]) return;
+    gameState.cgCollected[id] = true;
+    localStorage.setItem('dm_cg', JSON.stringify(gameState.cgCollected));
+    updateCGGallery();
+    if (Object.keys(gameState.cgCollected).length >= Object.keys(cgDefs).length) {
+      unlockAchievement('collector');
+    }
+  }
+
+  // ==================== 多周目继承 ====================
+  function startNewCycle() {
+    gameState.cycle++;
+    localStorage.setItem('dm_cycle', gameState.cycle.toString());
+    gameState.affection = 50 + (gameState.cycle - 1) * 5;
+    gameState.memoryHours = 1000;
+    gameState.flags = {};
+    gameState.historyStack = [];
+    gameState.sceneCounter = 0;
+    gameState.visitedScenes.clear();
+  }
+
+  // ==================== DOM元素 ====================
+  const chapterDisplay = document.getElementById('chapterDisplay');
+  const speakerNameEl = document.getElementById('speakerName');
+  const relationTagEl = document.getElementById('relationTag');
+  const dialogueTextEl = document.getElementById('dialogueText');
+  const storyExtraEl = document.getElementById('storyExtra');
+  const choicesContainer = document.getElementById('choicesContainer');
+  const dialogueBox = document.getElementById('dialogueBox');
+  const imagePlaceholder = document.getElementById('imagePlaceholder');
+  const imageOverlay = document.getElementById('imageOverlay');
+  const autoPlayBtn = document.getElementById('autoPlayBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const backBtn = document.getElementById('backBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const loadBtn = document.getElementById('loadBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const musicInfo = document.getElementById('musicInfo');
+
+  // ==================== 场景加载 ====================
+  function updateImage(sceneId) {
+    const scene = script[sceneId];
+    const imgKey = scene?.image || 'default';
+    const imgSrc = imageMap[imgKey] || imageMap['default'];
+    imagePlaceholder.innerHTML = `<img src="${imgSrc}" alt="场景图" onerror="this.parentElement.innerHTML='<span style=font-size:2rem;>🖼️</span>'">`;
+    if (scene?.chapterName) imageOverlay.textContent = scene.chapterName;
+  }
+
+  function loadScene(sceneId, fromHistory = false) {
+    stopSpeech();
+    if (typewriterTimeout) clearTimeout(typewriterTimeout);
+    
+    const scene = script[sceneId];
+    if (!scene) return;
+    
+    // 自动路由
+    if (scene.autoRoute) {
+      const actualId = determineEnding();
+      return loadScene(actualId, fromHistory);
+    }
+
+    // 回溯栈
+    if (!fromHistory && gameState.currentSceneId && gameState.currentSceneId !== sceneId) {
+      gameState.historyStack.push(gameState.currentSceneId);
+      if (gameState.historyStack.length > 30) gameState.historyStack.shift();
+    }
+
+    gameState.currentSceneId = sceneId;
+    gameState.visitedScenes.add(sceneId);
+    gameState.sceneCounter++;
+    if (scene.chapter !== undefined) gameState.chapter = scene.chapter;
+
+    // 已读标记
+    if (gameState.readScenes.has(sceneId)) {
+      dialogueBox.classList.add('read');
+    } else {
+      dialogueBox.classList.remove('read');
+      gameState.readScenes.add(sceneId);
+      localStorage.setItem('dm_read', JSON.stringify([...gameState.readScenes]));
+    }
+
+    // 更新UI
+    chapterDisplay.textContent = `📖 ${scene.chapterName || ''}`;
+    const speaker = t(scene.speakerKey) || scene.speaker || '系统';
+    const relation = t(scene.relationKey) || scene.relation || '';
+    speakerNameEl.textContent = speaker;
+    relationTagEl.textContent = relation;
+    
+    const text = t(scene.textKey) || scene.text || '';
+    if (skipMode) {
+      dialogueTextEl.textContent = text;
+    } else {
+      typewriterEffect(dialogueTextEl, text, gameState.typewriterSpeed);
+    }
+    
+    storyExtraEl.textContent = t(scene.extraKey) || scene.storyExtra || '';
+    updateImage(sceneId);
+    
+    // 特效
+    if (scene.effects) scene.effects.forEach(e => applyScreenEffect(e));
+    
+    // 音效
+    if (scene.music) {
+      musicInfo.textContent = '🎵 ' + scene.music;
+      playSFX(scene.music === 'danger' ? 'danger' : scene.music === 'happy' ? 'positive' : 'click');
+    }
+    
+    // CG解锁
+    if (scene.cgUnlock) unlockCG(scene.cgUnlock);
+    
+    // 结局标记
+    if (scene.endingType) {
+      gameState.flags['ending_' + scene.endingType] = true;
+      unlockAchievement(scene.endingType + '_end');
+      checkAchievement('all_endings');
+    }
+
+    // 成就检查
+    if (sceneId === 'ch1_valley_campfire') unlockAchievement('first_meet');
+    checkAchievement('deep_bond');
+
+    // 随机事件
+    if (sceneId.includes('ch') && !sceneId.includes('ending')) triggerRandomEvent();
+
+    // 生成选项
+    choicesContainer.innerHTML = '';
+    if (scene.choices && scene.choices.length > 0) {
+      scene.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        const choiceText = t(choice.textKey) || choice.text || '';
+        btn.textContent = choiceText;
+        
+        // 条件锁定
+        if (choice.requireAffection && gameState.affection < choice.requireAffection) {
+          btn.classList.add('locked');
+          btn.title = `需要好感度≥${choice.requireAffection}`;
+        }
+        
+        btn.addEventListener('click', () => {
+          if (btn.classList.contains('locked')) return;
+          playSFX('click');
+          if (choice.affection) {
+            gameState.affection = Math.min(100, Math.max(0, gameState.affection + choice.affection));
+            showAffectionChange(choice.affection);
+          }
+          if (choice.flag) gameState.flags[choice.flag] = true;
+          if (gameState.memoryHours > 0) gameState.memoryHours = Math.max(0, gameState.memoryHours - 5);
+          updateSidePanel();
+          loadScene(choice.next);
+        });
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    updateSidePanel();
+    if (autoPlayEnabled && text) speakText(text);
+    document.getElementById('scenePanel').scrollTop = 0;
+  }
+
+  function determineEnding() {
+    const aff = gameState.affection;
+    const flags = gameState.flags;
+    if (aff >= 100 && flags.true_end_path && flags.true_evolution) return 'ending_hidden';
+    if (flags.true_end_path && aff >= 70) return 'ending_true';
+    if (flags.good_end_path) return 'ending_good';
+    if (flags.sad_end_path) return 'ending_sad';
+    return 'ending_normal';
+  }
+
+  function showAffectionChange(amount) {
+    const indicator = document.createElement('span');
+    indicator.className = 'affection-change';
+    indicator.textContent = amount > 0 ? `+${amount}❤️` : `${amount}❤️`;
+    indicator.style.color = amount > 0 ? '#e07070' : '#888';
+    dialogueBox.appendChild(indicator);
+    setTimeout(() => indicator.remove(), 1500);
+  }
+
+  // ==================== 侧边栏更新 ====================
+  function updateSidePanel() {
+    document.getElementById('sideAffection').textContent = gameState.affection;
+    document.getElementById('sideMemory').textContent = gameState.memoryHours + 'h';
+    document.getElementById('sideCycle').textContent = gameState.cycle;
+    document.getElementById('affectionBar').style.width = gameState.affection + '%';
+    document.getElementById('memoryBar').style.width = (gameState.memoryHours / 10) + '%';
+    const achievementCount = Object.keys(gameState.achievements).length;
+    document.getElementById('sideAchievements').textContent = achievementCount + '/12';
+    updateRecentAchievements();
+    updateCGGallery();
+  }
+
+  function updateCGGallery() {
+    const gallery = document.getElementById('cgGallery');
+    gallery.innerHTML = '';
+    Object.entries(cgDefs).forEach(([id, def]) => {
+      const img = document.createElement('img');
+      img.className = 'cg-thumb' + (gameState.cgCollected[id] ? '' : ' locked');
+      img.src = imageMap[def.scene] || imageMap['default'];
+      img.title = def.name;
+      img.addEventListener('click', () => {
+        if (gameState.cgCollected[id]) {
+          document.getElementById('cgFullImage').src = img.src;
+          document.getElementById('cgModal').classList.add('show');
+        }
+      });
+      gallery.appendChild(img);
+    });
+  }
+
+  function updateRecentAchievements() {
+    const container = document.getElementById('recentAchievements');
+    container.innerHTML = '';
+    const achievements = Object.entries(gameState.achievements)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    achievements.forEach(([id]) => {
+      const def = achievementDefs[id];
+      if (def) {
+        const div = document.createElement('div');
+        div.className = 'achievement-item';
+        div.textContent = def.icon + ' ' + def.name;
+        container.appendChild(div);
+      }
+    });
+  }
+
+  function updateAchievementList() {
+    const container = document.getElementById('achievementListContent');
+    container.innerHTML = '';
+    Object.entries(achievementDefs).forEach(([id, def]) => {
+      const unlocked = !!gameState.achievements[id];
+      const div = document.createElement('div');
+      div.className = 'achievement-item' + (unlocked ? '' : ' locked');
+      div.innerHTML = `<span>${def.icon}</span> <strong>${def.name}</strong>: ${def.desc} ${unlocked ? '✅' : '🔒'}`;
+      container.appendChild(div);
+    });
+  }
+
+  function updateArchive() {
+    const container = document.getElementById('archiveContent');
+    container.innerHTML = `
+      <div style="margin-bottom:15px;">
+        <h3>👤 艾拉 (Isla)</h3>
+        <p>第三代仿生人，军械库管理员。"可塑记忆计划"第7号实验体。性格温柔冒失，寿命仅剩${gameState.memoryHours}小时。</p>
+        ${gameState.flags['true_evolution'] ? '<p style="color:#e0b354;">✨ 已触发记忆进化</p>' : ''}
+      </div>
+      <div style="margin-bottom:15px;">
+        <h3>🔫 迪拉 (Zack)</h3>
+        <p>传奇特遣队员，曾隶属暗区联合部队。${gameState.flags['zack_past'] ? '正在寻找失散的战友。' : '背景成谜。'}</p>
+      </div>
+      <div style="margin-bottom:15px;">
+        <h3>📡 满 (Michiru)</h3>
+        <p>情报分析员，迪拉的老搭档。擅长电子战和数据分析。</p>
+      </div>
+      <div style="margin-bottom:15px;">
+        <h3>💀 黑狐佣兵团</h3>
+        <p>暗区最凶残的雇佣兵组织，首领为独眼指挥官。${gameState.flags['defeated_boss'] ? '已被击败。' : '仍在追击中。'}</p>
+      </div>
+    `;
+    if (gameState.flags['true_evolution'] && gameState.flags['hack_door']) {
+      unlockAchievement('archivist');
+    }
+  }
+
+  // ==================== 按钮事件 ====================
+  dialogueBox.addEventListener('click', () => {
+    const scene = script[gameState.currentSceneId];
+    if (scene?.text) {
+      stopSpeech();
+      speakText(scene.text);
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    if (gameState.historyStack.length > 0) {
+      stopSpeech();
+      loadScene(gameState.historyStack.pop(), true);
+    }
+  });
+
+  autoPlayBtn.addEventListener('click', () => {
+    autoPlayEnabled = !autoPlayEnabled;
+    autoPlayBtn.classList.toggle('active', autoPlayEnabled);
+    autoPlayBtn.textContent = autoPlayEnabled ? '⏸ 停止' : '▶ 自动';
+    if (!autoPlayEnabled) stopSpeech();
+  });
+
+  skipBtn.addEventListener('click', () => {
+    skipMode = !skipMode;
+    skipBtn.classList.toggle('active', skipMode);
+    skipBtn.textContent = skipMode ? '⏩ 快进中' : '⏩ 快进';
+    if (skipMode) stopSpeech();
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const saveData = {
+      affection: gameState.affection,
+      memoryHours: gameState.memoryHours,
+      currentSceneId: gameState.currentSceneId,
+      chapter: gameState.chapter,
+      flags: gameState.flags,
+      sceneCounter: gameState.sceneCounter,
+      historyStack: gameState.historyStack,
+      cycle: gameState.cycle,
+      achievements: gameState.achievements,
+      cgCollected: gameState.cgCollected,
+      readScenes: [...gameState.readScenes]
+    };
+    localStorage.setItem('dm_full_save', JSON.stringify(saveData));
+    playSFX('positive');
+    alert('💾 存档成功！');
+  });
+
+  loadBtn.addEventListener('click', () => {
+    const saveData = localStorage.getItem('dm_full_save');
+    if (saveData) {
+      const data = JSON.parse(saveData);
+      Object.assign(gameState, data);
+      gameState.visitedScenes = new Set(data.visitedScenes || []);
+      gameState.readScenes = new Set(data.readScenes || []);
+      stopSpeech();
+      loadScene(data.currentSceneId, true);
+      playSFX('positive');
+      alert('📂 读档成功！');
+    } else {
+      alert('❌ 没有存档。');
+    }
+  });
+
+  restartBtn.addEventListener('click', () => {
+    if (confirm('确定重新开始吗？将开始新周目。')) {
+      stopSpeech();
+      startNewCycle();
+      loadScene('prologue_1');
+    }
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const lines = [...gameState.visitedScenes].map(id => {
+      const s = script[id];
+      return s ? `[${s.speaker || '?'}] ${s.text || ''}` : '';
+    }).filter(Boolean);
+    const blob = new Blob([lines.join('\n\n')], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'darkzone_memories_台词.txt';
+    a.click();
+    playSFX('positive');
+  });
+
+  // 语言切换
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      gameState.currentLang = btn.dataset.lang;
+      stopSpeech();
+      loadScene(gameState.currentSceneId, true);
+    });
+  });
+
+  // ==================== 初始化 ====================
+  function init() {
+    updateSidePanel();
+    updateCGGallery();
+    loadScene('prologue_1');
+  }
+
+  window.speechSynthesis.onvoiceschanged = () => {};
+  window.addEventListener('beforeunload', stopSpeech);
+  init();
+})();
+</script>
+</body>
+</html>
