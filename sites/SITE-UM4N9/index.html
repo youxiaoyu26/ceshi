@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>示例站点 — 可调模糊与透明度</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card-alpha:0.6;
+      --card-bg: rgba(255,255,255,var(--card-alpha));
+      --text:#0b1020;
+      --muted:rgba(11,16,32,0.7);
+      --accent:#2563eb;
+      --blur:10px;
+    }
+    [data-theme="dark"]{
+      --bg:linear-gradient(180deg,#071024 0%, #081427 100%);
+      --card-bg: rgba(8,12,18,var(--card-alpha));
+      --text:#e8eef8;
+      --muted:rgba(232,238,248,0.6);
+      --accent:#60a5fa;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";
+      background:var(--bg);color:var(--text);line-height:1.5;
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+      transition:background 300ms linear;
+      background-size:cover;background-position:center;
+    }
+
+    .glass{
+      background: var(--card-bg);
+      backdrop-filter: blur(var(--blur)) saturate(120%);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(120%);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;padding:16px;color:var(--text);
+      transition:background 180ms, backdrop-filter 180ms, color 180ms;
+    }
+
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:14px;position:sticky;top:12px;margin:12px;z-index:40}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),#7c3aed);border-radius:10px;display:grid;place-items:center;color:white;font-weight:700}
+    nav{display:flex;gap:10px;align-items:center}
+    nav a{padding:8px 10px;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600}
+    .theme-toggle{background:transparent;border:none;padding:8px;border-radius:8px;color:var(--muted);cursor:pointer}
+
+    .container{max-width:1100px;margin:22px auto;padding:0 20px}
+    .hero{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+    .title{font-size:20px;font-weight:700;margin:0 0 8px}
+    .lead{color:var(--muted);margin:0 0 12px}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+    .feature{padding:10px;border-radius:10px;background:transparent}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+    .post{padding:12px;border-radius:10px}
+    footer{padding:20px;text-align:center;color:var(--muted);margin-top:30px}
+
+    form input,form textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(11,16,32,0.06);background:rgba(255,255,255,0.04);color:var(--text);margin-bottom:10px}
+    .btn{display:inline-block;background:var(--accent);color:white;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:700;border:none;cursor:pointer}
+
+    /* 设置面板样式 */
+    .settings-toggle{position:fixed;right:18px;bottom:18px;z-index:60}
+    .settings-btn{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:white;border:none;cursor:pointer;box-shadow:0 8px 24px rgba(2,6,23,0.25)}
+    .settings-panel{position:fixed;right:18px;bottom:82px;width:320px;max-width:calc(100% - 36px);z-index:60}
+    .panel-inner{padding:12px;display:flex;flex-direction:column;gap:10px}
+
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    .row{display:flex;gap:8px;align-items:center}
+    .small{font-size:13px;color:var(--muted)}
+
+    @media (max-width:920px){
+      .hero{grid-template-columns:1fr 320px}
+      .grid{grid-template-columns:repeat(2,1fr)}
+      .features{grid-template-columns:repeat(2,1fr)}
+      .settings-panel{right:12px;left:12px}
+    }
+    @media (max-width:560px){
+      .hero{grid-template-columns:1fr}
+      nav a{display:none}
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <header class="glass" role="banner">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <div style="font-weight:700">示例站点</div>
+        <div style="font-size:12px;color:var(--muted)">简洁 · 半透明 · 可调外观</div>
+      </div>
+    </div>
+    <nav aria-label="主导航">
+      <a href="#features">功能</a>
+      <a href="#posts">文章</a>
+      <a href="#contact">联系</a>
+      <button id="themeBtn" class="theme-toggle" title="切换主题">暗色</button>
+    </nav>
+  </header>
+
+  <main class="container" role="main">
+    <section class="hero">
+      <div class="glass">
+        <h1 class="title">欢迎</h1>
+        <p class="lead">使用右下角的“设置”按钮来调整模糊度、透明度或更换背景。</p>
+        <div class="features" id="features">
+          <div class="feature"><strong>实时预览</strong><div style="color:var(--muted)">调整即刻生效</div></div>
+          <div class="feature"><strong>可保存</strong><div style="color:var(--muted)">设置会记忆在本地</div></div>
+          <div class="feature"><strong>自定义背景</strong><div style="color:var(--muted)">图片/URL/渐变</div></div>
+        </div>
+      </div>
+
+      <aside class="glass" aria-label="侧边栏">
+        <h3 style="margin-top:0">快速链接</h3>
+        <p class="lead">最近更新与快捷入口</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a class="btn" href="#posts">查看文章</a>
+          <a style="text-decoration:none;color:var(--accent);font-weight:700" href="#contact">联系 →</a>
+        </div>
+      </aside>
+    </section>
+
+    <section class="glass" id="posts" style="margin-top:18px">
+      <h2 class="title">文章</h2>
+      <p class="lead">示例内容卡片（随机显示三项）。</p>
+      <div class="grid" id="postsGrid"></div>
+    </section>
+
+    <section class="glass" id="contact" style="margin-top:18px">
+      <h2 class="title">联系</h2>
+      <form id="contactForm" onsubmit="return false;">
+        <input type="text" id="name" placeholder="姓名" required />
+        <input type="email" id="email" placeholder="邮箱" required />
+        <textarea id="message" rows="4" placeholder="留言..." required></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="sendBtn">发送</button>
+          <button type="reset" style="background:transparent;border:none;color:var(--muted);cursor:pointer">重置</button>
+        </div>
+        <div id="status" style="margin-top:8px;color:var(--muted)"></div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="small" style="text-align:center;padding:18px 12px;color:var(--muted)">© <span id="year"></span> 示例站点</footer>
+
+  <!-- 设置控件 -->
+  <div class="settings-toggle">
+    <div class="settings-panel" id="settingsPanel" style="display:none">
+      <div class="glass panel-inner">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>外观设置</strong>
+          <button id="closeSettings" style="background:transparent;border:none;color:var(--muted);cursor:pointer">关闭</button>
+        </div>
+
+        <div>
+          <label for="blurRange">模糊度（px） <span id="blurVal" class="small"></span></label>
+          <input id="blurRange" type="range" min="0" max="40" step="1" value="10" />
+        </div>
+
+        <div>
+          <label for="alphaRange">卡片透明度（0~1） <span id="alphaVal" class="small"></span></label>
+          <input id="alphaRange" type="range" min="0.05" max="1" step="0.01" value="0.6" />
+        </div>
+
+        <div>
+          <label for="bgMode">背景类型</label>
+          <select id="bgMode">
+            <option value="default">默认渐变</option>
+            <option value="image">上传图片</option>
+            <option value="url">图片 URL</option>
+            <option value="gradient">自定义渐变</option>
+            <option value="color">纯色</option>
+          </select>
+        </div>
+
+        <div id="bgControls">
+          <!-- 动态插入控件 -->
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:6px">
+          <button id="resetBtn" class="btn" style="flex:1">重置默认</button>
+          <button id="saveBtn" class="btn" style="flex:1;background:#0ea5a4">保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="settings-btn" id="settingsBtn" title="外观设置">⚙</button>
+  </div>
+
+  <script>
+    // 基本初始化
+    const root = document.documentElement;
+    const blurRange = document.getElementById('blurRange');
+    const blurVal = document.getElementById('blurVal');
+    const alphaRange = document.getElementById('alphaRange');
+    const alphaVal = document.getElementById('alphaVal');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const closeSettings = document.getElementById('closeSettings');
+    const bgMode = document.getElementById('bgMode');
+    const bgControls = document.getElementById('bgControls');
+    const saveBtn = document.getElementById('saveBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // 默认值
+    const defaults = {
+      blur: 10,
+      alpha: 0.6,
+      bg: { mode: 'default', value: '' },
+      theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+    };
+
+    // 本地存储读写
+    function loadSettings(){
+      try{
+        const raw = localStorage.getItem('uiSettings');
+        return raw ? JSON.parse(raw) : defaults;
+      }catch(e){ return defaults; }
+    }
+    function saveSettings(obj){
+      localStorage.setItem('uiSettings', JSON.stringify(obj));
+    }
+
+    // 应用设置
+    function applySettings(s){
+      // 模糊
+      root.style.setProperty('--blur', (s.blur || defaults.blur) + 'px');
+      blurRange.value = s.blur || defaults.blur;
+      blurVal.textContent = blurRange.value + 'px';
+      // 透明度
+      root.style.setProperty('--card-alpha', (typeof s.alpha === 'number' ? s.alpha : defaults.alpha));
+      alphaRange.value = s.alpha || defaults.alpha;
+      alphaVal.textContent = alphaRange.value;
+      // 主题
+      if(s.theme === 'dark') root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
+      // 背景
+      applyBackground(s.bg || defaults.bg);
+    }
+
+    function applyBackground(bg){
+      // bg: {mode, value}
+      if(!bg || bg.mode === 'default'){
+        document.body.style.background = 'radial-gradient(circle at 10% 10%, rgba(255,255,255,0.03), transparent 6%), radial-gradient(circle at 90% 90%, rgba(255,255,255,0.02), transparent 8%), linear-gradient(180deg,#071024 0%, #081427 100%)';
+        document.body.style.backgroundSize = 'cover';
+      } else if(bg.mode === 'image'){
+        // value is dataURL
+        document.body.style.background = `url("${bg.value}") center/cover no-repeat`;
+      } else if(bg.mode === 'url'){
+        document.body.style.background = `url("${bg.value}") center/cover no-repeat`;
+      } else if(bg.mode === 'gradient'){
+        document.body.style.background = bg.value || 'linear-gradient(135deg,#0f1724,#071024)';
+      } else if(bg.mode === 'color'){
+        document.body.style.background = bg.value || '#0f1724';
+      }
+    }
+
+    // 动态生成背景控件
+    function renderBgControls(mode, currentValue){
+      bgControls.innerHTML = '';
+      if(mode === 'image'){
+        const info = document.createElement('div');
+        info.innerHTML = '<label>上传图片（最大 4MB）</label>';
+        const file = document.createElement('input');
+        file.type = 'file';
+        file.accept = 'image/*';
+        file.addEventListener('change', async (e)=>{
+          const f = e.target.files[0]; if(!f) return;
+          if(f.size > 4*1024*1024){ alert('文件过大（>4MB）'); return; }
+          const data = await fileToDataURL(f);
+          const s = loadSettings(); s.bg = {mode:'image', value: data}; applySettings(s);
+        });
+        info.appendChild(file);
+        bgControls.appendChild(info);
+      } else if(mode === 'url'){
+        const label = document.createElement('label'); label.textContent = '图片 URL';
+        const input = document.createElement('input'); input.type='url'; input.placeholder='https://...';
+        if(currentValue) input.value = currentValue;
+        const btn = document.createElement('button'); btn.textContent='应用'; btn.className='btn';
+        btn.addEventListener('click', ()=>{ const s = loadSettings(); s.bg = {mode:'url', value: input.value}; applySettings(s); });
+        bgControls.appendChild(label); bgControls.appendChild(input); bgControls.appendChild(btn);
+      } else if(mode === 'gradient'){
+        const label = document.createElement('label'); label.textContent = 'CSS 渐变（例如：linear-gradient(135deg,#0f1724,#071024)）';
+        const input = document.createElement('input'); input.type='text'; input.placeholder='linear-gradient(...)';
+        if(currentValue) input.value = currentValue;
+        const btn = document.createElement('button'); btn.textContent='应用'; btn.className='btn';
+        btn.addEventListener('click', ()=>{ const s = loadSettings(); s.bg = {mode:'gradient', value: input.value}; applySettings(s); });
+        bgControls.appendChild(label); bgControls.appendChild(input); bgControls.appendChild(btn);
+      } else if(mode === 'color'){
+        const label = document.createElement('label'); label.textContent = '背景颜色（hex 或 rgb）';
+        const input = document.createElement('input'); input.type='text'; input.placeholder='#0f1724 或 rgb(10,20,30)';
+        if(currentValue) input.value = currentValue;
+        const btn = document.createElement('button'); btn.textContent='应用'; btn.className='btn';
+        btn.addEventListener('click', ()=>{ const s = loadSettings(); s.bg = {mode:'color', value: input.value}; applySettings(s); });
+        bgControls.appendChild(label); bgControls.appendChild(input); bgControls.appendChild(btn);
+      } else {
+        bgControls.innerHTML = '<div class="small">使用默认渐变背景</div>';
+      }
+    }
+
+    function fileToDataURL(file){
+      return new Promise((res, rej)=>{
+        const r = new FileReader();
+        r.onload = ()=>res(r.result);
+        r.onerror = ()=>rej(new Error('读取失败'));
+        r.readAsDataURL(file);
+      });
+    }
+
+    // 事件绑定
+    settingsBtn.addEventListener('click', ()=>{ settingsPanel.style.display = 'block'; });
+    closeSettings.addEventListener('click', ()=>{ settingsPanel.style.display = 'none'; });
+
+    blurRange.addEventListener('input', (e)=>{
+      const v = e.target.value;
+      blurVal.textContent = v + 'px';
+      root.style.setProperty('--blur', v + 'px');
+    });
+
+    alphaRange.addEventListener('input', (e)=>{
+      const v = e.target.value;
+      alphaVal.textContent = v;
+      root.style.setProperty('--card-alpha', v);
+    });
+
+    bgMode.addEventListener('change', (e)=>{
+      renderBgControls(e.target.value, (loadSettings().bg||{}).value);
+    });
+
+    saveBtn.addEventListener('click', ()=>{
+      const s = loadSettings();
+      s.blur = Number(blurRange.value);
+      s.alpha = Number(alphaRange.value);
+      s.bg = loadSettings().bg || defaults.bg; // bg already applied via controls
+      s.theme = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      saveSettings(s);
+      alert('设置已保存。');
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      if(!confirm('是否恢复为默认设置？')) return;
+      saveSettings(defaults);
+      applySettings(defaults);
+      renderBgControls(defaults.bg.mode, defaults.bg.value);
+    });
+
+    // 主题切换
+    const themeBtn = document.getElementById('themeBtn');
+    themeBtn.addEventListener('click', ()=>{
+      const cur = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      if(next === 'dark') root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
+      const s = loadSettings(); s.theme = next; saveSettings(s);
+      themeBtn.textContent = next === 'dark' ? '浅色' : '暗色';
+    });
+
+    // 加载并应用
+    const initial = loadSettings();
+    applySettings(initial);
+    renderBgControls(initial.bg?.mode || 'default', initial.bg?.value || '');
+
+    // 随机文章
+    const samples = [
+      {title:'在城市中寻路',excerpt:'一段关于城市散步与观察的小短文。'},
+      {title:'早晨的咖啡与代码',excerpt:'记录早晨的一个小习惯。'},
+      {title:'周末小项目',excerpt:'把想法变成可运行的原型。'},
+      {title:'植物日记',excerpt:'阳台绿植养护要点。'},
+      {title:'摄影练习',excerpt:'用手机拍出更好的照片。'},
+      {title:'轻量 CSS 技巧',excerpt:'实用样式优化小贴士。'}
+    ];
+    const grid = document.getElementById('postsGrid');
+    for(let i=0;i<3;i++){
+      const item = samples.splice(Math.floor(Math.random()*samples.length),1)[0];
+      const el = document.createElement('article');
+      el.className = 'post glass';
+      el.innerHTML = `<h3 style="margin:0 0 6px">${item.title}</h3><p style="margin:0 0 10px;color:var(--muted)">${item.excerpt}</p><button class="btn" onclick="alert('阅读：${item.title}')">阅读</button>`;
+      grid.appendChild(el);
+    }
+
+    // 表单模拟
+    document.getElementById('contactForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const status = document.getElementById('status');
+      if(!name||!email||!message){ status.textContent = '请完整填写表单。'; return; }
+      document.getElementById('sendBtn').textContent='发送中…';
+      await new Promise(r=>setTimeout(r,700));
+      status.textContent = '已发送（模拟）';
+      document.getElementById('sendBtn').textContent='发送';
+      e.target.reset();
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
