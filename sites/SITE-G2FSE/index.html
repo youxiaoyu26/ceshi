@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MY SPACE</title>
+    <style>
+        :root {
+            --bg: #ffde4d;
+            --text: #111111;
+            --card-bg: #ffffff;
+            --border: #111111;
+            --accent: #ff3366; 
+        }
+
+        [data-theme="dark"] {
+            --bg: #1a1a1a;
+            --text: #ffffff;
+            --card-bg: #2d2d2d;
+            --border: #ffffff;
+            --accent: #00ffcc; 
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background 0.3s, color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 滚动条 */
+        .marquee-bar {
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            padding: 8px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            overflow: hidden;
+            white-space: nowrap;
+            box-shadow: 4px 4px 0px var(--border);
+            margin-bottom: 20px;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 15s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translate3d(100%, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
+        }
+
+        /* 顶部看板 */
+        .header { margin-top: 10px; margin-bottom: 25px; }
+        .header h1 { font-size: 2.5rem; margin: 0; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
+
+        /* 卡片组 */
+        .card-group { flex-grow: 1; }
+        .custom-card {
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            margin-bottom: 15px;
+            padding: 20px;
+            box-shadow: 5px 5px 0px var(--border);
+            cursor: pointer;
+        }
+        .card-title { font-size: 1.2rem; font-weight: bold; margin: 0; display: flex; justify-content: space-between; align-items: center; }
+        
+        .card-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, margin-top 0.4s;
+            color: var(--text);
+            opacity: 0.9;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .custom-card.active .card-content {
+            max-height: 1200px; 
+            margin-top: 15px;
+            overflow-y: auto;
+        }
+        .custom-card.active .arrow { transform: rotate(90deg); }
+        .arrow { transition: transform 0.2s; font-style: normal; }
+
+        /* 进度条 */
+        .progress-container { margin-top: 10px; }
+        .progress-label { font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; }
+        .progress-bar { width: 100%; height: 16px; background: var(--bg); border: 2px solid var(--border); }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.5s ease-out; }
+        .custom-card.active .progress-fill.init-fill { width: 85%; }
+
+        /* 像素画板 */
+        .pixel-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; background: var(--border); border: 2px solid var(--border); margin-top: 10px; max-width: 180px; }
+        .pixel-cell { aspect-ratio: 1; background: var(--card-bg); transition: background 0.1s; }
+
+        /* 电子宠物 */
+        .pet-container { display: flex; align-items: center; background: var(--bg); border: 2px solid var(--border); padding: 10px; margin-top: 15px; gap: 15px; }
+        .pet-avatar { font-size: 2.5rem; background: var(--card-bg); border: 2px solid var(--border); padding: 5px; border-radius: 4px; }
+        .pet-controls button, .vibe-btn {
+            background: var(--card-bg); border: 2px solid var(--border); font-size: 0.8rem; font-weight: bold; padding: 6px 12px; margin-right: 5px; box-shadow: 2px 2px 0 var(--border);
+        }
+        .pet-controls button:active, .vibe-btn:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0 var(--border); }
+
+        /* 复古十字摇杆键 */
+        .d-pad-wrapper { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 2px solid var(--border); padding: 15px; margin-top: 15px; }
+        .d-pad { position: relative; width: 100px; height: 100px; }
+        .d-btn { position: absolute; background: var(--card-bg); border: 2px solid var(--border); font-weight: bold; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0 var(--border); }
+        .d-btn:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0 var(--border); background: var(--accent); color: white;}
+        .d-up    { top: 0; left: 35px; width: 30px; height: 35px; }
+        .d-down  { bottom: 0; left: 35px; width: 30px; height: 35px; }
+        .d-left  { top: 35px; left: 0; width: 35px; height: 30px; }
+        .d-right { top: 35px; right: 0; width: 35px; height: 30px; }
+        .d-center{ top: 35px; left: 35px; width: 30px; height: 30px; background: var(--border); pointer-events: none;}
+        .screen-mini { width: 120px; height: 80px; background: #000; border: 2px solid var(--border); position: relative; overflow: hidden; }
+        #dot { width: 10px; height: 10px; background: var(--accent); position: absolute; top: 35px; left: 55px; transition: all 0.1s; }
+
+        /* --- 新功能样式 1 & 2：用原本的 link-grid 空间改造成两个大型互动区域 --- */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .feature-box {
+            background: var(--card-bg);
+            border: 3px solid var(--border);
+            padding: 15px;
+            box-shadow: 4px 4px 0px var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 110px;
+        }
+        .feature-box:active {
+            transform: translate(1px, 1px);
+            box-shadow: 3px 3px 0px var(--border);
+        }
+        .box-title {
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+        /* 反应测试仪特定样式 */
+        #reflex-zone {
+            background: var(--accent);
+            color: white;
+            text-align: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.05s; /* 变色要极快 */
+        }
+
+        /* 爆散 Emoji 容器 */
+        .pop-emoji {
+            position: fixed;
+            pointer-events: none;
+            font-size: 2rem;
+            z-index: 999;
+            animation: emojiPop 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+        @keyframes emojiPop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(calc(-50% + var(--mx)), calc(-50% + var(--my))) scale(1.2) rotate(var(--rot)); opacity: 0; }
+        }
+
+        /* 底部双按钮区 */
+        .bottom-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
+        .action-btn { background: var(--card-bg); border: 3px solid var(--border); color: var(--text); padding: 15px; font-size: 1rem; font-weight: bold; box-shadow: 4px 4px 0px var(--border); outline: none; }
+        .action-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--border); }
+
+        .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: var(--border); color: var(--card-bg); padding: 15px 25px; font-weight: bold; border: 2px solid var(--card-bg); box-shadow: 5px 5px 0px var(--accent); opacity: 0; visibility: hidden; transition: all 0.2s; z-index: 100; }
+        .toast.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
+    </style>
+</head>
+<body>
+
+    <div class="marquee-bar">
+        <div class="marquee-content">
+            📢 状态更新：今日无事，宜写代码。🔋 真实手机电量同步成功，见下方监测面板...
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Hello,<br>Stranger.</h1>
+    </div>
+
+    <div class="card-group">
+        <div class="custom-card" onclick="toggleCard(this)">
+            <div class="card-title">🪐 个人简介 <i class="arrow">→</i></div>
+            <div class="card-content" onclick="event.stopPropagation()">
+                这里写你的网名或者真实身份。一个不喜欢无聊设计、热爱探索新鲜事物的打破常规者。
+            </div>
+        </div>
+
+        <div class="custom-card" onclick="toggleCard(this)">
+            <div class="card-title">🔋 硬件状态监测 <i class="arrow">→</i></div>
+            <div class="card-content" onclick="event.stopPropagation()">
+                <div class="progress-container">
+                    <div class="progress-label">🧠 模拟灵感水位 (INSPIRATION)</div>
+                    <div class="progress-bar"><div class="progress-fill init-fill" style="background-color:#ff3366;"></div></div>
+                </div>
+                <div class="progress-container" style="margin-top:15px;">
+                    <div class="progress-label">📱 手机真实电量 (<span id="battery-status">检测中...</span>)</div>
+                    <div class="progress-bar"><div class="progress-fill" id="real-battery-bar" style="background-color:#00ffcc; width: 0%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="custom-card" onclick="toggleCard(this)">
+            <div class="card-title">🕹️ 移动端互动舱 <i class="arrow">→</i></div>
+            <div class="card-content" onclick="event.stopPropagation()">
+                
+                <div class="progress-label" style="color:var(--accent)">● 触摸滑行涂鸦 (PIXEL ART)</div>
+                <div class="pixel-grid" id="pixel-canvas"></div>
+                
+                <div class="progress-label" style="margin-top:20px; color:var(--accent)">● 赛博数字宠物 (DIGITAL PET)</div>
+                <div class="pet-container">
+                    <div class="pet-avatar" id="pet-face">🤖</div>
+                    <div>
+                        <div id="pet-dialog" style="font-size:0.8rem; font-weight:bold; margin-bottom:5px;">嘀...状态正常</div>
+                        <div class="pet-controls">
+                            <button onclick="feedPet('feed')">💊 喂食</button>
+                            <button onclick="feedPet('play')">⚡ 充电</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-label" style="margin-top:20px; color:var(--accent)">● 复古十字方向盘 (GAME PAD)</div>
+                <div class="d-pad-wrapper">
+                    <div class="d-map">
+                        <div class="screen-mini"><div id="dot"></div></div>
+                    </div>
+                    <div class="d-pad">
+                        <div class="d-btn d-up" onclick="moveDot('up')">▲</div>
+                        <div class="d-btn d-down" onclick="moveDot('down')">▼</div>
+                        <div class="d-btn d-left" onclick="moveDot('left')">◀</div>
+                        <div class="d-btn d-right" onclick="moveDot('right')">▶</div>
+                        <div class="d-btn d-center"></div>
+                    </div>
+                </div>
+
+                <div class="progress-label" style="margin-top:20px; color:var(--accent)">● 触觉震动反馈器 (VIBE TAP)</div>
+                <div style="margin-top:10px;">
+                    <button class="vibe-btn" onclick="vibratePhone(40, 200)">⚡ 短震</button>
+                    <button class="vibe-btn" onclick="vibratePhone(100, 500)">🔥 长震</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-grid">
+        <div class="feature-box" id="reflex-zone" onclick="handleReflexClick()">
+            点击开始<br>手速测试
+        </div>
+        
+        <div class="feature-box" onclick="spawnEmoji(event)">
+            <span class="box-title">💥 CYBER BURST</span>
+            <span style="font-size: 1.5rem; font-weight: bold; text-align: center;">赛博解压键</span>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <button class="action-btn" onclick="copyContact()">💬 复制微信</button>
+        <button class="action-btn" onclick="toggleTheme()">🌓 切换模式</button>
+    </div>
+
+    <div id="toast" class="toast">已复制到剪贴板！✌️</div>
+
+    <script>
+        // 8-Bit 声音合成器
+        function playBeep(frequency = 300, duration = 0.08) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'square';
+                oscillator.frequency.value = frequency;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        // 手机震动
+        function vibratePhone(ms, soundFreq) {
+            playBeep(soundFreq, ms/1000);
+            if (navigator.vibrate) { navigator.vibrate(ms); } 
+            else { showToast("你的手机或浏览器暂不支持震动 API 🥲"); }
+        }
+
+        // 简易弹窗封装
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            toast.innerText = text;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        // --- 核心逻辑 1：手速反应力测试器 ---
+        let reflexState = 'idle'; // idle, waiting, ready
+        let reflexTimeout;
+        let reflexStartTime;
+        function handleReflexClick() {
+            const zone = document.getElementById('reflex-zone');
+            if (reflexState === 'idle') {
+                playBeep(400, 0.05);
+                zone.style.background = '#555555';
+                zone.innerHTML = "等它变绿...<br>不要抢跑！";
+                reflexState = 'waiting';
+                
+                // 随机 2-5 秒后变绿
+                reflexTimeout = setTimeout(() => {
+                    zone.style.background = '#00ffcc';
+                    zone.style.color = '#111';
+                    zone.innerHTML = "快点！！！";
+                    reflexState = 'ready';
+                    reflexStartTime = performance.now();
+                    playBeep(880, 0.1);
+                }, 2000 + Math.random() * 3000);
+
+            } else if (reflexState === 'waiting') {
+                // 抢跑惩罚
+                clearTimeout(reflexTimeout);
+                playBeep(150, 0.2);
+                zone.style.background = 'var(--accent)';
+                zone.style.color = 'white';
+                zone.innerHTML = "❌ 抢跑了！<br>重新点我开始";
+                reflexState = 'idle';
+
+            } else if (reflexState === 'ready') {
+                // 成功测速
+                const endTime = performance.now();
+                const reactionTime = Math.floor(endTime - reflexStartTime);
+                playBeep(1200, 0.08);
+                if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+                
+                zone.style.background = 'var(--border)';
+                zone.style.color = 'var(--card-bg)';
+                zone.innerHTML = `⏱️ ${reactionTime} ms!<br>重新测试`;
+                reflexState = 'idle';
+            }
+        }
+
+        // --- 核心逻辑 2：赛博解压爆散 Emoji ---
+        const emojiPool = ["✨", "💥", "🔥", "🍭", "🍀", "💎", "👻", "👾", "❤️", "⚡"];
+        function spawnEmoji(e) {
+            playBeep(700 + Math.random() * 300, 0.04);
+            if (navigator.vibrate) navigator.vibrate(20);
+
+            // 获取点击的坐标
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            // 一次点击喷射 5 个 Emoji
+            for(let i = 0; i < 5; i++) {
+                const span = document.createElement('span');
+                span.classList.add('pop-emoji');
+                span.innerText = emojiPool[Math.floor(Math.random() * emojiPool.length)];
+                span.style.left = clientX + 'px';
+                span.style.top = clientY + 'px';
+                
+                // 随机四散的物理轨迹变量
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 60 + Math.random() * 80;
+                span.style.setProperty('--mx', `${Math.cos(angle) * distance}px`);
+                span.style.setProperty('--my', `${Math.sin(angle) * distance}px`);
+                span.style.setProperty('--rot', `${(Math.random() - 0.5) * 180}deg`);
+
+                document.body.appendChild(span);
+                setTimeout(() => span.remove(), 600);
+            }
+        }
+
+        // 摇杆控制
+        let dotX = 55; let dotY = 35;
+        function moveDot(direction) {
+            const dot = document.getElementById('dot');
+            if (direction === 'up' && dotY > 5) { dotY -= 15; playBeep(500, 0.04); }
+            if (direction === 'down' && dotY < 65) { dotY += 15; playBeep(400, 0.04); }
+            if (direction === 'left' && dotX > 5) { dotX -= 15; playBeep(600, 0.04); }
+            if (direction === 'right' && dotX < 105) { dotX += 15; playBeep(700, 0.04); }
+            if (navigator.vibrate) navigator.vibrate(15);
+            dot.style.top = dotY + 'px'; dot.style.left = dotX + 'px';
+        }
+
+        // 卡片折叠
+        function toggleCard(card) { playBeep(350, 0.06); card.classList.toggle('active'); }
+
+        // 夜间模式
+        function toggleTheme() {
+            playBeep(800, 0.1);
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'dark') { document.documentElement.removeAttribute('data-theme'); }
+            else { document.documentElement.setAttribute('data-theme', 'dark'); }
+        }
+
+        // 复制微信
+        function copyContact() {
+            playBeep(600, 0.05); setTimeout(() => playBeep(900, 0.05), 60);
+            navigator.clipboard.writeText("YourWeChatID_Here").then(() => { showToast("已复制到剪贴板！✌️"); });
+        }
+
+        // 初始化画板
+        const canvas = document.getElementById('pixel-canvas');
+        for (let i = 0; i < 64; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('pixel-cell');
+            cell.addEventListener('mouseover', function(e) { if(e.buttons === 1) { this.style.backgroundColor = 'var(--accent)'; playBeep(1200, 0.01); } });
+            cell.addEventListener('pointerdown', function() { this.style.backgroundColor = this.style.backgroundColor ? '' : 'var(--accent)'; playBeep(1000, 0.02); });
+            canvas.appendChild(cell);
+        }
+
+        // 宠物逻辑
+        function feedPet(action) {
+            const face = document.getElementById('pet-face');
+            const dialog = document.getElementById('pet-dialog');
+            if(action === 'feed') {
+                playBeep(450, 0.05); setTimeout(() => playBeep(650, 0.05), 50);
+                face.innerText = "🥰"; dialog.innerText = "好滋味！美味度 +1";
+            } else {
+                playBeep(700, 0.04); setTimeout(() => playBeep(1100, 0.04), 40);
+                face.innerText = "⚡"; dialog.innerText = "超频运作中！";
+            }
+            setTimeout(() => { face.innerText = "🤖"; dialog.innerText = "保持待机..."; }, 1500);
+        }
+
+        // 真实电量
+        if (navigator.getBattery) {
+            navigator.getBattery().then(function(battery) {
+                function updateBatteryInfo() {
+                    const level = Math.floor(battery.level * 100);
+                    const charging = battery.charging ? "充电中" : "未充电";
+                    document.getElementById('battery-status').innerText = `${level}% // ${charging}`;
+                    document.getElementById('real-battery-bar').style.width = `${level}%`;
+                }
+                updateBatteryInfo();
+                battery.addEventListener('levelchange', updateBatteryInfo);
+                battery.addEventListener('chargingchange', updateBatteryInfo);
+            });
+        } else {
+            document.getElementById('battery-status').innerText = "暂不支持该系统";
+        }
+    </script>
+</body>
+</html>
