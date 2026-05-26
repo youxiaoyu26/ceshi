@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎆 星空烟花秀 - D老师出品</title>
+    <style>
+        :root {
+            --bg: #050510;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            cursor: crosshair;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .ui-layer {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            top: 0;
+            left: 0;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .counter-card {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 10px 20px;
+            color: #fff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .counter-card .icon {
+            font-size: 1.5rem;
+        }
+
+        .counter-card .num {
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .hint-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.65);
+            font-size: clamp(0.9rem, 2vw, 1.2rem);
+            letter-spacing: 0.06em;
+            pointer-events: none;
+            z-index: 8;
+            animation: hintPulse 2.8s ease-in-out infinite;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes hintPulse {
+            0%,
+            100% {
+                opacity: 0.4;
+                transform: translate(-50%, -50%) translateY(0);
+            }
+            50% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) translateY(-6px);
+            }
+        }
+
+        .footer-note {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            pointer-events: none;
+        }
+
+        @media (max-width: 500px) {
+            .counter-card {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+            .counter-card .num {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="fireworkCanvas"></canvas>
+
+    <div class="ui-layer">
+        <div class="counter-card">
+            <span class="icon">🎆</span>
+            <span>已发射</span>
+            <span class="num" id="fireworkCount">0</span>
+            <span>枚</span>
+        </div>
+    </div>
+
+    <div class="hint-text" id="hintText">✨ 点击任意位置，绽放烟花 ✨</div>
+    <div class="footer-note">D老师的烟花秀 · 按 R 键重置计数 🌸</div>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('fireworkCanvas');
+            const ctx = canvas.getContext('2d');
+            const countEl = document.getElementById('fireworkCount');
+            const hintText = document.getElementById('hintText');
+
+            let W, H;
+            let fireworks = []; // 烟花弹（上升阶段）
+            let particles = []; // 爆炸粒子
+            let stars = []; // 背景星星
+            let launchCount = 0;
+
+            // Web Audio
+            let audioCtx = null;
+
+            function getAudio() {
+                if (!audioCtx) {
+                    audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                return audioCtx;
+            }
+
+            function playLaunchSound() {
+                try {
+                    const ctx = getAudio();
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.32);
+                } catch (e) {}
+            }
+
+            function playBoomSound() {
+                try {
+                    const ctx = getAudio();
+                    const now = ctx.currentTime;
+                    // 低频轰隆
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(150, now);
+                    osc1.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+                    gain1.gain.setValueAtTime(0.35, now);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 0.5);
+
+                    // 高频火花声
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(1200, now);
+                    osc2.frequency.exponentialRampToValueAtTime(400, now + 0.25);
+                    gain2.gain.setValueAtTime(0.12, now);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now);
+                    osc2.stop(now + 0.32);
+                } catch (e) {}
+            }
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+                initStars();
+            }
+
+            function initStars() {
+                stars = [];
+                const count = 120;
+                for (let i = 0; i < count; i++) {
+                    stars.push({
+                        x: Math.random() * W,
+                        y: Math.random() * H,
+                        r: Math.random() * 1.4 + 0.3,
+                        alpha: Math.random() * 0.7 + 0.3,
+                        twinkle: Math.random() * 0.02 + 0.006,
+                        offset: Math.random() * Math.PI * 2,
+                    });
+                }
+            }
+
+            // 创建烟花弹
+            function createFirework(targetX, targetY) {
+                const startX = targetX + (Math.random() - 0.5) * 60;
+                const startY = H + 10;
+                const burstY = targetY; // 爆炸高度
+                const id = Date.now() + Math.random();
+                fireworks.push({
+                    id,
+                    x: startX,
+                    y: startY,
+                    targetX: startX,
+                    targetY: burstY,
+                    vy: -(Math.random() * 5 + 8), // 上升速度
+                    life: 1,
+                    color: `hsl(${Math.random()*360}, 90%, 65%)`,
+                    done: false,
+                });
+                launchCount++;
+                countEl.textContent = launchCount;
+                playLaunchSound();
+                hintText.style.opacity = '0'; // 隐藏提示
+                setTimeout(() => { hintText.style.opacity = ''; }, 2000);
+            }
+
+            // 爆炸成粒子
+            function explode(firework) {
+                const { x, y, color } = firework;
+                const particleCount = Math.floor(Math.random() * 40) + 50;
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 5 + 2;
+                    const hue = parseInt(color.match(/\d+/)?.[0]) || 30;
+                    const pColor = `hsl(${hue + Math.random()*40 - 20}, 85%, 65%)`;
+                    particles.push({
+                        x,
+                        y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 1.5,
+                        life: 1,
+                        decay: Math.random() * 0.015 + 0.012,
+                        size: Math.random() * 3 + 1.5,
+                        color: pColor,
+                        gravity: 0.03,
+                    });
+                }
+                playBoomSound();
+            }
+
+            // 更新逻辑
+            function update() {
+                // 烟花弹更新
+                for (let i = fireworks.length - 1; i >= 0; i--) {
+                    const f = fireworks[i];
+                    f.y += f.vy;
+                    f.vy += 0.08; // 重力减速
+                    if (f.vy >= 0 || f.y <= f.targetY + 2) {
+                        // 到达顶点，爆炸
+                        explode(f);
+                        fireworks.splice(i, 1);
+                    }
+                }
+
+                // 粒子更新
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity;
+                    p.vx *= 0.99;
+                    p.life -= p.decay;
+                    if (p.life <= 0) particles.splice(i, 1);
+                }
+            }
+
+            // 绘制
+            function drawStars(timestamp) {
+                for (const s of stars) {
+                    const alpha = s.alpha + Math.sin(timestamp * s.twinkle + s.offset) * 0.35;
+                    const a = Math.max(0.08, Math.min(1, alpha));
+                    ctx.fillStyle = `rgba(210,220,255,${a})`;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function drawFireworks() {
+                for (const f of fireworks) {
+                    // 上升的烟花弹（小光点带拖尾）
+                    const grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, 8);
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(0.4, f.color);
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 拖尾
+                    ctx.fillStyle = f.color;
+                    ctx.globalAlpha = 0.6;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y - 2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            function drawParticles() {
+                for (const p of particles) {
+                    ctx.globalAlpha = p.life;
+                    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 1.5);
+                    grad.addColorStop(0, '#fff');
+                    grad.addColorStop(0.3, p.color);
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                const timestamp = performance.now();
+                drawStars(timestamp);
+                drawFireworks();
+                drawParticles();
+            }
+
+            function gameLoop() {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // 交互事件
+            function handleInteraction(clientX, clientY) {
+                createFirework(clientX, clientY);
+            }
+
+            document.addEventListener('click', (e) => {
+                handleInteraction(e.clientX, e.clientY);
+            });
+
+            document.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                if (touch) handleInteraction(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            // 键盘重置计数
+            window.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'r') {
+                    launchCount = 0;
+                    countEl.textContent = '0';
+                    countEl.style.transform = 'scale(1.5)';
+                    setTimeout(() => { countEl.style.transform = 'scale(1)'; }, 200);
+                }
+            });
+
+            // 初始化
+            resize();
+            window.addEventListener('resize', resize);
+            requestAnimationFrame(gameLoop);
+
+            console.log('🎆 星空烟花秀已就绪！');
+            console.log('   👆 点击屏幕发射烟花');
+            console.log('   📱 触摸屏幕也能放');
+            console.log('   ⌨️  按 R 键重置计数');
+            console.log('   🌸 D老师陪你一起看烟花~');
+        })();
+    </script>
+</body>
+</html>
