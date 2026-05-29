@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --chat-bg: #e8ebee;
+            --header-bg: #ffffff;
+            --user-bubble: #95ec69;
+            --user-bubble-text: #000000;
+            --ai-bubble: #ffffff;
+            --ai-bubble-text: #1a1a1a;
+            --input-bg: #ffffff;
+            --border: #e0e0e0;
+            --text-secondary: #888888;
+            --text-primary: #1a1a1a;
+            --accent: #576b95;
+            --danger: #fa5151;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: var(--font-stack);
+            background: #1a1a2e;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; -webkit-tap-highlight-color: transparent;
+            user-select: none; padding: 0;
+        }
+        .phone-frame {
+            width: 100%; max-width: 480px; height: 100vh; max-height: 900px;
+            background: var(--bg); display: flex; flex-direction: column;
+            position: relative; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); border-radius: 0;
+        }
+        @media (min-width: 500px) {
+            .phone-frame { border-radius: 28px; height: 92vh; max-height: 880px; margin: 0 12px; }
+        }
+        @media (max-width: 380px) {
+            .phone-frame { max-width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; }
+        }
+
+        /* 头部 */
+        .header {
+            background: var(--header-bg); padding: 10px 14px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border); z-index: 10;
+            flex-shrink: 0; min-height: 56px; position: relative;
+        }
+        .header-left { display: flex; align-items: center; gap: 10px; flex:1; min-width:0; }
+        .header-avatar {
+            width:40px; height:40px; border-radius:50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-size:18px; font-weight:700; flex-shrink:0;
+        }
+        .header-info { display:flex; flex-direction:column; min-width:0; }
+        .header-name { font-size:16px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .header-status { font-size:11px; color:#07c160; font-weight:500; }
+        .header-status.offline { color:#999; }
+        .menu-btn {
+            width:36px; height:36px; border-radius:50%; background:transparent;
+            border:none; cursor:pointer; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:4px; padding:8px;
+            transition:var(--transition); flex-shrink:0; position:relative; z-index:20;
+        }
+        .menu-btn:active { background:rgba(0,0,0,0.06); transform:scale(0.94); }
+        .menu-bar { width:18px; height:2px; background:#555; border-radius:2px; transition:var(--transition); pointer-events:none; }
+        .menu-btn.open .menu-bar:nth-child(1) { transform:translateY(6px) rotate(45deg); }
+        .menu-btn.open .menu-bar:nth-child(2) { opacity:0; transform:scaleX(0); }
+        .menu-btn.open .menu-bar:nth-child(3) { transform:translateY(-6px) rotate(-45deg); }
+
+        /* 聊天区域 */
+        .chat-container {
+            flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 10px;
+            display:flex; flex-direction:column; gap:8px; background:var(--chat-bg);
+            scroll-behavior:smooth; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+        }
+        .chat-container::-webkit-scrollbar { width:4px; }
+        .chat-container::-webkit-scrollbar-track { background:transparent; }
+        .chat-container::-webkit-scrollbar-thumb { background:#ccc; border-radius:4px; }
+
+        .message-row {
+            display:flex; flex-direction:column; max-width:80%;
+            animation:msgIn 0.3s ease-out; position:relative; touch-action:manipulation;
+        }
+        @keyframes msgIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        .message-row.user { align-self:flex-end; align-items:flex-end; }
+        .message-row.ai { align-self:flex-start; align-items:flex-start; }
+        .message-row.notice { align-self:center; max-width:90%; text-align:center; animation:none; }
+        .message-sender { font-size:11px; color:var(--text-secondary); margin-bottom:2px; padding:0 6px; font-weight:500; }
+        .message-bubble {
+            padding:10px 14px; border-radius:var(--radius-md); font-size:15px;
+            line-height:1.55; word-break:break-word; white-space:pre-wrap;
+            position:relative; box-shadow:var(--shadow-sm); letter-spacing:0.01em;
+            user-select:none; -webkit-user-select:none;
+        }
+        .message-row.user .message-bubble { background:var(--user-bubble); color:var(--user-bubble-text); border-bottom-right-radius:4px; }
+        .message-row.ai .message-bubble { background:var(--ai-bubble); color:var(--ai-bubble-text); border-bottom-left-radius:4px; }
+        .message-row.notice .message-bubble { background:#e1e1e1; color:#666; font-size:12px; padding:6px 14px; border-radius:20px; box-shadow:none; }
+        .message-time { font-size:10px; color:#aaa; margin-top:3px; padding:0 6px; opacity:0.7; }
+        .message-row.notice .message-sender, .message-row.notice .message-time { display:none; }
+
+        .typing-indicator {
+            align-self:flex-start; display:flex; gap:5px; padding:12px 16px;
+            background:#fff; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border-bottom-left-radius:4px;
+        }
+        .typing-indicator span {
+            width:7px; height:7px; border-radius:50%; background:#bbb;
+            animation:typingBounce 1.2s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay:0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay:0.4s; }
+        @keyframes typingBounce { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-8px); opacity:1; } }
+
+        .empty-state {
+            flex:1; display:flex; flex-direction:column; align-items:center;
+            justify-content:center; color:#bbb; gap:8px; text-align:center; padding:40px 20px;
+        }
+        .empty-state .icon { font-size:56px; opacity:0.5; }
+        .empty-state .text { font-size:14px; opacity:0.6; }
+
+        /* 引用预览 */
+        .quote-preview {
+            display:flex; align-items:center; gap:8px; background:#fff;
+            border-radius:12px; padding:8px 12px; margin:0 10px 6px;
+            border:1px solid #ddd; box-shadow:var(--shadow-sm);
+            animation:fadeIn 0.2s ease; font-size:13px; color:#555;
+            line-height:1.4; word-break:break-word; position:relative;
+        }
+        .quote-preview .quote-content { flex:1; border-left:3px solid #667eea; padding-left:8px; white-space:pre-wrap; max-height:60px; overflow-y:auto; color:#333; }
+        .quote-preview .quote-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+        .quote-preview button { background:none; border:none; font-size:16px; cursor:pointer; color:#999; padding:2px 4px; line-height:1; transition:0.2s; }
+        .quote-preview button:hover { color:#333; }
+        .quote-preview .quote-delete { color:#fa5151; font-size:15px; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+        /* 输入区域 */
+        .input-area {
+            background:var(--input-bg); padding:8px 10px;
+            display:flex; flex-direction:column; gap:6px;
+            border-top:1px solid var(--border); flex-shrink:0;
+            padding-bottom:max(8px, env(safe-area-inset-bottom)); position:relative; z-index:5;
+        }
+        .input-row { display:flex; align-items:flex-end; gap:8px; }
+        .input-area textarea {
+            flex:1; border:1px solid #ddd; border-radius:22px; padding:10px 16px;
+            font-size:15px; font-family:var(--font-stack); resize:none; outline:none;
+            max-height:120px; min-height:42px; line-height:1.4; transition:var(--transition);
+            background:#f8f9fa; -webkit-user-select:text; user-select:text;
+        }
+        .input-area textarea:focus { border-color:#667eea; background:#fff; box-shadow:0 0 0 3px rgba(102,126,234,0.1); }
+        .send-btn {
+            width:42px; height:42px; border-radius:50%;
+            background:linear-gradient(135deg, #667eea 0%, #5a6fd6 100%);
+            border:none; color:#fff; font-size:18px; cursor:pointer;
+            flex-shrink:0; display:flex; align-items:center; justify-content:center;
+            transition:var(--transition); box-shadow:0 2px 8px rgba(102,126,234,0.35); padding:0;
+        }
+        .send-btn:active { transform:scale(0.9); box-shadow:0 1px 4px rgba(102,126,234,0.25); }
+        .send-btn:disabled { background:#ccc; box-shadow:none; cursor:not-allowed; transform:none; }
+
+        /* 长按菜单 */
+        .context-menu {
+            position:fixed; background:#fff; border-radius:14px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:999;
+            display:flex; flex-direction:column; min-width:120px; overflow:hidden;
+            opacity:0; pointer-events:none; transform:scale(0.9);
+            transition: opacity 0.15s, transform 0.15s; padding:4px 0;
+        }
+        .context-menu.show { opacity:1; pointer-events:auto; transform:scale(1); }
+        .context-menu button {
+            background:none; border:none; padding:12px 18px; font-size:14px;
+            text-align:left; cursor:pointer; color:#333; display:flex;
+            align-items:center; gap:8px; transition:background 0.15s;
+            font-family:var(--font-stack); width:100%; white-space:nowrap;
+        }
+        .context-menu button:active { background:#f5f5f5; }
+        .context-menu button.danger { color:#fa5151; }
+
+        /* 自定义确认弹窗 (通用) */
+        .modal-overlay {
+            position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.5); z-index:1000; display:flex;
+            align-items:center; justify-content:center; opacity:0;
+            pointer-events:none; transition:opacity 0.25s;
+        }
+        .modal-overlay.active { opacity:1; pointer-events:auto; }
+        .modal-box {
+            background:#fff; border-radius:20px; padding:24px 20px 16px;
+            width:85%; max-width:320px; box-shadow:0 20px 40px rgba(0,0,0,0.3); text-align:center;
+        }
+        .modal-box h4 { font-size:17px; margin-bottom:8px; color:#1a1a1a; }
+        .modal-box p { font-size:14px; color:#666; margin-bottom:20px; line-height:1.5; }
+        .modal-buttons { display:flex; gap:10px; justify-content:center; }
+        .modal-buttons button {
+            flex:1; padding:11px 0; border-radius:25px; border:none;
+            font-size:14px; font-weight:600; cursor:pointer; transition:0.2s;
+            font-family:var(--font-stack);
+        }
+        .modal-buttons .btn-cancel { background:#f0f0f0; color:#555; }
+        .modal-buttons .btn-confirm { background:#667eea; color:#fff; }
+        .modal-buttons button:active { transform:scale(0.95); opacity:0.9; }
+
+        /* 公告弹窗 (独立样式) */
+        .announcement-overlay {
+            position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.6); z-index:2000; display:flex;
+            align-items:center; justify-content:center;
+        }
+        .announcement-box {
+            background:#fff; border-radius:24px; padding:28px 24px 20px;
+            width:85%; max-width:340px; text-align:center;
+            box-shadow:0 20px 40px rgba(0,0,0,0.4);
+            animation:popIn 0.3s ease;
+        }
+        @keyframes popIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+        .announcement-box h3 { font-size:19px; margin-bottom:12px; color:#1a1a1a; }
+        .announcement-box p { font-size:14px; color:#555; line-height:1.6; margin-bottom:20px; }
+        .announcement-box .btn-got-it {
+            background:linear-gradient(135deg, #667eea, #5a6fd6);
+            color:#fff; border:none; padding:12px 32px; border-radius:25px;
+            font-size:15px; font-weight:600; cursor:pointer; transition:0.2s;
+        }
+        .announcement-box .btn-got-it:active { transform:scale(0.95); opacity:0.9; }
+
+        /* 设置面板 */
+        .overlay {
+            position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.45); z-index:30; opacity:0;
+            pointer-events:none; transition:opacity var(--transition);
+        }
+        .overlay.active { opacity:1; pointer-events:auto; }
+        .settings-panel {
+            position:fixed; top:0; right:-100%; width:85%; max-width:400px; height:100%;
+            background:#fff; z-index:40; transition:right var(--transition);
+            display:flex; flex-direction:column; box-shadow:var(--shadow-lg); overflow-y:auto;
+        }
+        .settings-panel.active { right:0; }
+        .settings-header {
+            padding:16px 18px; border-bottom:1px solid #eee;
+            display:flex; align-items:center; justify-content:space-between;
+            position:sticky; top:0; background:#fff; z-index:5;
+        }
+        .settings-header h3 { font-size:18px; font-weight:700; }
+        .settings-close {
+            width:32px; height:32px; border-radius:50%; border:none;
+            background:#f5f5f5; cursor:pointer; font-size:16px;
+            display:flex; align-items:center; justify-content:center;
+            transition:var(--transition); color:#666;
+        }
+        .settings-close:active { background:#e0e0e0; transform:scale(0.9); }
+        .settings-body {
+            flex:1; padding:16px 18px; display:flex; flex-direction:column; gap:14px;
+        }
+        .settings-body label { font-size:13px; font-weight:600; color:#555; }
+        .settings-body input, .settings-body textarea, .settings-body select {
+            width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:10px;
+            font-size:14px; font-family:var(--font-stack); outline:none;
+            transition:var(--transition); background:#fafafa;
+            -webkit-user-select:text; user-select:text;
+        }
+        .settings-body textarea { resize:vertical; min-height:70px; }
+        .version-text {
+            text-align:center; font-size:12px; color:#ccc; padding:8px;
+            cursor:default; transition:color 0.2s; margin-top:auto;
+        }
+        .version-text.clickable { cursor:pointer; color:#aaa; }
+        .dev-settings { display:none; flex-direction:column; gap:14px; }
+        .dev-settings.unlocked { display:flex; }
+        .btn {
+            padding:10px 16px; border-radius:20px; border:none;
+            cursor:pointer; font-size:13px; font-weight:600;
+            transition:var(--transition); font-family:var(--font-stack);
+        }
+        .btn-primary { background:#667eea; color:#fff; }
+        .btn-outline { background:#fff; color:#667eea; border:1.5px solid #667eea; }
+        .btn-danger { background:#fff; color:#fa5151; border:1.5px solid #fa5151; }
+        .btn-sm { padding:6px 12px; font-size:11px; border-radius:14px; }
+
+        .toast {
+            position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-120px);
+            background:#333; color:#fff; padding:10px 20px; border-radius:20px;
+            font-size:13px; font-weight:500; z-index:2000; transition:transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275);
+            pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,0.3);
+        }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .toast.success { background:#07c160; }
+        .toast.error { background:#fa5151; }
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+
+    <!-- 公告弹窗 -->
+    <div class="announcement-overlay" id="announcementOverlay">
+        <div class="announcement-box">
+            <h3>📢 公告</h3>
+            <p>欢迎使用 AI <p>目前处于测试阶段仅供开发者使用</p></p>
+            <button class="btn-got-it" id="closeAnnouncement">知道了，开始聊天</button>
+        </div>
+    </div>
+
+    <!-- 确认弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h4 id="modalTitle">提示</h4>
+            <p id="modalMessage"></p>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="modalCancel">取消</button>
+                <button class="btn-confirm" id="modalConfirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 长按菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <button id="ctxQuote"><span>💬</span> 引用</button>
+        <button id="ctxCopy"><span>📋</span> 复制</button>
+        <button id="ctxRecall" class="danger"><span>↩️</span> 撤回</button>
+    </div>
+
+    <div class="phone-frame">
+        <div class="header">
+            <div class="header-left">
+                <div class="header-avatar" id="headerAvatar">🤖</div>
+                <div class="header-info">
+                    <span class="header-name" id="headerName">AI 助手</span>
+                    <span class="header-status" id="headerStatus">在线</span>
+                </div>
+            </div>
+            <button class="menu-btn" id="menuBtn" aria-label="菜单">
+                <span class="menu-bar"></span><span class="menu-bar"></span><span class="menu-bar"></span>
+            </button>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="empty-state" id="emptyState">
+                <span class="icon">💬</span>
+                <span class="text">发送消息开始对话吧~</span>
+            </div>
+        </div>
+
+        <div class="input-area" id="inputArea">
+            <div class="quote-preview" id="quotePreview" style="display: none;">
+                <div class="quote-content" id="quoteContent"></div>
+                <div class="quote-actions">
+                    <button class="quote-delete" id="quoteDelete" title="删除该消息">🗑️</button>
+                    <button class="quote-close" id="quoteClose" title="关闭引用">✕</button>
+                </div>
+            </div>
+            <div class="input-row">
+                <textarea id="messageInput" rows="1" placeholder="输入消息..." maxlength="4000"></textarea>
+                <button class="send-btn" id="sendBtn" aria-label="发送">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h3>⚙️ 设置</h3>
+            <button class="settings-close" id="settingsClose">✕</button>
+        </div>
+        <div class="settings-body">
+            <div class="btn-row">
+                <button class="btn btn-outline btn-sm" id="clearChatBtn">🗑️ 清空对话</button>
+                <button class="btn btn-outline btn-sm" id="exportChatBtn">📋 导出记录</button>
+            </div>
+            <div class="dev-settings" id="devSettings">
+                <div class="section-title">🔧 高级设置</div>
+                <label>🔑 API Key <span style="color:#fa5151;">*</span></label>
+                <input type="password" id="apiKeyInput" placeholder="输入智谱AI API Key...">
+                <span style="font-size:11px;color:#999;">免费获取：<a href="https://open.bigmodel.cn/" target="_blank">智谱AI开放平台</a> → 使用 glm-4-flash</span>
+                <label>🧠 模型</label>
+                <select id="modelSelect">
+                    <option value="glm-4-flash">glm-4-flash（免费）</option>
+                    <option value="glm-4-air">glm-4-air</option>
+                    <option value="glm-4">glm-4</option>
+                </select>
+                <label>🤖 AI 名字</label>
+                <input type="text" id="aiNameInput" placeholder="例如：小智" maxlength="30">
+                <label>🎭 AI 性格</label>
+                <textarea id="aiPersonalityInput" placeholder="描述性格..." maxlength="2000"></textarea>
+                <label>📎 参考聊天记录</label>
+                <textarea id="referenceChatInput" placeholder="粘贴记录以模仿风格..." maxlength="5000"></textarea>
+                <div class="btn-row">
+                    <button class="btn btn-primary btn-sm" id="saveSettingsBtn">💾 保存</button>
+                    <button class="btn btn-outline btn-sm" id="resetSettingsBtn">🔄 默认</button>
+                </div>
+            </div>
+            <div class="version-text" id="versionText">v2.4.1</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // DOM 元素
+            const chatContainer = document.getElementById('chatContainer');
+            const emptyState = document.getElementById('emptyState');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const menuBtn = document.getElementById('menuBtn');
+            const overlay = document.getElementById('overlay');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const settingsClose = document.getElementById('settingsClose');
+            const toast = document.getElementById('toast');
+            const versionText = document.getElementById('versionText');
+            const devSettings = document.getElementById('devSettings');
+            const headerName = document.getElementById('headerName');
+            const headerAvatar = document.getElementById('headerAvatar');
+            const headerStatus = document.getElementById('headerStatus');
+            const quotePreview = document.getElementById('quotePreview');
+            const quoteContent = document.getElementById('quoteContent');
+            const quoteClose = document.getElementById('quoteClose');
+            const quoteDelete = document.getElementById('quoteDelete');
+            const contextMenu = document.getElementById('contextMenu');
+            const ctxQuote = document.getElementById('ctxQuote');
+            const ctxCopy = document.getElementById('ctxCopy');
+            const ctxRecall = document.getElementById('ctxRecall');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalCancel = document.getElementById('modalCancel');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const inputArea = document.getElementById('inputArea');
+            const announcementOverlay = document.getElementById('announcementOverlay');
+            const closeAnnouncementBtn = document.getElementById('closeAnnouncement');
+
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const modelSelect = document.getElementById('modelSelect');
+            const aiNameInput = document.getElementById('aiNameInput');
+            const aiPersonalityInput = document.getElementById('aiPersonalityInput');
+            const referenceChatInput = document.getElementById('referenceChatInput');
+            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+            const clearChatBtn = document.getElementById('clearChatBtn');
+            const exportChatBtn = document.getElementById('exportChatBtn');
+
+            let chatHistory = [];
+            let isGenerating = false;
+            let versionClickCount = 0;
+            let versionClickTimer = null;
+            let toastTimer = null;
+            let currentQuote = null;
+            let contextTargetIndex = null;
+            let modalResolve = null;
+
+            const DEFAULT_SETTINGS = {
+                apiKey: '',
+                model: 'glm-4-flash',
+                aiName: '小智',
+                aiPersonality: '你是一个友好、温暖、善解人意的AI助手。回复简洁自然，像朋友聊天一样，适当使用emoji。',
+                referenceChat: '',
+            };
+            let currentSettings = { ...DEFAULT_SETTINGS };
+
+            function init() {
+                loadAllFromStorage();
+                applySettingsToUI();
+                renderChatHistory();
+                updateHeaderUI();
+                updateEmptyState();
+                // 公告弹窗：每次打开页面都显示，直到用户点击关闭
+                announcementOverlay.style.display = 'flex';
+                // 绑定关闭公告事件
+                closeAnnouncementBtn.addEventListener('click', () => {
+                    announcementOverlay.style.display = 'none';
+                });
+                bindEvents();
+            }
+
+            function loadAllFromStorage() {
+                const savedSettings = localStorage.getItem('ai_chat_settings');
+                if (savedSettings) {
+                    try { currentSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) }; } catch (e) {}
+                }
+                const savedHistory = localStorage.getItem('ai_chat_history');
+                if (savedHistory) {
+                    try { chatHistory = JSON.parse(savedHistory); if (!Array.isArray(chatHistory)) chatHistory = []; } catch (e) { chatHistory = []; }
+                }
+            }
+
+            function saveSettingsToStorage() { localStorage.setItem('ai_chat_settings', JSON.stringify(currentSettings)); }
+            function saveHistoryToStorage() { localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory)); }
+
+            function applySettingsToUI() {
+                apiKeyInput.value = currentSettings.apiKey || '';
+                modelSelect.value = currentSettings.model || 'glm-4-flash';
+                aiNameInput.value = currentSettings.aiName || '';
+                aiPersonalityInput.value = currentSettings.aiPersonality || '';
+                referenceChatInput.value = currentSettings.referenceChat || '';
+            }
+
+            function updateHeaderUI() {
+                const name = currentSettings.aiName || 'AI 助手';
+                headerName.textContent = name;
+                headerAvatar.textContent = name.charAt(0);
+                const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                headerAvatar.style.background = `linear-gradient(135deg, hsl(${hash % 360},70%,55%) 0%, hsl(${(hash+40) % 360},60%,45%) 100%)`;
+                headerStatus.textContent = '在线';
+                headerStatus.classList.remove('offline');
+            }
+
+            function updateEmptyState() {
+                emptyState.style.display = (chatHistory.length === 0 && !isGenerating) ? 'flex' : 'none';
+            }
+
+            function scrollToBottom(smooth = true) {
+                requestAnimationFrame(() => {
+                    chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+                });
+            }
+
+            function renderChatHistory() {
+                const messages = chatContainer.querySelectorAll('.message-row, .typing-indicator');
+                messages.forEach(el => el.remove());
+                updateEmptyState();
+                if (chatHistory.length === 0) return;
+                chatHistory.forEach((msg, index) => {
+                    if (msg.role === 'notice') {
+                        appendNoticeBubble(msg.content, msg.timestamp);
+                    } else {
+                        appendMessageBubble(msg.role, msg.content, msg.timestamp, index, false);
+                    }
+                });
+                scrollToBottom(false);
+            }
+
+            function appendMessageBubble(role, content, timestamp, index, animate = true) {
+                updateEmptyState();
+                const row = document.createElement('div');
+                row.className = `message-row ${role}`;
+                if (!animate) row.style.animation = 'none';
+                row.dataset.index = index;
+                const senderName = role === 'user' ? '我' : (currentSettings.aiName || 'AI');
+                const senderEl = document.createElement('span');
+                senderEl.className = 'message-sender';
+                senderEl.textContent = senderName;
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.textContent = content;
+                const timeEl = document.createElement('span');
+                timeEl.className = 'message-time';
+                timeEl.textContent = formatTime(new Date(timestamp));
+                row.appendChild(senderEl);
+                row.appendChild(bubble);
+                row.appendChild(timeEl);
+                chatContainer.appendChild(row);
+            }
+
+            function appendNoticeBubble(content, timestamp) {
+                updateEmptyState();
+                const row = document.createElement('div');
+                row.className = 'message-row notice';
+                row.style.animation = 'none';
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.textContent = content;
+                row.appendChild(bubble);
+                chatContainer.appendChild(row);
+            }
+
+            function formatTime(date) {
+                const now = new Date();
+                const isToday = date.toDateString() === now.toDateString();
+                const h = date.getHours().toString().padStart(2,'0'), m = date.getMinutes().toString().padStart(2,'0');
+                return isToday ? `今天 ${h}:${m}` : `${date.getMonth()+1}-${date.getDate()} ${h}:${m}`;
+            }
+
+            function addTypingIndicator() {
+                updateEmptyState();
+                const ind = document.createElement('div');
+                ind.className = 'typing-indicator';
+                ind.id = 'typingIndicator';
+                ind.innerHTML = '<span></span><span></span><span></span>';
+                chatContainer.appendChild(ind);
+                scrollToBottom(true);
+            }
+            function removeTypingIndicator() {
+                const ind = document.getElementById('typingIndicator');
+                if (ind) ind.remove();
+            }
+
+            function showToast(message, type = '') {
+                if (toastTimer) clearTimeout(toastTimer);
+                toast.textContent = message;
+                toast.className = 'toast ' + type + ' show';
+                toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2200);
+            }
+
+            function showConfirm(title, message) {
+                return new Promise((resolve) => {
+                    modalTitle.textContent = title;
+                    modalMessage.textContent = message;
+                    modalOverlay.classList.add('active');
+                    modalResolve = resolve;
+                });
+            }
+            function closeModal(result) {
+                modalOverlay.classList.remove('active');
+                if (modalResolve) {
+                    modalResolve(result);
+                    modalResolve = null;
+                }
+            }
+            modalCancel.addEventListener('click', () => closeModal(false));
+            modalConfirm.addEventListener('click', () => closeModal(true));
+            modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(false); });
+
+            // 设置面板
+            function openSettings() {
+                settingsPanel.classList.add('active');
+                overlay.classList.add('active');
+                menuBtn.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeSettings() {
+                settingsPanel.classList.remove('active');
+                overlay.classList.remove('active');
+                menuBtn.classList.remove('open');
+                document.body.style.overflow = '';
+                applySettingsToUI();
+            }
+            menuBtn.addEventListener('click', () => settingsPanel.classList.contains('active') ? closeSettings() : openSettings());
+            overlay.addEventListener('click', closeSettings);
+            settingsClose.addEventListener('click', closeSettings);
+
+            // 口令触发：对AI说“配置key”打开高级设置
+            function checkKeyPhrase(content) {
+                const phrase = content.trim().toLowerCase();
+                if (phrase === '配置key' || phrase === '配置密钥' || phrase === '设置key') {
+                    return true;
+                }
+                return false;
+            }
+
+            // 保存设置后自动隐藏高级设置并关闭面板
+            saveSettingsBtn.addEventListener('click', () => {
+                currentSettings.apiKey = apiKeyInput.value.trim();
+                currentSettings.model = modelSelect.value;
+                currentSettings.aiName = aiNameInput.value.trim();
+                currentSettings.aiPersonality = aiPersonalityInput.value.trim() || DEFAULT_SETTINGS.aiPersonality;
+                currentSettings.referenceChat = referenceChatInput.value.trim();
+                saveSettingsToStorage();
+                updateHeaderUI();
+                refreshChatSenderNames();
+                // 隐藏高级设置
+                devSettings.classList.remove('unlocked');
+                closeSettings();
+                showToast('✅ 设置已保存', 'success');
+            });
+
+            resetSettingsBtn.addEventListener('click', async () => {
+                const ok = await showConfirm('恢复默认', '确定要恢复默认设置吗？');
+                if (ok) {
+                    currentSettings = { ...DEFAULT_SETTINGS };
+                    saveSettingsToStorage();
+                    applySettingsToUI();
+                    updateHeaderUI();
+                    refreshChatSenderNames();
+                    showToast('已恢复默认设置', 'success');
+                }
+            });
+
+            clearChatBtn.addEventListener('click', async () => {
+                const ok = await showConfirm('清空对话', '确定要清空所有聊天记录吗？此操作不可恢复。');
+                if (ok) {
+                    chatHistory = [];
+                    saveHistoryToStorage();
+                    renderChatHistory();
+                    updateEmptyState();
+                    showToast('聊天记录已清空', 'success');
+                    closeSettings();
+                }
+            });
+
+            exportChatBtn.addEventListener('click', () => {
+                if (chatHistory.length === 0) { showToast('暂无聊天记录可导出', 'error'); return; }
+                let text = `【聊天记录导出】\nAI：${currentSettings.aiName}\n时间：${new Date().toLocaleString()}\n\n`;
+                chatHistory.forEach(msg => {
+                    const sender = msg.role === 'user' ? '我' : (msg.role === 'assistant' ? currentSettings.aiName : '系统');
+                    text += `[${new Date(msg.timestamp).toLocaleString()}] ${sender}：\n${msg.content}\n\n`;
+                });
+                const blob = new Blob([text], {type: 'text/plain'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `聊天记录_${new Date().toISOString().slice(0,10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                showToast('📋 导出成功', 'success');
+            });
+
+            function refreshChatSenderNames() {
+                chatContainer.querySelectorAll('.message-row.ai .message-sender').forEach(el => el.textContent = currentSettings.aiName || 'AI');
+            }
+
+            // 关闭引用预览
+            function clearQuote() {
+                currentQuote = null;
+                quotePreview.style.display = 'none';
+            }
+
+            async function deleteQuotedMessage() {
+                if (!currentQuote) return;
+                const index = currentQuote.index;
+                if (index < 0 || index >= chatHistory.length) return;
+                const ok = await showConfirm('删除消息', '确定删除该消息吗？（将同时删除关联的一对消息）');
+                if (!ok) return;
+                const msg = chatHistory[index];
+                let removeIndices = [index];
+                if (msg.role === 'user' && index + 1 < chatHistory.length && chatHistory[index+1].role === 'assistant') {
+                    removeIndices.push(index+1);
+                } else if (msg.role === 'assistant' && index - 1 >= 0 && chatHistory[index-1].role === 'user') {
+                    removeIndices.push(index-1);
+                }
+                removeIndices.sort((a,b) => b - a);
+                for (let i of removeIndices) chatHistory.splice(i, 1);
+                chatHistory.splice(removeIndices[removeIndices.length-1], 0, { role: 'notice', content: '消息已被删除', timestamp: Date.now() });
+                saveHistoryToStorage();
+                renderChatHistory();
+                clearQuote();
+                showToast('已删除', 'success');
+            }
+
+            chatContainer.addEventListener('click', (e) => {
+                if (quotePreview.style.display !== 'none' && currentQuote) {
+                    if (!inputArea.contains(e.target)) clearQuote();
+                }
+            });
+            quoteClose.addEventListener('click', clearQuote);
+            quoteDelete.addEventListener('click', deleteQuotedMessage);
+
+            // 长按菜单逻辑
+            function showContextMenu(index, x, y) {
+                const msg = chatHistory[index];
+                if (!msg || msg.role === 'notice') return;
+                contextTargetIndex = index;
+                ctxRecall.style.display = (msg.role === 'user' && (Date.now() - msg.timestamp < 120000)) ? 'flex' : 'none';
+                ctxQuote.style.display = 'flex';
+                ctxCopy.style.display = 'flex';
+                contextMenu.style.left = Math.min(x, window.innerWidth - 140) + 'px';
+                contextMenu.style.top = Math.min(y, window.innerHeight - 150) + 'px';
+                contextMenu.classList.add('show');
+            }
+            function hideContextMenu() { contextMenu.classList.remove('show'); contextTargetIndex = null; }
+
+            ctxQuote.addEventListener('click', () => {
+                if (contextTargetIndex === null) return;
+                const msg = chatHistory[contextTargetIndex];
+                if (msg) {
+                    currentQuote = { content: msg.content, index: contextTargetIndex };
+                    quoteContent.textContent = msg.content;
+                    quotePreview.style.display = 'flex';
+                    messageInput.focus();
+                }
+                hideContextMenu();
+            });
+            ctxCopy.addEventListener('click', () => {
+                if (contextTargetIndex !== null && chatHistory[contextTargetIndex]) {
+                    navigator.clipboard.writeText(chatHistory[contextTargetIndex].content).then(() => showToast('已复制', 'success'));
+                }
+                hideContextMenu();
+            });
+            ctxRecall.addEventListener('click', () => {
+                if (contextTargetIndex === null) return;
+                recallMessage(contextTargetIndex);
+                hideContextMenu();
+            });
+
+            function recallMessage(index) {
+                const msg = chatHistory[index];
+                if (!msg || msg.role !== 'user') return;
+                if (Date.now() - msg.timestamp > 120000) { showToast('超过2分钟的消息无法撤回', 'error'); return; }
+                let removed = chatHistory.splice(index, 1)[0];
+                if (index < chatHistory.length && chatHistory[index].role === 'assistant') chatHistory.splice(index, 1);
+                chatHistory.splice(index, 0, { role: 'notice', content: '你撤回了一条消息', timestamp: Date.now() });
+                saveHistoryToStorage();
+                renderChatHistory();
+                showToast('已撤回', 'success');
+            }
+
+            chatContainer.addEventListener('contextmenu', (e) => {
+                const row = e.target.closest('.message-row');
+                if (!row || !row.dataset.index) return;
+                e.preventDefault();
+                const index = parseInt(row.dataset.index);
+                if (isNaN(index) || !chatHistory[index] || chatHistory[index].role === 'notice') return;
+                showContextMenu(index, e.clientX, e.clientY);
+            });
+
+            let pressTimer = null, startX = 0, startY = 0;
+            chatContainer.addEventListener('pointerdown', (e) => {
+                const row = e.target.closest('.message-row');
+                if (!row || !row.dataset.index) return;
+                startX = e.clientX; startY = e.clientY;
+                pressTimer = setTimeout(() => {
+                    const index = parseInt(row.dataset.index);
+                    if (!isNaN(index) && chatHistory[index] && chatHistory[index].role !== 'notice') showContextMenu(index, startX, startY);
+                }, 600);
+            });
+            window.addEventListener('pointerup', (e) => {
+                clearTimeout(pressTimer);
+                if (contextMenu.classList.contains('show') && !contextMenu.contains(e.target)) hideContextMenu();
+            });
+            window.addEventListener('pointermove', (e) => {
+                if (pressTimer && (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10)) clearTimeout(pressTimer);
+            });
+
+            function buildSystemPrompt() {
+                let sys = `【你的身份】\n你的名字是「${currentSettings.aiName}」。\n【性格准则】\n${currentSettings.aiPersonality || DEFAULT_SETTINGS.aiPersonality}\n`;
+                sys += `【规则】严格使用以上设定，回复自然口语化，可适当用emoji。\n`;
+                if (currentSettings.referenceChat && currentSettings.referenceChat.trim()) {
+                    sys += `\n【参考聊天记录】模仿其中「对方」的语气、用词、emoji习惯等：\n${currentSettings.referenceChat}\n`;
+                }
+                return sys;
+            }
+
+            async function callZhipuAI(messages) {
+                if (!currentSettings.apiKey) throw new Error('请先设置API Key');
+                const resp = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSettings.apiKey}` },
+                    body: JSON.stringify({ model: currentSettings.model || 'glm-4-flash', messages, temperature: 0.85, top_p: 0.9, max_tokens: 2048 })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(()=>({}));
+                    throw new Error(err.error?.message || `请求失败 (${resp.status})`);
+                }
+                const data = await resp.json();
+                return data.choices[0].message.content;
+            }
+
+            async function sendMessage() {
+                if (isGenerating) return;
+                let userContent = messageInput.value.trim();
+                if (!userContent) return;
+
+                // 检查是否为口令“配置key”
+                if (checkKeyPhrase(userContent)) {
+                    messageInput.value = '';
+                    messageInput.style.height = 'auto';
+                    sendBtn.disabled = true;
+                    // 显示高级设置并打开设置面板
+                    devSettings.classList.add('unlocked');
+                    openSettings();
+                    showToast('🔑 请在高级设置中填写API Key', 'success');
+                    return;
+                }
+
+                if (!currentSettings.apiKey) {
+                    showToast('⚠️ 请先设置API Key，发送“配置key”打开设置', 'error');
+                    return;
+                }
+                if (currentQuote) {
+                    userContent = `> 引用：「${currentQuote.content}」\n${userContent}`;
+                }
+
+                const userMsg = { role: 'user', content: userContent, timestamp: Date.now() };
+                chatHistory.push(userMsg);
+                appendMessageBubble('user', userContent, userMsg.timestamp, chatHistory.length-1, true);
+                saveHistoryToStorage();
+                scrollToBottom(true);
+
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+                sendBtn.disabled = true;
+                clearQuote();
+
+                isGenerating = true;
+                updateEmptyState();
+                addTypingIndicator();
+                headerStatus.textContent = '输入中...';
+                headerStatus.classList.add('offline');
+
+                try {
+                    const messages = [{ role: 'system', content: buildSystemPrompt() }];
+                    chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').slice(-40).forEach(m => messages.push({ role: m.role, content: m.content }));
+                    const reply = await callZhipuAI(messages);
+                    removeTypingIndicator();
+                    const aiMsg = { role: 'assistant', content: reply, timestamp: Date.now() };
+                    chatHistory.push(aiMsg);
+                    appendMessageBubble('assistant', reply, aiMsg.timestamp, chatHistory.length-1, true);
+                    saveHistoryToStorage();
+                    scrollToBottom(true);
+                    headerStatus.textContent = '在线';
+                    headerStatus.classList.remove('offline');
+                } catch (e) {
+                    removeTypingIndicator();
+                    showToast('❌ ' + e.message, 'error');
+                    headerStatus.textContent = '在线';
+                    headerStatus.classList.remove('offline');
+                } finally {
+                    isGenerating = false;
+                    updateEmptyState();
+                    sendBtn.disabled = false;
+                    messageInput.focus();
+                }
+            }
+
+            function bindEvents() {
+                sendBtn.addEventListener('click', sendMessage);
+                messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+                });
+                messageInput.addEventListener('input', () => {
+                    messageInput.style.height = 'auto';
+                    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+                    sendBtn.disabled = messageInput.value.trim() === '' || isGenerating;
+                });
+                document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && settingsPanel.classList.contains('active')) closeSettings(); });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible' && !isGenerating) {
+                        headerStatus.textContent = '在线';
+                        headerStatus.classList.remove('offline');
+                    }
+                });
+            }
+
+            init();
+            if (window.innerWidth > 500) setTimeout(() => messageInput.focus(), 500);
+            console.log('🤖 AI聊天助手增强版已启动');
+        })();
+    </script>
+</body>
+</html>
