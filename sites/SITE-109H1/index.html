@@ -1,0 +1,506 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>四代嫂嫂来了 · TF四代青涩模拟器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'PingFang SC', 'Helvetica Neue', system-ui, sans-serif; min-height: 100vh; transition: background 0.3s; overflow-x: hidden; }
+        
+        body.bg1 { background: linear-gradient(145deg, #e0f0e0 0%, #c8e0c8 100%); }
+        body.bg2 { background: linear-gradient(145deg, #d0e8d0 0%, #b8d8b8 100%); }
+        body.bg3 { background: linear-gradient(145deg, #c0dcc0 0%, #a8cca8 100%); }
+        body.bg4 { background: linear-gradient(145deg, #a8cca8 0%, #90b890 100%); animation: pulse 0.8s infinite; }
+        @keyframes pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.05); } }
+        
+        .cover {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 20%, #d8ecd8, #c0ddc0);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .petal {
+            position: absolute;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.5;
+            animation: fall linear forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-20vh) rotate(0deg); opacity: 0.5; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        .star {
+            position: absolute;
+            background: rgba(150, 200, 130, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 4;
+            animation: starFloat 12s infinite linear;
+            opacity: 0;
+        }
+        @keyframes starFloat {
+            0% { transform: translateY(0) scale(0); opacity: 0; }
+            20% { opacity: 0.4; }
+            80% { opacity: 0.2; }
+            100% { transform: translateY(-100vh) scale(1.2); opacity: 0; }
+        }
+        
+        .secret-line {
+            font-size: 14px;
+            color: #6a9e6a;
+            letter-spacing: 2px;
+            margin-bottom: 0;
+            opacity: 0;
+            animation: secretShow 2.5s ease forwards;
+            position: relative;
+            z-index: 10;
+        }
+        @keyframes secretShow {
+            0% { opacity: 0; transform: translateY(10px); }
+            20% { opacity: 0.9; transform: translateY(0); }
+            80% { opacity: 0.9; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); visibility: hidden; }
+        }
+        
+        .cover-main {
+            opacity: 0;
+            animation: mainShow 0.8s ease 2.6s forwards;
+            position: relative;
+            z-index: 10;
+        }
+        @keyframes mainShow {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .cover-icon {
+            font-size: 64px;
+            margin-bottom: 12px;
+            animation: floatIcon 2.4s ease-in-out infinite;
+        }
+        @keyframes floatIcon {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        .cover h1 {
+            font-family: 'Nunito', 'Comic Neue', 'PingFang SC', cursive;
+            font-size: 42px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #5e9e5e, #3e7e3e, #5e9e5e);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+            animation: shimmer 3s ease infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+        
+        .cover-sub {
+            color: #6a9e6a;
+            margin-bottom: 8px;
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+        
+        .cover-sub-sub {
+            font-size: 11px;
+            color: #8ab88a;
+            margin-bottom: 24px;
+            letter-spacing: 1px;
+        }
+        
+        .warning-glass {
+            background: rgba(210, 235, 210, 0.5);
+            backdrop-filter: blur(12px);
+            padding: 10px 20px;
+            border-radius: 60px;
+            color: #4e7e4e;
+            margin: 16px 0 24px;
+            font-size: 12px;
+            border: 0.5px solid rgba(255,255,255,0.4);
+            display: inline-block;
+        }
+        
+        .start-btn {
+            background: linear-gradient(105deg, #7ebe7e, #5e9e5e);
+            border: none;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 0 0 0 rgba(80, 140, 80, 0.4);
+            transition: all 0.2s ease;
+            width: 200px;
+            animation: btnBreathing 2s infinite;
+        }
+        @keyframes btnBreathing {
+            0% { box-shadow: 0 0 0 0 rgba(80, 140, 80, 0.3); transform: scale(1); }
+            70% { box-shadow: 0 0 0 10px rgba(80, 140, 80, 0); transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(80, 140, 80, 0); transform: scale(1); }
+        }
+        .start-btn:active { transform: scale(0.96); animation: none; }
+        
+        .cover-footer {
+            position: absolute;
+            bottom: 20px;
+            font-size: 9px;
+            color: #8ab88a;
+            opacity: 0.5;
+        }
+        
+        .game-box { max-width: 550px; width: 100%; margin: 0 auto; background: rgba(235, 250, 235, 0.5); backdrop-filter: blur(24px); border-radius: 48px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.05), 0 0 0 1px rgba(255,255,255,0.3) inset; }
+        .game-card { background: rgba(255,252,250,0.7); border-radius: 40px; overflow: hidden; backdrop-filter: blur(4px); }
+        .exposure-area { background: rgba(230, 245, 230, 0.5); padding: 20px 24px 16px; border-bottom: 1px solid rgba(100, 130, 100, 0.15); }
+        .title-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; flex-wrap: wrap; }
+        .game-title { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #5e8e5e, #3e6e3e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .warning-badge { font-size: 11px; background: rgba(100, 130, 100, 0.12); padding: 5px 12px; border-radius: 40px; color: #5e8e5e; }
+        .exp-bar { background: #c8e0c8; border-radius: 20px; height: 8px; overflow: hidden; margin: 12px 0 8px; }
+        .exp-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #8ec88e, #5eae5e); border-radius: 20px; transition: width 0.3s; }
+        .exp-text { display: flex; justify-content: space-between; font-size: 12px; color: #6e9e6e; margin-top: 6px; font-weight: 500; }
+        .content { padding: 24px 20px 28px; }
+        .scene-card { background: rgba(255,250,245,0.8); border-radius: 28px; padding: 18px; margin-bottom: 20px; border-left: 4px solid #8ec88e; color: #3a5a3a; font-size: 14px; line-height: 1.55; backdrop-filter: blur(4px); }
+        .badge { background: rgba(120, 160, 120, 0.12); display: inline-block; padding: 4px 14px; border-radius: 40px; font-size: 11px; margin-bottom: 12px; color: #5e8e5e; }
+        .question { font-size: 19px; font-weight: 700; color: #3e6e3e; margin-bottom: 18px; }
+        .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .option { background: rgba(255,255,250,0.9); border: 1px solid rgba(100, 140, 100, 0.25); border-radius: 60px; padding: 14px 18px; font-size: 13px; font-weight: 500; color: #3e5e3e; text-align: left; cursor: pointer; transition: all 0.15s; backdrop-filter: blur(2px); }
+        .option:active { transform: scale(0.98); background: #f0fff0; border-color: #8ec88e; }
+        .story-box { background: rgba(255,252,250,0.9); border-radius: 28px; padding: 20px; margin: 15px 0; border: 1px solid rgba(100, 140, 100, 0.25); animation: fadeIn 0.3s; backdrop-filter: blur(4px); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .story-header { font-size: 11px; color: #7eae7e; display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed rgba(100, 140, 100, 0.25); }
+        .story-text { color: #3a5a3a; line-height: 1.65; font-size: 14px; }
+        .next-btn { background: linear-gradient(105deg, #7ebe7e, #5e9e5e); border: none; padding: 14px; border-radius: 50px; font-size: 16px; font-weight: 600; color: white; width: 100%; cursor: pointer; margin-top: 10px; transition: 0.15s; }
+        .next-btn:active { transform: scale(0.97); }
+        .back-btn { background: transparent; border: 1px solid #7eae7e; color: #5e8e5e; padding: 10px 20px; border-radius: 40px; cursor: pointer; display: inline-block; transition: 0.15s; }
+        .back-btn:active { transform: scale(0.97); background: rgba(100, 140, 100, 0.08); }
+        .flex-row { display: flex; gap: 12px; justify-content: center; margin-top: 15px; }
+        .hidden { display: none !important; }
+        .footer { text-align: center; font-size: 10px; color: #8ab88a; margin-top: 20px; padding-top: 15px; border-top: 0.5px solid rgba(100, 140, 100, 0.2); }
+        .volume-btn { position: fixed; top: 20px; right: 20px; background: rgba(255,250,245,0.6); backdrop-filter: blur(12px); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 101; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 0.5px solid rgba(255,255,255,0.4); }
+        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99; opacity: 0.3; }
+        .shake { animation: shakeAnim 0.12s 3; }
+        @keyframes shakeAnim { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+        .redflash { animation: redFlash 0.3s 3; }
+        @keyframes redFlash { 0% { box-shadow: 0 0 0 0 rgba(160,100,80,0.5); } 100% { box-shadow: 0 0 0 0 rgba(160,100,80,0); } }
+        .rainbow { animation: rainbowText 1s ease infinite; background: linear-gradient(90deg, #8ece8e, #ceae8e, #8eceae, #8ece8e); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
+        @keyframes rainbowText { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+    </style>
+<style type="text/css" id="__via_marker__"></style></head>
+<body class="bg1">
+    <canvas id="particles" width="414" height="718"></canvas>
+    <div class="volume-btn" id="volumeBtn">🔊</div>
+    
+    <div id="cover" class="cover">
+        <div class="secret-line">🍏 嘘 —— 青涩秘密，请小心收藏</div>
+        <div class="cover-main">
+            <div class="cover-icon">🍏🩷</div>
+            <h1>四代嫂嫂来了</h1>
+            <div class="cover-sub">TF四代 · 青涩模拟器</div>
+            <div class="cover-sub-sub">✨ 教室窗边一次对视，心跳漏了一拍 ✨</div>
+            <div class="warning-glass">⚠️ 被粉丝发现就完了</div>
+            <button class="start-btn" id="startBtn">开启青涩秘密 →</button>
+        </div>
+        <div class="cover-footer">🍏 藏到最后 · 才是顶级嫂嫂</div>
+    <div class="petal" style="left: 73.565983%; font-size: 13.851877px; animation-duration: 7.723274s;">🍏</div><div class="petal" style="left: 46.174109%; font-size: 13.970145px; animation-duration: 7.590115s;">🍏</div><div class="star" style="width: 4.045607px; height: 4.045607px; left: 5.093573%; bottom: -10px; animation-duration: 8.843708s;"></div><div class="petal" style="left: 9.086691%; font-size: 27.02955px; animation-duration: 7.806198s;">🍏</div><div class="petal" style="left: 81.893311%; font-size: 15.665534px; animation-duration: 8.803804s;">🍏</div><div class="petal" style="left: 8.746202%; font-size: 12.387386px; animation-duration: 10.821042s;">🍏</div><div class="star" style="width: 3.159794px; height: 3.159794px; left: 51.627502%; bottom: -10px; animation-duration: 12.378449s;"></div><div class="petal" style="left: 26.130587%; font-size: 13.794694px; animation-duration: 7.385734s;">🍏</div><div class="petal" style="left: 3.638436%; font-size: 19.444065px; animation-duration: 7.868429s;">🍏</div></div>
+
+    <div id="game" class="game-box hidden">
+        <div class="game-card">
+            <div class="exposure-area">
+                <div class="title-row"><span class="game-title">🍏 四代嫂嫂来了</span><span class="warning-badge">🌙 青涩模式</span></div>
+                <div class="exp-bar"><div class="exp-fill" id="expFill" style="width: 0%;"></div></div>
+                <div class="exp-text"><span>🔻 暴露值</span><span id="expValue">0</span><span>%</span><span>💕 被粉丝发现即出局</span></div>
+            </div>
+            <div class="content" id="content"></div>
+            <div class="footer">🍏 藏到最后 · 才是顶级嫂嫂</div>
+        </div>
+    </div>
+
+<script>
+    function createPetal() {
+        const p = document.createElement('div');
+        p.classList.add('petal');
+        p.innerHTML = ['🍏','🩷','🍏','💚','🍏'][Math.floor(Math.random()*5)];
+        p.style.left = Math.random() * 100 + '%';
+        p.style.fontSize = (Math.random() * 16 + 12) + 'px';
+        p.style.animationDuration = (Math.random() * 6 + 5) + 's';
+        document.querySelector('.cover').appendChild(p);
+        setTimeout(() => p.remove(), 10000);
+    }
+    function createStar() {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        const size = Math.random() * 3 + 2;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.bottom = '-10px';
+        star.style.animationDuration = (Math.random() * 10 + 8) + 's';
+        document.querySelector('.cover').appendChild(star);
+        setTimeout(() => star.remove(), 15000);
+    }
+    setInterval(createPetal, 700);
+    setInterval(createStar, 1800);
+    
+    const MEMBERS = ["官俊臣", "张桂源", "张函瑞", "王橹杰", "左奇函", "陈奕恒", "杨博文", "杨涵博", "张奕然", "聂玮辰", "陈思罕", "魏子宸", "李煜东", "陈浚铭", "王烁燃"];
+    const COLORS = { 
+        "官俊臣":"#5e9e5e", "张桂源":"#6eae6e", "张函瑞":"#4e8e4e", "王橹杰":"#5eae5e", 
+        "左奇函":"#6e9e6e", "陈奕恒":"#4e7e4e", "杨博文":"#7ebe7e", "杨涵博":"#5e8e5e",
+        "张奕然":"#6ebe6e", "聂玮辰":"#4e9e4e", "陈思罕":"#7eae7e", "魏子宸":"#5e9e5e",
+        "李煜东":"#6eae6e", "陈浚铭":"#4e8e4e", "王烁燃":"#7ebe7e"
+    };
+    
+    let step = 1, exposure = 0, boy = "", currentQ = 2, waitNext = false, currentStory = "", lastExp = 0, backtrackLeft = 3, randomMate = "";
+    let soundOn = true;
+    let audioCtx = null;
+    let selectedAHistory = [];
+    
+    function initAudio() { if(!audioCtx) audioCtx = new (AudioContext||webkitAudioContext)(); }
+    function playTone(type) {
+        if(!audioCtx || !soundOn) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now+0.4);
+        if(type==='select'){ osc.frequency.value=880; osc.start(now); osc.stop(now+0.15); }
+        else if(type==='exposure'){ osc.frequency.value=660; osc.start(now); osc.stop(now+0.2); }
+        else if(type==='next'){ osc.frequency.value=1046; osc.start(now); osc.stop(now+0.1); }
+        else if(type==='ending'){ osc.frequency.value=1318; osc.start(now); osc.stop(now+0.25); }
+        else if(type==='perfect'){ osc.frequency.value=1568; osc.start(now); osc.stop(now+0.3); }
+    }
+    
+    function updateUI() {
+        let p = Math.min(100, exposure);
+        document.getElementById('expFill').style.width = p + '%';
+        document.getElementById('expValue').innerText = p;
+        if(p>=70) document.body.className = 'bg4';
+        else if(p>=40) document.body.className = 'bg3';
+        else if(p>=15) document.body.className = 'bg2';
+        else document.body.className = 'bg1';
+        if(p>=100) document.querySelector('.game-card')?.classList.add('redflash');
+    }
+    function addExp(v) { 
+        exposure = Math.min(100, exposure + v); 
+        updateUI(); 
+        if(v>0) playTone('exposure');
+        if(v>=30) document.querySelector('.game-box')?.classList.add('shake');
+    }
+    function getRandomMate() { return MEMBERS.filter(m=>m!==boy)[Math.floor(Math.random()*14)]; }
+    function isAllAEnding() { return selectedAHistory.length === 9 && selectedAHistory.every(v => v === true); }
+    
+    const QUESTIONS = {
+        2: { title: "学校走廊", desc: "课间，你在走廊上走，他从对面走过来，看到你，笑了一下", qId:2,
+            opts: {
+                A: { txt: "A. 低头假装没看见，快步走过去", story: "你看到他走过来，立刻低下头，假装在看手机，加快脚步从他身边走过。你们擦肩的时候，他似乎想说什么，但你已经走远了。你没有回头，把手机攥得紧紧的。远处好像有人举着手机，但你没有在意。走到教室门口你才敢停下来。你对自己说这样是对的。", exp: 5, isA: true },
+                B: { txt: "B. 对他点了一下头，然后继续走自己的路", story: "你看到他笑了一下，也对他微微点了点头，像普通同学那样。然后继续往前走，没有停留，没有回头。旁边有人在喊他的名字，他应了一声，往另一个方向走了。整个过程不超过两秒，自然得没有任何破绽。你注意到不远处有个戴口罩的人，但应该没拍到什么。", exp: 24, isA: false },
+                C: { txt: "C. 对他笑了一下，然后低头快步走开", story: "他笑的时候你也忍不住弯了一下嘴角，但很快低下头，加快脚步往前走。你感觉到他的目光在你身上停了一下，但没有跟过来。你走过转角的时候，听到身后好像有快门声，但你不敢回头确认。回到教室，同桌问你「刚才那个人你认识啊」，你说「不太熟」。同桌没再问了。", exp: 46, isA: false },
+                D: { txt: "D. 停下来和他打了一声招呼", story: "你停下来，站在走廊边上，等他走过来的时候说了一句「好巧」。他也停下来，说「嗯，好巧」。你们站在走廊聊了两句，旁边陆续有同学经过。你余光扫到走廊尽头好像有人举着手机对着你们的方向。你赶紧结束了对话，匆匆走开了。回到教室你的心跳还没平复，不知道刚才那一幕有没有被拍到。", exp: 85, isA: false }
+            }},
+        3: { title: "食堂", desc: "中午去食堂吃饭，他端着餐盘走过来，坐到你对面", qId:3,
+            opts: {
+                A: { txt: "A. 低头吃饭，全程没有看他，吃完立刻走", story: "他坐下来的时候你没有抬头，继续低头吃饭，筷子和碗发出轻微的碰撞声。对面的他也没有说话，安静地吃饭。你吃得比平时快很多，扒拉完最后一口饭就端着餐盘站起来走了。全程没有看他一眼。走出食堂的时候你松了口气，但总感觉刚才有人在看你。", exp: 6, isA: true },
+                B: { txt: "B. 抬头看了他一眼，然后继续吃饭，假装什么都没发生", story: "他坐下来的时候你抬头看了他一眼，他也在看你。你们对视了不到一秒，然后同时低头吃饭。你偷偷观察周围，有几个粉丝模样的女生坐在不远处，好像在交头接耳。你赶紧把脸埋得更低了。你吃完了站起来端着餐盘走了，没有看他。", exp: 28, isA: false },
+                C: { txt: "C. 对他笑了笑，耳朵红了，低头吃饭不说话", story: "他坐下来的时候你没忍住笑了一下，但立刻就低下头，耳朵尖红红的。他也没有说话，只是安静地坐在对面吃饭。你低着头，能看到他拿着筷子的手指。你感觉有人在看你，抬头发现斜对面的桌子有个女生拿着手机。你赶紧低下头，吃了几口就匆匆走了。", exp: 52, isA: false },
+                D: { txt: "D. 笑着回了一句“干嘛，没见过一起吃饭啊”", story: "旁边有人看过来的时候，你抬起头笑了一下，说了一句「干嘛，没见过一起吃饭啊」。他也在对面低头笑了一下。你夹了一口菜，假装很淡定。但余光里看到有人拿出手机拍了你们的方向。你吃完了站起来想走，他说「我帮你端」。你们一起走向回收处的时候，你看到刚才拍照的人还在拍。", exp: 88, isA: false }
+            }},
+        4: { title: "教室", desc: "上课前，他坐在你前排，转过身问你借笔", qId:4,
+            opts: {
+                A: { txt: "A. 拿了一支笔递给他，没有说话", story: "你从笔袋里拿了一支笔递给他，没有说话，继续翻课本。他转回去之后，你低头看着课本。过了一阵他把笔还回来，说了一句「谢谢」。你点了点头，没有看他。窗外好像有人路过，但你没有抬头。", exp: 5, isA: true },
+                B: { txt: "B. 抬头看了他一眼，然后低头找笔", story: "他转过身来的时候你抬头看了他一眼，他的眼睛很亮，你赶紧低下头在笔袋里翻。你翻出来一支笔递给他，手指碰到他的指尖，很快缩回来。你没说什么，他转回去写东西了。你盯着他的后背看了一秒，然后低头假装看书。窗外有个戴口罩的人拿着手机经过，但你没有注意到。", exp: 26, isA: false },
+                C: { txt: "C. 笑着问他“你笔呢”", story: "他转过身问你借笔的时候，你笑着问了一句「你笔呢」。他说「忘带了」。你从笔袋里拿了一支笔递给他，笑着说「下次记得带」。他也笑了一下，说「下次一定」。他转回去之后你盯着他的后脑勺看了一会儿。同桌回来了，倒也没说什么。", exp: 50, isA: false },
+                D: { txt: "D. 拿了一支笔，趴在桌上递给他", story: "你趴在桌上，从笔袋里摸了一支笔，头也没抬就递过去了。他的手伸过来拿笔的时候，指尖碰到了你的手指，你缩了一下。他转回去写东西，你趴在桌子上，侧着脸看他的背影。同桌回来的时候拍了拍你，说「你怎么脸红了」，你说「趴久了有点闷」。后来你还笔的时候，听到走廊有人说话，好像在说「拍到了拍到了」。", exp: 86, isA: false }
+            }},
+        5: { title: "研学大巴", desc: "学校组织研学活动，大家坐大巴去景区。你上车的时候发现他旁边还有一个空位", qId:5,
+            opts: {
+                A: { txt: "A. 往后走，找别的位置坐", story: "你看到那个空位，犹豫了一下，还是往后走了，找了一个靠窗的位置坐下来。他没有回头看你，你也没有看他。大巴开了之后你假装在看窗外的风景，余光里看到他低着头在玩手机。下车的时候你走前面，他走后面，中间隔着好几个人。你感觉这样挺安全的。", exp: 4, isA: true },
+                B: { txt: "B. 犹豫了一下，坐到了他后面一排", story: "你犹豫了一下，没有坐在他旁边，而是坐到了他后面一排的位置。你坐下来的时候他好像回头看了一眼，但很快就转回去了。大巴开了，你盯着他的后脑勺看。中途车颠了一下，他的手机从座位缝掉到你脚边，你捡起来还给他，他说了一声「谢谢」，声音很轻。你「嗯」了一声。旁边好像有人回头看了一眼。", exp: 22, isA: false },
+                C: { txt: "C. 坐下来，和他隔了一个过道", story: "你走过去，在和他隔了一个过道的位置坐下来。你们中间只隔了一条窄窄的过道，近到可以听到他耳机里的音乐漏出来的声音。你偷偷看他，他戴着耳机看窗外，阳光打在他脸上。他突然转过头，你们对视了一秒，他笑了一下，你也笑了一下。你们谁都没有说话。但有同学从过道走过的时候多看了你们一眼。", exp: 45, isA: false },
+                D: { txt: "D. 直接坐到他旁边，假装很自然地看窗外", story: "你直接坐到他旁边，把书包放在腿上，假装很自然地看窗外。他好像愣了一下，但没说什么。大巴开动之后，你们的肩膀偶尔会碰到一起。中途他递给你一颗糖，说「吃吗」，你接过来，手指碰到他的手心。你把糖剥开塞进嘴里，是草莓味的。你低头笑了一下，他也在旁边轻轻笑了一下。你注意到过道对面有人朝你们这边看了一眼，但很快就转过去了。", exp: 83, isA: false }
+            }},
+        6: { title: "上学路上", desc: "早上，你坐车去学校。路上堵车了，你从车窗往外看，发现他的车就停在旁边。他也看到了你", qId:6,
+            opts: {
+                A: { txt: "A. 假装没看到，低头看手机", story: "你余光扫到他的车，立刻低头看手机，假装在回消息。他的车窗开着，好像想说什么，但你没有抬头。过了一会儿车流动了，他的车开到了前面。你没有再看他。到学校下车的时候，他的车已经停好了，你假装没看到，快步走进校门。周围有送孩子的家长，但没人注意到你。", exp: 7, isA: true },
+                B: { txt: "B. 抬头看了他一眼，然后移开目光", story: "你抬头看了他一眼，他也看到了你。你们对视了一下，然后同时移开目光。堵车的时候你们的车并排停着，谁都没有再看对方。你盯着窗外的树，余光里看到他在车里低头看手机。车流动了，他的车开走了。到学校的时候你看到他已经进校门了，你没有叫他。", exp: 29, isA: false },
+                C: { txt: "C. 对他笑了一下，然后各自看窗外", story: "你看到他的时候笑了一下，他也对你笑了一下。然后你们都转过头看着窗外，谁都没有说话。堵车的时候你们的车并排停着，你看窗外的梧桐树，他看另一边的街道。车流动了，他的车先开走了。你从车窗里看到他的车在前面拐弯，消失在路口。你松了口气，还好没有粉丝注意到。", exp: 53, isA: false },
+                D: { txt: "D. 摇下车窗，对他说了一句“早啊”", story: "你摇下车窗，对他说了一句「早啊」。他也摇下车窗，说「早啊」。堵车的时候你们隔着车窗聊了几句，你说今天好堵，他说是啊。车流动了，他的车先开走了，他从车窗朝你挥了挥手，你也朝他挥了挥手。到学校的时候他在校门口等你，你下车的时候他站在那里，说「一起进去吗」。你点了点头。你们一起走进校门。你不确定刚才在车上有没有人拍到你们隔着车窗说话。", exp: 91, isA: false }
+            }},
+        7: { title: "操场", desc: "体育课自由活动，你坐在操场边休息。他走过来，在你旁边坐下，递给你一包零食", qId:7,
+            opts: {
+                A: { txt: "A. 没有接零食，说“你自己吃吧”", story: "你没有接零食，摇了摇头说「你自己吃吧」。他的手僵在半空中，过了一会儿收了回去，把零食放在了自己旁边的草地上。你们并排坐着，谁都没有再说话。过了一会儿他站起来，拿着那包零食走了。你看到远处有人在看这边，但很快就移开了目光。", exp: 8, isA: true },
+                B: { txt: "B. 接过零食没有拆，放进了书包里", story: "你接过零食，没有拆开，直接放进了书包里。他在旁边坐下，隔了一个人的距离。你们谁都没有说话，看着操场上的同学在跑步。风吹过来，你闻到他的校服上有洗衣液的味道。过了一会儿他站起来说「我先走了」，你「嗯」了一声。他走了之后你把那包零食从书包里拿出来看了一眼，是一包小熊饼干。你发现远处好像有人举着手机，但不确定是不是在拍你们。", exp: 30, isA: false },
+                C: { txt: "C. 接过零食拆开，分了一半给他", story: "你接过零食，拆开包装，分了一半递给他。他愣了一下，然后接过去，手指碰到你手的时候你们同时缩了一下。你们并排坐着，吃着同一包零食，谁都没有说话。他吃完站起来，拍了拍裤子上的灰，然后伸手把包装袋拿走了，说「我帮你扔」。你看着他走开的背影，嘴里还有饼干的甜味。旁边有人在跑步，没有注意到你们。", exp: 56, isA: false },
+                D: { txt: "D. 笑着问“你怎么知道我喜欢这个”", story: "你接过零食的时候看了一眼包装，笑了，说「你怎么知道我喜欢这个」。他也笑了一下，说「猜的」。你们坐在一起，他把包装撕开了递给你。你吃了几块，他也跟着吃了一块。你们坐得很近，近到能看到他睫毛的影子。上课铃响的时候你们才站起来。你问他「你哪买的」，他说「楼下便利店」。你站起来的时候，发现不远处的看台上有一个女生拿着手机，方向好像对着你们这边。你赶紧低下头，心跳有点快。", exp: 94, isA: false }
+            }},
+        8: { title: "校门口", desc: "下午放学，你在校门口等家长来接。他从后面走过来，站在你旁边", qId:8,
+            opts: {
+                A: { txt: "A. 低头看手机，假装没看到他", story: "你余光扫到是他，但继续低头看手机，假装在回消息。他在你旁边站定，也没有说话。你们之间隔着一个人的距离，像两个不认识的等车的人。过了一会儿他妈妈的车来了，他上车走了。你的车来的时候你快步走过去，没有看他。校门口人多，应该没人注意到你们站过一起。", exp: 4, isA: true },
+                B: { txt: "B. 对他点了一下头，然后继续等车", story: "你看到是他，对他点了一下头，他也点头回应。你们各自站在那里等车，谁都没有说话。校门口人来人往，有人在喊他的名字，他应了一声但没有走过去。你的车先到了，你走过去的时候他说「拜拜」，你说「拜拜」。你没回头，但走到车门的时候停了一下。上车后你从车窗看出去，他已经上车走了。", exp: 27, isA: false },
+                C: { txt: "C. 转头看了他一眼，笑了一下", story: "你转头看他，看到他也在看你，你没忍住笑了一下。他也跟着笑了一下。你们谁都没有说话，但站得近了一点。他的车来了，他走过去的时候说「明天见」，你回了一句「明天见」。你注意到校门口有个女生拿着手机，但不确定有没有拍到你们。你的车来了，你上了车。", exp: 54, isA: false },
+                D: { txt: "D. 走过去问他“你在等谁”", story: "你走过去，站到他旁边，问他「你在等谁」。他说「等我妈」。你说「我妈也还没来」。你们站在一起等车，聊了几句今天的事。他的车来了，他走过去的时候说「拜拜」，你笑着回了一句「拜拜」。他上车前朝你挥了挥手，你也朝他挥了挥手。你发现校门口不远处有个拿着长焦镜头的人，不知道是不是代拍。你低下头，赶紧上了自己的车。", exp: 92, isA: false }
+            }},
+        9: { title: "学校天台", desc: "午休时间，你一个人在天台吹风。他推门进来了，看到你愣了一下", qId:9,
+            opts: {
+                A: { txt: "A. 低头看手机，假装没注意到他", story: "你听到门响，余光扫到是他，但没有抬头，继续盯着手机屏幕。他在门口站了几秒，然后走到天台另一边，靠着栏杆站着。你们谁都没有说话，天台上安静得只剩风声。午休结束铃响了，他先走了，你才站起来。天台没有别人，应该没人看到你们单独在一起。", exp: 5, isA: true },
+                B: { txt: "B. 抬头看了他一眼，然后把目光移开", story: "你抬头看到是他，愣了一下，然后低下头，假装在看楼下的操场。他站在门口犹豫了一下，走过来了，站在离你几步远的地方。你们没有说话，各自看着不同的方向。午休结束铃响了，他先走了，走的时候回头看了你一眼。你没有看他，但心跳快了几拍。天台的门关上了，没有人发现你们。", exp: 28, isA: false },
+                C: { txt: "C. 对他点了点头，说了句“你也来吹风”", story: "你抬头看他，对他点了一下头，说了一句「你也来吹风」。他愣了一下，然后走过来，站在你旁边，说「嗯」。你们并排站着看远处的楼和树，谁都没有再说话。午休结束铃响了，他说「走吧」，你点了点头。你们一起走下天台，没有说话。下楼的时候遇到一个同学，她看了你们一眼，但没说什么。", exp: 52, isA: false },
+                D: { txt: "D. 笑着问他“你怎么上来了”", story: "你看到他，笑了一下，说「你怎么上来了」。他说「太吵了，上来透透气」。你往旁边挪了一点，给他让出位置。他在你旁边站下来，靠着栏杆。你们聊了几句，他说今天数学课好难，你说你也是。午休结束铃响了，你们一起走下楼。走到楼梯口的时候，你听到楼下有人在说话，好像是在说「刚看到他俩从天台一起下来」。你没敢回头，赶紧走了。", exp: 90, isA: false }
+            }},
+        10: { title: "放学路上", desc: "下午放学，你往家走。他走在你前面几步远的位置，也是回家的方向，故意放慢了脚步", qId:10,
+            opts: {
+                A: { txt: "A. 放慢脚步，拉开距离，等路人走过去", story: "你看出他在等你，但你没有加快脚步，而是放慢了速度，假装在看手机，等旁边的路人走到你们中间隔开一段距离。前面的他也停下来系鞋带，系了很久。你不知道他是真的在系还是装的。你经过他的时候没有看他，他站起来也没有叫你。你们就隔着几个人的距离，一前一后走着。路上人很多，没有人注意到你们。", exp: 6, isA: true },
+                B: { txt: "B. 正常速度走过去，没有看他", story: "你保持着正常的速度往前走，经过他身边的时候没有看他，他也没有叫你。你们就这样一前一后走了好长一段路，谁都没有说话。你知道他在后面，他也知道你在前面。走到路口的时候你要拐弯了，他在后面说了一句「拜拜」，你回头看了他一眼，说「拜拜」。然后你拐进了自己家的小区。", exp: 29, isA: false },
+                C: { txt: "C. 加快脚步走上去，和他并排走", story: "你加快脚步走上去，走在他旁边。他侧头看了你一眼，没有说话，但脚步也放慢了，配合你的速度。你们并排走着，肩膀时不时快碰到一起。路上有人在骑车，有人在聊天，没有人注意到你们。走到路口的时候你要拐弯了，他停下来，你也停下来。他说「那明天见」，你说「明天见」。然后各自走了。你拐弯之后偷偷回头看了一眼，他还在原地看着你的方向。", exp: 55, isA: false },
+                D: { txt: "D. 走过去拍了一下他的书包，说“走那么慢干嘛”", story: "你走到他身后，伸手拍了一下他的书包，说了一句「走那么慢，在等谁啊」。他转过头看你，笑了一下，说「没等谁」。你也笑了一下，没有说话。你们并排走着，谁都没有再开口。走到路口的时候你要拐弯了，他说「你到家了？」你说「嗯」。他站在路口看着你走进去，你回头的时候他还在那里站着。你朝她挥了挥手，他也朝你挥了挥手。你上楼的时候从窗户往下看，发现角落里好像有人在拍照。", exp: 93, isA: false }
+            }}
+    };
+    
+    function getEnding() {
+        if(isAllAEnding()) return `🍏✨ 青苹果秘密 · 完美隐藏 ✨🍏\n\n【最终暴露值：${exposure}%】\n\n你做到了真正的「神隐」！\n\n从走廊到食堂，从教室到操场，从大巴到天台，每一次选择你都完美地避开了所有视线。粉丝没有一丝察觉，没有代拍拍到同框，甚至连站姐都从未注意到你的存在。\n\n这份青涩的喜欢，只有你们两个人知道。\n\n藏得比谁都深，才是真正的顶级嫂嫂。`;
+        if(exposure >= 100) return `💔 恋情彻底曝光\n\n【最终暴露值：${exposure}%】\n\n很遗憾，你的举动太过明显。站姐拍到了你们在一起的画面，超话里炸了锅。评论区全是「嫂子被扒了」「实锤了」。公司紧急公关，但照片已经传遍了全网。\n\n地下恋公之于众，秘密彻底守不住了。`;
+        if(exposure >= 61) return `🌪️ 危机边缘徘徊\n\n【最终暴露值：${exposure}%】\n\n你数次踩在曝光边缘。代拍拍到模糊同框，超话里开始讨论「旁边那个女生是谁」，有人开始扒你的身份。\n\n再不小心一点，就真的藏不住了。`;
+        if(exposure >= 31) return `💗 心照不宣小甜蜜\n\n【最终暴露值：${exposure}%】\n\n有几个眼尖的粉丝隐约感觉到了什么，但没实锤，超话里偶尔有人讨论，很快就沉下去了。\n\n你们藏得还算安全，继续小心一点就好。`;
+        return `🏆 终极隐秘赢家\n\n【最终暴露值：${exposure}%】\n\n完美守住了所有秘密！粉丝完全没有察觉到你的存在，没有代拍，没有同框图，没有任何蛛丝马迹。\n\n这份青涩的心动只属于你们彼此，安全又甜蜜，是真正的顶级嫂嫂。`;
+    }
+    
+    let canvas, ctx, particles = [];
+    function initParticles() {
+        canvas = document.getElementById('particles');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        ctx = canvas.getContext('2d');
+        for(let i=0;i<40;i++) particles.push({ x:Math.random()*canvas.width, y:Math.random()*canvas.height, vx:(Math.random()-0.5)*0.3, vy:Math.random()*0.3+0.15, size:Math.random()*2.5+0.5, color:'#8ece8e' });
+        function animate() {
+            if(!ctx) return;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for(let p of particles) {
+                ctx.beginPath();
+                ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                p.x += p.vx;
+                p.y += p.vy;
+                if(p.y > canvas.height) p.y = 0;
+                if(p.x > canvas.width) p.x = 0;
+                if(p.x < 0) p.x = canvas.width;
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }
+    window.addEventListener('resize', () => { if(canvas) { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } });
+    initParticles();
+    
+    function render() {
+        let container = document.getElementById('content');
+        if(step === 1) {
+            let html = `<div class="scene-card"><div class="badge">🍏 青涩开篇</div>你和TF四代的他，正在谈一场不能公开的青涩秘密。<br><br>走廊、食堂、教室、大巴、操场、天台、校门口……每一个眼神、一次对视，都可能被粉丝拍到。<br><br>藏到最后，才算顶级嫂嫂。</div><div class="question">🍏 第1题 · 锁定你的少年</div><div class="options">`;
+            MEMBERS.forEach((n,i) => { html += `<div class="option select-boy" data-boy="${n}" style="border-left:3px solid ${COLORS[n]}">${i+1}. ${n}</div>`; });
+            html += `</div><div style="text-align:center; opacity:0.6; padding:10px;">✨ 选择后开始青涩秘密 ✨</div>`;
+            container.innerHTML = html;
+            document.querySelectorAll('.select-boy').forEach(el => {
+                el.addEventListener('click', () => {
+                    boy = el.getAttribute('data-boy');
+                    randomMate = getRandomMate();
+                    step = 2; currentQ = 2; waitNext = false;
+                    selectedAHistory = [];
+                    playTone('select');
+                    render();
+                });
+            });
+            return;
+        }
+        if(step === 9) {
+            let ending = getEnding();
+            let isPerfectEnding = isAllAEnding();
+            let endingClass = isPerfectEnding ? 'rainbow' : '';
+            container.innerHTML = `<div class="story-box"><div class="story-header">📖 最终结局</div><div class="story-text ${endingClass}" style="white-space: pre-line;">${ending}</div></div><div class="flex-row"><div class="back-btn" id="restartBtn">🔄 重新开始</div></div>`;
+            if(isPerfectEnding) playTone('perfect');
+            document.getElementById('restartBtn')?.addEventListener('click', () => location.reload());
+            return;
+        }
+        let q = QUESTIONS[currentQ];
+        if(!q) return;
+        let desc = q.desc;
+        if(waitNext && currentStory) {
+            container.innerHTML = `<div class="scene-card"><div class="badge">🍏 秘密男友：${boy}</div>${q.title}<br>${desc}</div><div class="story-box"><div class="story-header"><span>📖 触发剧情</span><span style="color:#7eae7e;">暴露值 +${lastExp}</span></div><div class="story-text">${currentStory}</div></div><div class="flex-row"><div class="back-btn" id="backtrackBtn">↩️ 回溯 (${backtrackLeft}次)</div><div class="next-btn" id="nextBtn">➡️ 继续守护秘密</div></div>`;
+            document.getElementById('nextBtn')?.addEventListener('click', () => {
+                if(currentQ === 10) { step = 9; playTone('ending'); render(); }
+                else { currentQ++; waitNext = false; playTone('next'); render(); }
+            });
+            document.getElementById('backtrackBtn')?.addEventListener('click', () => {
+                if(backtrackLeft > 0) {
+                    backtrackLeft--;
+                    waitNext = false;
+                    if(selectedAHistory.length > 0) selectedAHistory.pop();
+                    exposure = Math.max(0, exposure - lastExp);
+                    updateUI();
+                    playTone('select');
+                    render();
+                } else alert('回溯次数已用完');
+            });
+            return;
+        }
+        let optsHtml = `<div class="scene-card"><div class="badge">🍏 秘密男友：${boy}</div>🎬 ${q.title}<br>${desc}</div><div class="question">❓ 你的选择</div><div class="options">`;
+        for(let key in q.opts) {
+            let opt = q.opts[key];
+            optsHtml += `<div class="option select-opt" data-opt="${key}" data-isA="${opt.isA}">${opt.txt}</div>`;
+        }
+        optsHtml += `</div><div style="text-align:center; opacity:0.5; padding:10px;">🍏 点击选项查看剧情，一不小心会被粉丝拍到</div>`;
+        container.innerHTML = optsHtml;
+        document.querySelectorAll('.select-opt').forEach(el => {
+            el.addEventListener('click', (e) => {
+                let optKey = el.getAttribute('data-opt');
+                let isA = el.getAttribute('data-isA') === 'true';
+                let opt = q.opts[optKey];
+                if(opt) {
+                    selectedAHistory.push(isA);
+                    addExp(opt.exp);
+                    lastExp = opt.exp;
+                    currentStory = opt.story;
+                    waitNext = true;
+                    playTone('select');
+                    render();
+                }
+            });
+        });
+    }
+    
+    document.getElementById('startBtn').addEventListener('click', () => {
+        initAudio();
+        playTone('select');
+        document.getElementById('cover').classList.add('hidden');
+        document.getElementById('game').classList.remove('hidden');
+        step = 1; exposure = 0; boy = ""; currentQ = 2; waitNext = false; backtrackLeft = 3; selectedAHistory = [];
+        updateUI();
+        render();
+    });
+    document.getElementById('volumeBtn').addEventListener('click', () => {
+        soundOn = !soundOn;
+        document.getElementById('volumeBtn').innerText = soundOn ? '🔊' : '🔇';
+    });
+    document.getElementById('game').classList.add('hidden');
+    updateUI();
+</script>
+
+
+</body></html>
