@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>📖 终极小说工作室</title>
+    <style>
+        :root {
+            --bg: #f5f0e8;
+            --paper: #fdfaf3;
+            --ink: #2c2416;
+            --ink-light: #5c5347;
+            --accent: #8b4513;
+            --accent2: #c17f59;
+            --border: #d4c5a9;
+            --card-bg: #fffdf7;
+            --shadow: 0 4px 20px rgba(0,0,0,0.05);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --font-serif: 'Georgia','Noto Serif SC','Songti SC','STSong','SimSun',serif;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:var(--font-serif);
+            background:var(--bg);
+            background-image: radial-gradient(ellipse at 20% 15%, rgba(139,69,19,0.04) 0%, transparent 55%),
+                              radial-gradient(ellipse at 80% 70%, rgba(184,134,11,0.03) 0%, transparent 55%);
+            min-height:100vh; color:var(--ink); line-height:1.7; padding:16px 0 40px;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        .container{max-width:820px; margin:0 auto; padding:0 14px; position:relative;}
+        .header{position:relative; text-align:center; padding:20px 10px 6px;}
+        .header .logo-icon{font-size:48px; display:block; margin-bottom:4px; animation:float 3s infinite;}
+        @keyframes float{0%,100%{transform:translateY(0);}35%{transform:translateY(-8px);}65%{transform:translateY(-3px);}}
+        .header h1{font-size:1.7em; font-weight:700; color:var(--accent);}
+        .menu-btn{position:absolute; top:10px; right:10px; background:none; border:none; font-size:28px; cursor:pointer; color:var(--accent); padding:8px; z-index:10;}
+        .card{background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); padding:18px 16px; margin-bottom:16px; box-shadow:var(--shadow);}
+        .card-title{font-size:1em; font-weight:700; color:var(--accent); margin-bottom:13px; display:flex; align-items:center; gap:6px;}
+        .genre-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+        .genre-btn{padding:12px 6px; border:2px solid #e0d5c5; border-radius:var(--radius-sm); background:#fefcf7; cursor:pointer; font-size:0.84em; color:var(--ink-light); transition:0.2s; text-align:center; display:flex; flex-direction:column; align-items:center; gap:3px;}
+        .genre-btn.active{border-color:var(--accent); background:#fdf3e7; color:var(--accent); font-weight:700;}
+        .input-row{display:flex; flex-direction:column; gap:11px;}
+        .input-group{display:flex; flex-direction:column; gap:4px;}
+        .input-group label{font-size:0.82em; font-weight:600; color:var(--ink-light);}
+        .input-group input,.input-group select,.input-group textarea{width:100%; padding:10px 12px; border:2px solid #e0d5c5; border-radius:var(--radius-sm); font-family:inherit; font-size:0.93em; background:#fefcf7; color:var(--ink); outline:none; transition:0.2s; -webkit-appearance:none; appearance:none; resize:vertical;}
+        .input-group textarea{min-height:80px; line-height:1.6;}
+        .row-2col{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+        .btn{padding:9px 18px; border:2px solid #e0d5c5; border-radius:var(--radius-sm); background:#fefcf7; cursor:pointer; font-size:0.85em; color:var(--ink-light); transition:0.2s; display:inline-flex; align-items:center; gap:4px;}
+        .btn-accent{background:var(--accent); border-color:var(--accent); color:#fdf8f0; font-weight:600;}
+        .btn-danger{border-color:#d4a5a5; color:#a04040;}
+        .btn-generate{width:100%; padding:15px 20px; font-size:1.08em; font-weight:700; border:none; border-radius:var(--radius-sm); background:linear-gradient(135deg,#8b4513,#a0522d); color:#fdf8f0; margin-top:4px;}
+        .btn-generate:disabled{background:#c5b8a8; cursor:not-allowed;}
+
+        .outline-editor .chapter-row{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
+        .outline-editor .chapter-row input{flex:1;}
+        .outline-editor .chapter-row .chap-num{width:60px; flex-shrink:0; text-align:center;}
+
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:20000;display:flex;align-items:center;justify-content:center;display:none;}
+        .modal-overlay.active{display:flex;}
+        .modal{background:var(--card-bg);border-radius:var(--radius);padding:24px;max-width:650px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.3);text-align:center;max-height:80vh;overflow-y:auto;}
+        .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-120px);background:#3a3226;color:#fdf8f0;padding:10px 20px;border-radius:25px;z-index:21000;transition:0.35s;font-size:0.88em;}
+        .toast.show{transform:translateX(-50%) translateY(0);}
+
+        .announcement-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:25000;display:flex;align-items:center;justify-content:center;}
+        .announcement-card{background:var(--card-bg);border-radius:var(--radius);padding:32px 24px;max-width:450px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.3);text-align:center;position:relative;}
+        .announcement-card h2{color:var(--accent);margin-bottom:12px;}
+        .announcement-card p{color:var(--ink);line-height:1.8;margin-bottom:24px;}
+        .announcement-close{position:absolute;top:10px;right:15px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--ink-light);}
+
+        .sidebar-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:9990;display:none;}
+        .sidebar-overlay.open{display:block;}
+        .sidebar{position:fixed;top:0;right:0;width:320px;max-width:90vw;height:100%;background:var(--card-bg);box-shadow:-4px 0 25px rgba(0,0,0,0.25);z-index:9991;transform:translateX(100%);transition:0.3s;padding:20px;overflow-y:auto;display:flex;flex-direction:column;}
+        .sidebar.open{transform:translateX(0);}
+        .chapter-item{padding:8px;border-bottom:1px solid var(--border);cursor:pointer;transition:0.2s;}
+        .chapter-item:hover{background:#fdf7ef;}
+
+        .dashboard-actions{display:flex; gap:6px; margin-top:4px;}
+        .dashboard-actions .btn{padding:4px 10px; font-size:0.75em;}
+
+        @media (max-width:500px){
+            .row-2col{grid-template-columns:1fr;}
+            .genre-btn{padding:10px 4px; font-size:0.76em;}
+            .sidebar{width:100%;}
+        }
+    </style>
+</head>
+<body>
+    <div class="announcement-overlay" id="announcementOverlay">
+        <div class="announcement-card">
+            <button class="announcement-close" id="announcementCloseBtn">✕</button>
+            <h2>📢 公告</h2>
+            <p>现在查看章节后可以正常关闭弹窗。<br>点击关闭按钮开始创作。</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalBox">
+            <p id="modalMessage"></p>
+            <div id="modalExtra" style="margin-bottom:12px;"></div>
+            <div class="modal-btns">
+                <button class="btn" id="modalCancelBtn" style="display:none;">取消</button>
+                <button class="btn btn-accent" id="modalConfirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar" id="sidebar">
+        <div style="display:flex;justify-content:space-between;"><h3>📁 项目</h3><button class="btn" id="closeSidebarBtn">✕</button></div>
+        <div id="projectList"></div>
+    </div>
+
+    <div class="container" id="mainApp">
+        <div class="header">
+            <span class="logo-icon">📖</span>
+            <h1>小说工作室</h1>
+            <p class="subtitle">柚小屿</p>
+            <button class="menu-btn" id="menuBtn">☰</button>
+        </div>
+
+        <!-- 分享链接查看区 -->
+        <div class="card" id="sharedViewCard" style="display:none;">
+            <div class="card-title">📎 正在查看分享的小说</div>
+            <div id="sharedContent" style="white-space:pre-wrap;background:var(--paper);padding:14px;border-radius:var(--radius-sm);min-height:100px;max-height:55vh;overflow-y:auto;font-size:0.93em;line-height:1.9;"></div>
+            <button class="btn" id="closeSharedViewBtn" style="margin-top:10px;">关闭并进入创作模式</button>
+        </div>
+
+        <!-- 分享链接输入区 -->
+        <div class="card" id="shareInputCard">
+            <div class="card-title">🔗 输入分享链接查看小说</div>
+            <div class="input-row">
+                <div class="input-group"><input type="text" id="shareLinkInput" placeholder="粘贴分享链接到这里..."></div>
+                <button class="btn btn-accent" id="loadSharedBtn">📖 加载分享的小说</button>
+            </div>
+        </div>
+
+        <!-- API -->
+        <div class="card"><div class="card-title">🔑 智谱AI Key</div><div class="input-row"><div class="input-group"><label>Key</label><input type="password" id="apiKey"></div><div class="input-group"><label>模型</label><select id="modelSelect"><option value="glm-4-flash" selected>glm-4-flash</option><option value="glm-4">glm-4</option></select></div></div></div>
+
+        <!-- 类型 -->
+        <div class="card"><div class="card-title">🎭 类型</div><div class="genre-grid" id="genreGrid"><button class="genre-btn active" data-genre="玄幻修仙"><span>🐉</span>玄幻</button><button class="genre-btn" data-genre="言情古风"><span>💕</span>古言</button><button class="genre-btn" data-genre="悬疑推理"><span>🔍</span>悬疑</button><button class="genre-btn" data-genre="科幻未来"><span>🚀</span>科幻</button><button class="genre-btn" data-genre="江湖武侠"><span>⚔️</span>武侠</button><button class="genre-btn" data-genre="都市现实"><span>🏙️</span>都市</button><button class="genre-btn" data-genre="free"><span>🎨</span>自由发挥</button></div></div>
+
+        <!-- 故事设定 -->
+        <div class="card"><div class="card-title">✍️ 故事设定</div>
+            <div class="input-row">
+                <div class="input-group"><label>📝 故事梗概</label><textarea id="storySummary"></textarea></div>
+                <div class="input-group"><label>🌍 世界观/设定</label><textarea id="worldSetting"></textarea></div>
+                <div class="input-group"><label>🎭 情绪基调</label><select id="moodTone"><option value="无">无</option><option value="激昂">激昂</option><option value="压抑">压抑</option><option value="温馨">温馨</option><option value="诡谲">诡谲</option></select></div>
+                <div class="input-group"><label>👤 主角</label><input type="text" id="heroName" value="林逸尘"></div>
+                <div class="input-group"><label>👥 角色</label><div id="roleListContainer" style="display:flex;flex-direction:column;gap:8px;"><div style="display:flex;gap:8px;"><input type="text" class="role-input" value="苏婉清"><button class="btn btn-danger" onclick="removeRole(this)">✕</button></div></div><button class="btn" id="addRoleBtn" style="margin-top:6px;">+ 添加</button></div>
+                <div class="row-2col"><div class="input-group"><label>📖 章节数量</label><input type="number" id="chapterCount" value="5" min="1"></div><div class="input-group"><label>📏 总字数</label><input type="number" id="totalWords" value="2500" min="100"></div></div>
+                <div class="custom-hint" style="font-size:0.75em;color:var(--accent2);">每章目标 <span id="wordsPerChapter">500</span> 字，不足自动复盘续写</div>
+                <div class="input-group"><label>🎨 文风</label><select id="styleTone"><option value="诗意典雅">诗意典雅</option><option value="生动活泼">生动活泼</option><option value="简洁凌厉">简洁凌厉</option><option value="细腻婉转" selected>细腻婉转</option></select></div>
+            </div>
+        </div>
+
+        <!-- 可编辑提纲 -->
+        <div class="card" id="outlineCard" style="display:none;">
+            <div class="card-title" style="justify-content:space-between;">
+                <span>📋 可编辑提纲</span>
+                <div>
+                    <button class="btn" id="addOutlineRowBtn">+ 添加章节</button>
+                    <button class="btn btn-accent" id="aiExpandOutlineBtn">🤖 AI续写提纲</button>
+                    <button class="btn btn-danger" id="regenerateOutlineBtn">🔄 重新生成提纲</button>
+                </div>
+            </div>
+            <div id="outlineStream" style="background:var(--paper);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:12px;display:none;white-space:pre-wrap;max-height:150px;overflow-y:auto;font-size:0.85em;color:var(--ink-light);"></div>
+            <div class="outline-editor" id="outlineEditor"></div>
+        </div>
+
+        <!-- 关系与关键情节 -->
+        <div class="card"><div class="card-title">🧠 关系 & 情节节点</div>
+            <div class="input-row">
+                <div class="input-group"><label>角色关系</label><textarea id="characterRelations"></textarea></div>
+                <div class="input-group"><label>关键情节节点</label><div id="plotPointsContainer" style="display:flex;flex-direction:column;gap:8px;"><div class="plot-point-item"><input type="text" class="plot-chapter" placeholder="章" style="width:50px;"><input type="text" class="plot-desc" placeholder="情节" style="flex:1;"><button class="btn btn-danger" onclick="removePlotPoint(this)">✕</button></div></div><button class="btn" id="addPlotPointBtn">+ 添加</button></div>
+            </div>
+        </div>
+
+        <button class="btn-generate" id="btnGenerate">🚀 开始创作（基于当前提纲）</button>
+        <div id="continueBar" style="display:none;margin-top:10px;text-align:center;"><button class="btn btn-accent" id="btnContinue">▶️ 续写剩余章节（含断点章节）</button></div>
+
+        <div class="card" id="dashboardCard" style="display:none;"><div class="card-title">📊 进度（章节可管理）</div><div id="chapterDashboard"></div><div>总进度：<span id="totalProgressText">0%</span></div></div>
+
+        <div class="card" id="streamCard" style="display:none;">
+            <div class="card-title"><span id="chapterTag">正在生成...</span></div>
+            <div id="streamText" style="white-space:pre-wrap;background:var(--paper);padding:14px;border-radius:var(--radius-sm);min-height:120px;max-height:50vh;overflow-y:auto;"></div>
+            <button class="btn btn-danger" id="stopStreamBtn" style="margin-top:10px;">⏹️ 停止</button>
+        </div>
+
+        <div class="card" id="resultCard" style="display:none;"><div class="card-title">📖 完成稿</div><div id="resultContent"></div><button class="btn" id="generateEndingsBtn">🔄 多结局</button><div id="endingsContainer"></div><button class="btn" id="generateStatsBtn">📊 统计</button><div id="statsContainer"></div><div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;"><button class="btn" onclick="copyNovel()">📋 复制全文</button><button class="btn" onclick="downloadTxt()">💾 TXT</button><button class="btn" onclick="downloadEpub()">📚 EPUB</button><button class="btn btn-accent" id="generateShareLinkBtn">🔗 生成分享链接</button></div></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+    (function() {
+        // 公告关闭
+        document.getElementById('announcementCloseBtn').addEventListener('click', ()=> document.getElementById('announcementOverlay').style.display='none');
+
+        let currentNovelFullText = '';
+        let abortController = null;
+        let isGenerating = false;
+        let parsedOutline = {bookTitle:'', chapters:[], raw:''};
+        let chapterContents = [];
+        let currentSettings = null;
+        let activeProjectId = null;
+
+        const $=id=>document.getElementById(id);
+        const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._to);t._to=setTimeout(()=>t.classList.remove('show'),3000);};
+        function showModal(msg,cancel=false){return new Promise(resolve=>{$('modalMessage').textContent=msg;$('modalCancelBtn').style.display=cancel?'inline-block':'none';$('modalConfirmBtn').textContent=cancel?'确定':'知道了';$('modalCancelBtn').onclick=()=>{closeModal();resolve(false);};$('modalConfirmBtn').onclick=()=>{closeModal();resolve(true);};$('modalOverlay').classList.add('active');});}
+        function customAlert(msg){return showModal(msg);}
+        function customConfirm(msg){return showModal(msg,true);}
+        function closeModal(){$('modalOverlay').classList.remove('active');}
+
+        // ===== 修复1：增加点击遮罩层关闭 =====
+        $('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 显示完整章节内容弹窗（已强化关闭）
+        function showChapterContent(title, content) {
+            $('modalMessage').textContent = title;
+            $('modalExtra').innerHTML = `<div style="white-space:pre-wrap;text-align:left;max-height:60vh;overflow-y:auto;line-height:1.8;">${escapeHtml(content)}</div>`;
+            // 显示两个关闭按钮，确保用户能关闭
+            $('modalCancelBtn').style.display = 'inline-block';
+            $('modalCancelBtn').textContent = '关闭';
+            $('modalCancelBtn').onclick = closeModal;
+            $('modalConfirmBtn').style.display = 'inline-block';
+            $('modalConfirmBtn').textContent = '关闭';
+            $('modalConfirmBtn').onclick = closeModal;
+            $('modalOverlay').classList.add('active');
+        }
+
+        // 分享功能（略，保留原有逻辑）
+        function encodeNovelToHash(text) {
+            try { return '#share=' + btoa(unescape(encodeURIComponent(text))); }
+            catch(e) { return null; }
+        }
+        function decodeHashToNovel(hash) {
+            try { const idx=hash.indexOf('share='); if(idx===-1) return null; return decodeURIComponent(escape(atob(hash.substring(idx+6)))); }
+            catch(e) { return null; }
+        }
+        function checkSharedContent() {
+            const hash = window.location.hash;
+            if (!hash || !hash.includes('share=')) return false;
+            const content = decodeHashToNovel(hash);
+            if (content) {
+                $('sharedViewCard').style.display='block';
+                $('sharedContent').textContent = content;
+                $('shareInputCard').style.display='none';
+                return true;
+            }
+            return false;
+        }
+        function generateShareLink() {
+            if (!currentNovelFullText) { customAlert('没有可分享的内容'); return; }
+            const hash = encodeNovelToHash(currentNovelFullText);
+            if (!hash) {
+                const short = currentNovelFullText.substring(0,2000) + '\n\n...（内容过长，仅展示前2000字）';
+                const shortHash = encodeNovelToHash(short);
+                if (shortHash) showShareLinkModal(window.location.href.split('#')[0] + shortHash, true);
+                return;
+            }
+            showShareLinkModal(window.location.href.split('#')[0] + hash, false);
+        }
+        function showShareLinkModal(link, truncated) {
+            let msg = truncated ? '⚠️ 内容较长，已截取前2000字分享。\n\n' : '🔗 分享链接：\n\n';
+            $('modalMessage').textContent = msg;
+            $('modalExtra').innerHTML = `<input id="shareLinkCopy" value="${link}" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;" readonly>`;
+            $('modalCancelBtn').style.display='inline-block'; $('modalCancelBtn').textContent='关闭'; $('modalCancelBtn').onclick=closeModal;
+            $('modalConfirmBtn').textContent='📋 复制'; $('modalConfirmBtn').onclick=()=>{ navigator.clipboard.writeText(link); toast('链接已复制'); closeModal(); };
+            $('modalOverlay').classList.add('active');
+        }
+        function loadSharedLink() {
+            const input = $('shareLinkInput').value.trim();
+            if (!input) { customAlert('请粘贴链接'); return; }
+            let hash = input.includes('#') ? input.substring(input.indexOf('#')) : (input.includes('share=') ? '#'+input.substring(input.indexOf('share=')) : '');
+            const content = decodeHashToNovel(hash);
+            if (content) {
+                window.location.hash = hash;
+                $('sharedViewCard').style.display='block'; $('sharedContent').textContent=content; $('shareInputCard').style.display='none';
+                toast('已加载分享小说');
+            } else { customAlert('无效链接'); }
+        }
+        function closeSharedView() {
+            $('sharedViewCard').style.display='none'; $('shareInputCard').style.display='block';
+            if (window.location.hash.includes('share=')) history.pushState('', document.title, window.location.pathname + window.location.search);
+        }
+
+        // 类型
+        document.querySelectorAll('#genreGrid .genre-btn').forEach(b=>b.addEventListener('click',function(){document.querySelectorAll('#genreGrid .genre-btn').forEach(x=>x.classList.remove('active'));this.classList.add('active');}));
+        window.removeRole=btn=>{const c=$('roleListContainer');if(c.children.length>1)btn.closest('.role-item').remove();};
+        $('addRoleBtn').addEventListener('click',()=>{const div=document.createElement('div');div.style.display='flex';div.style.gap='8px';div.innerHTML=`<input type="text" class="role-input" placeholder="姓名" maxlength="10"><button class="btn btn-danger" onclick="removeRole(this)">✕</button>`;$('roleListContainer').appendChild(div);});
+        window.removePlotPoint=btn=>{const c=$('plotPointsContainer');if(c.children.length>1)btn.closest('.plot-point-item').remove();};
+        $('addPlotPointBtn').addEventListener('click',()=>{const div=document.createElement('div');div.className='plot-point-item';div.style.display='flex';div.style.gap='8px';div.innerHTML=`<input type="text" class="plot-chapter" placeholder="章" style="width:50px;"><input type="text" class="plot-desc" placeholder="情节" style="flex:1;"><button class="btn btn-danger" onclick="removePlotPoint(this)">✕</button>`;$('plotPointsContainer').appendChild(div);});
+        function getRoles(){return Array.from(document.querySelectorAll('#roleListContainer .role-input')).map(i=>i.value.trim()).filter(v=>v);}
+        function getPlotPoints(){return Array.from(document.querySelectorAll('#plotPointsContainer .plot-point-item')).map(i=>({chapter:i.querySelector('.plot-chapter')?.value||'',description:i.querySelector('.plot-desc')?.value||''})).filter(p=>p.description);}
+        function updateWordsPerChapter(){const t=parseInt($('totalWords').value)||2500;const c=parseInt($('chapterCount').value)||5;const p=Math.round(t/c);$('wordsPerChapter').textContent=p;return{total:t,chapters:c,per:p};}
+        $('totalWords').addEventListener('input',updateWordsPerChapter); $('chapterCount').addEventListener('input',updateWordsPerChapter);
+
+        function getSettings(){
+            return {
+                apiKey:$('apiKey').value.trim(),
+                genre:document.querySelector('#genreGrid .genre-btn.active')?.dataset.genre||'玄幻修仙',
+                hero:$('heroName').value.trim()||'林逸尘',
+                roles:getRoles(),
+                style:$('styleTone').value,
+                model:$('modelSelect').value,
+                storySummary:$('storySummary').value.trim(),
+                worldSetting:$('worldSetting').value.trim(),
+                moodTone:$('moodTone').value,
+                characterRelations:$('characterRelations').value.trim(),
+                plotPoints:getPlotPoints(),
+                ...updateWordsPerChapter()
+            };
+        }
+
+        // 提纲编辑
+        function renderOutlineEditor(){
+            const editor=$('outlineEditor');
+            if(!editor)return;
+            let html='';
+            parsedOutline.chapters.forEach((ch,i)=> html+=`<div class="chapter-row"><input class="chap-num" value="${ch.number}"><input class="chap-title" value="${escapeHtml(ch.title)}" placeholder="标题"><input class="chap-summary" value="${escapeHtml(ch.summary)}" placeholder="概要"><button class="btn btn-danger" onclick="removeOutlineRow(this)">✕</button></div>`);
+            editor.innerHTML=html||'<p>暂无章节，请先生成提纲或手动添加。</p>';
+        }
+        function syncOutlineFromEditor(){
+            const rows=document.querySelectorAll('#outlineEditor .chapter-row');
+            parsedOutline.chapters=[];
+            rows.forEach((row,i)=>{
+                const num=row.querySelector('.chap-num')?.value.trim();
+                const title=row.querySelector('.chap-title')?.value.trim();
+                const summary=row.querySelector('.chap-summary')?.value.trim();
+                parsedOutline.chapters.push({number:num?parseInt(num)||(i+1):(i+1),title:title||`第${i+1}章`,summary:summary||''});
+            });
+        }
+        window.removeOutlineRow=function(btn){btn.closest('.chapter-row').remove();syncOutlineFromEditor();saveCurrentProject();};
+        $('addOutlineRowBtn').addEventListener('click',()=>{
+            const editor=$('outlineEditor');const idx=editor.querySelectorAll('.chapter-row').length+1;
+            const div=document.createElement('div');div.className='chapter-row';
+            div.innerHTML=`<input class="chap-num" value="${idx}"><input class="chap-title" placeholder="标题"><input class="chap-summary" placeholder="概要"><button class="btn btn-danger" onclick="removeOutlineRow(this)">✕</button>`;
+            editor.appendChild(div);syncOutlineFromEditor();saveCurrentProject();
+        });
+
+        // AI续写提纲
+        $('aiExpandOutlineBtn').addEventListener('click',async()=>{
+            const s=getSettings();if(!s.apiKey)return customAlert('请填入API Key');
+            syncOutlineFromEditor();
+            const existingOutline=parsedOutline.chapters.map(c=>`第${c.number}章：${c.title} | ${c.summary}`).join('\n');
+            const lastChapterContent=chapterContents.length?getActiveChapterContent(chapterContents.length-1)?.slice(-500):'';
+            let rules='';if(s.genre!=='free')rules+=`必须为${s.genre}题材。`;else rules+='题材不限。';
+            if(s.storySummary)rules+=`\n梗概：${s.storySummary}`;
+            if(s.worldSetting)rules+=`\n世界观：${s.worldSetting}`;
+            if(s.hero)rules+=`\n主角：${s.hero}`;
+            if(s.roles.length)rules+=`\n角色：${s.roles.join('、')}`;
+            if(s.characterRelations)rules+=`\n关系：${s.characterRelations}`;
+            if(s.plotPoints.length)rules+=`\n节点：${s.plotPoints.map(p=>`第${p.chapter}章：${p.description}`).join('；')}`;
+            if(s.style)rules+=`\n文风：${s.style}`;
+            const prompt=`续写2-3章新大纲。\n已有：${existingOutline}\n最新剧情：${lastChapterContent||'无'}\n规则：${rules}\n输出格式：第X章：标题 | 概要...`;
+            $('aiExpandOutlineBtn').disabled=true;$('aiExpandOutlineBtn').textContent='续写中...';
+            const outStream=$('outlineStream');outStream.style.display='block';outStream.textContent='正在续写...';
+            let result='';
+            try{
+                await robustCallZhipu(s.apiKey,s.model,'大纲设计师。',prompt,800,(c)=>{result+=c;outStream.textContent=result;});
+                const chapters=[];const regex=/第(\d+)章[：:]\s*(.+?)\s*[|｜]\s*(.+)/g;let m;
+                while((m=regex.exec(result))!==null)chapters.push({number:parseInt(m[1]),title:m[2].trim(),summary:m[3].trim()});
+                if(!chapters.length){const lines=result.split('\n').filter(l=>l.match(/第\d+章/));lines.forEach(l=>{const n=l.match(/第(\d+)章/);const c=l.replace(/第\d+章[：:]/,'');const p=c.split(/[|｜]/);chapters.push({number:n?parseInt(n[1]):parsedOutline.chapters.length+1,title:(p[0]||c).trim(),summary:(p[1]||p[0]||c).trim()});});}
+                if(!chapters.length)return toast('解析失败');
+                chapters.forEach(ch=>parsedOutline.chapters.push(ch));
+                renderOutlineEditor();syncOutlineFromEditor();saveCurrentProject();toast('提纲已续写');
+            }catch(e){toast('出错：'+e.message);}
+            finally{$('aiExpandOutlineBtn').disabled=false;$('aiExpandOutlineBtn').textContent='🤖 AI续写提纲';outStream.style.display='none';outStream.textContent='';}
+        });
+
+        $('regenerateOutlineBtn').addEventListener('click',async()=>{
+            const s=getSettings();if(!s.apiKey)return customAlert('请填入API Key');
+            $('regenerateOutlineBtn').disabled=true;
+            try{await generateInitialOutline(s);renderOutlineEditor();syncOutlineFromEditor();saveCurrentProject();toast('提纲已重新生成');}
+            catch(e){toast('生成失败：'+e.message);}
+            finally{$('regenerateOutlineBtn').disabled=false;}
+        });
+
+        async function generateInitialOutline(s){
+            let rules='';if(s.genre!=='free')rules+=`必须创作${s.genre}小说。`;else rules+='题材自由。';
+            if(s.storySummary)rules+=`\n梗概：${s.storySummary}`;
+            if(s.worldSetting)rules+=`\n世界观：${s.worldSetting}`;
+            if(s.hero)rules+=`\n主角：${s.hero}`;
+            if(s.roles.length)rules+=`\n角色：${s.roles.join('、')}`;
+            if(s.characterRelations)rules+=`\n关系：${s.characterRelations}`;
+            if(s.plotPoints.length)rules+=`\n节点：${s.plotPoints.map(p=>`第${p.chapter}章：${p.description}`).join('；')}`;
+            if(s.style)rules+=`\n文风：${s.style}`;
+            if(s.moodTone!=='无')rules+=`\n情绪：${s.moodTone}`;
+            const prompt=`设计提纲。\n${rules}\n章节：${s.chapterCount}章，每章约${s.wordsPerChapter}字。\n输出格式：第1章：标题 | 概要...`;
+            let raw=''; await robustCallZhipu(s.apiKey,s.model,'编辑。',prompt,1500,(c)=>{raw+=c;$('streamText').textContent=raw;});
+            const chapters=[];const regex=/第(\d+)章[：:]\s*(.+?)\s*[|｜]\s*(.+)/g;let m;
+            while((m=regex.exec(raw))!==null)chapters.push({number:parseInt(m[1]),title:m[2].trim(),summary:m[3].trim()});
+            if(!chapters.length){const lines=raw.split('\n').filter(l=>l.match(/第\d+章/));lines.forEach(l=>{const n=l.match(/第(\d+)章/);const c=l.replace(/第\d+章[：:]/,'');const p=c.split(/[|｜]/);chapters.push({number:n?parseInt(n[1]):chapters.length+1,title:(p[0]||c).trim(),summary:(p[1]||p[0]||c).trim()});});}
+            if(!chapters.length){for(let i=1;i<=s.chapterCount;i++)chapters.push({number:i,title:`第${i}章`,summary:'情节发展'});raw='默认提纲';}
+            parsedOutline={bookTitle:(raw.match(/《(.+?)》/)||[])[1]||'未命名',chapters,raw};
+        }
+
+        // 流式请求（增强版）
+        async function robustCallZhipu(apiKey,model,system,user,maxTokens,onChunk, retryCount = 0) {
+            const MAX_RETRIES = 3;
+            try {
+                await new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        if (abortController) abortController.abort();
+                        reject(new Error('请求超时'));
+                    }, 60000);
+                    const originalOnDone = () => { clearTimeout(timeoutId); resolve(); };
+                    const originalOnError = (err) => { clearTimeout(timeoutId); reject(err); };
+                    callZhipu(apiKey, model, system, user, maxTokens, onChunk, originalOnDone, originalOnError);
+                });
+            } catch (err) {
+                console.error(`流式请求失败 (尝试 ${retryCount + 1}/${MAX_RETRIES}):`, err.message);
+                if (retryCount < MAX_RETRIES - 1) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    return robustCallZhipu(apiKey, model, system, user, maxTokens, onChunk, retryCount + 1);
+                } else { throw err; }
+            }
+        }
+        async function streamFetch(url,options,onChunk,onDone,onError){
+            const ctrl=new AbortController();abortController=ctrl;
+            try{
+                const resp=await fetch(url,{...options,signal:ctrl.signal});
+                if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${resp.status}`);}
+                const reader=resp.body.getReader();const dec=new TextDecoder();let buf='';
+                while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop()||'';for(const line of lines){const t=line.trim();if(!t||!t.startsWith('data:'))continue;const d=t.slice(5).trim();if(d==='[DONE]'){onDone&&onDone();return;}try{const p=JSON.parse(d);const delta=p?.choices?.[0]?.delta;if(delta?.content)onChunk(delta.content);if(p?.choices?.[0]?.finish_reason==='stop'){onDone&&onDone();return;}}catch(e){}}}
+                onDone&&onDone();
+            }catch(err){if(err.name==='AbortError'){onDone&&onDone();return;}onError&&onError(err);}
+        }
+        function callZhipu(apiKey,model,system,user,maxTokens,onChunk,onDone,onError){
+            streamFetch('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:user}],temperature:0.9,max_tokens:maxTokens||4000,stream:true})},onChunk,onDone,onError);
+        }
+
+        function ensureChapterData(idx){
+            if(!chapterContents[idx]) chapterContents[idx]={versions:[],activeVersion:0};
+            if(!Array.isArray(chapterContents[idx].versions)) chapterContents[idx]={versions:[chapterContents[idx]||''],activeVersion:0};
+            return chapterContents[idx];
+        }
+        function getActiveChapterContent(idx){const d=ensureChapterData(idx);return d.versions[d.activeVersion]||'';}
+
+        async function generateChapterWithContinuation(s, chapter, idx) {
+            const targetLen = s.wordsPerChapter;
+            let fullText = '';
+            const chapterTitle = `第${chapter.number}章 ${chapter.title}`;
+            const chapterSummary = chapter.summary;
+            const prevChapterEnd = idx > 0 ? getActiveChapterContent(idx-1)?.slice(-400) : '';
+            let rules = ''; if(s.genre !== 'free') rules += `严格保持${s.genre}特点。`; else rules += '题材自由。';
+            if(s.storySummary) rules += `\n必须遵循梗概：${s.storySummary}`;
+            if(s.worldSetting) rules += `\n世界观：${s.worldSetting}`;
+            if(s.hero) rules += `\n主角${s.hero}`;
+            if(s.roles.length) rules += `\n角色：${s.roles.join('、')}`;
+            if(s.characterRelations) rules += `\n关系：${s.characterRelations}`;
+            if(s.style) rules += `\n文风：${s.style}`;
+            if(s.moodTone !== '无') rules += `\n情绪：${s.moodTone}`;
+            const prompt = `撰写章节：${chapterTitle}。\n概要：${chapterSummary}\n前文结尾：${prevChapterEnd}\n【必须遵守】\n${rules}\n直接以章节标题开始，目标${targetLen}字。`;
+            $('streamText').textContent = '';
+            let chunk = '';
+            await robustCallZhipu(s.apiKey, s.model, '人类作家。', prompt, 4000, (c)=>{chunk+=c; $('streamText').textContent = fullText + chunk;});
+            fullText += chunk;
+            let attempts = 0;
+            while (isGenerating && fullText.length < targetLen * 0.95 && attempts < 10) {
+                attempts++;
+                $('chapterTag').textContent = `📝 续写中（${fullText.length}/${targetLen}字）...`;
+                const data = ensureChapterData(idx);
+                data.versions[data.activeVersion] = fullText;
+                saveCurrentProject();
+                const contPrompt = `【复盘续写】全文：\n${fullText}\n（字数${fullText.length}/${targetLen}）\n根据概要(${chapterSummary})继续，字数接近时收尾。直接输出续写。`;
+                let cont = '';
+                try {
+                    await robustCallZhipu(s.apiKey, s.model, '同一位作家。', contPrompt, 4000, (c)=>{cont+=c; $('streamText').textContent = fullText + cont;});
+                    fullText += cont;
+                } catch (e) {
+                    toast(`续写中断：${e.message}，已保留当前进度，可稍后手动续写。`);
+                    break;
+                }
+                if (cont.length < 20) break;
+            }
+            return fullText;
+        }
+
+        function saveProject(id,data){const all=JSON.parse(localStorage.getItem('novel_projects')||'{}');all[id]=data;localStorage.setItem('novel_projects',JSON.stringify(all));}
+        function loadProject(id){return (JSON.parse(localStorage.getItem('novel_projects')||'{}'))[id]||null;}
+        function deleteProject(id){const all=JSON.parse(localStorage.getItem('novel_projects')||'{}');delete all[id];localStorage.setItem('novel_projects',JSON.stringify(all));}
+        function getAllProjects(){return JSON.parse(localStorage.getItem('novel_projects')||'{}');}
+        function saveCurrentProject(){if(!activeProjectId)return;syncOutlineFromEditor();const data={settings:currentSettings,outline:parsedOutline,chapterContents,updatedAt:new Date().toISOString()};saveProject(activeProjectId,data);}
+
+        // 章节管理
+        window.deleteChapter = function(index) {
+            if (!chapterContents[index]) return;
+            customConfirm(`确定要删除第${index+1}章吗？`).then(ok => {
+                if (ok) { chapterContents.splice(index, 1); updateDashboard(); saveCurrentProject(); toast(`第${index+1}章已删除`); }
+            });
+        };
+        window.regenerateChapter = async function(index) {
+            if (isGenerating) { toast('正在生成中，请稍后'); return; }
+            const s = getSettings(); if (!s.apiKey) { customAlert('请填入API Key'); return; }
+            const chap = parsedOutline.chapters[index]; if (!chap) { toast('提纲中无此章节'); return; }
+            isGenerating = true; $('btnGenerate').disabled = true;
+            $('streamCard').style.display = 'block'; $('streamText').textContent = '';
+            $('chapterTag').textContent = `重新生成第${chap.number}章：${chap.title}...`;
+            try {
+                const content = await generateChapterWithContinuation(s, chap, index);
+                ensureChapterData(index); chapterContents[index].versions.push(content); chapterContents[index].activeVersion = chapterContents[index].versions.length - 1;
+                updateDashboard(); saveCurrentProject(); toast('重新生成完毕');
+            } catch (err) { toast('生成失败：'+err.message); }
+            finally { isGenerating = false; $('btnGenerate').disabled = false; $('streamCard').style.display = 'none'; }
+        };
+        window.continueChapterFromDashboard = async function(index) {
+            if (isGenerating) { toast('正在生成中，请稍后'); return; }
+            const s = getSettings(); if (!s.apiKey) { customAlert('请填入API Key'); return; }
+            const chap = parsedOutline.chapters[index]; if (!chap) { toast('提纲中无此章节'); return; }
+            const currentText = getActiveChapterContent(index);
+            const targetLen = s.wordsPerChapter;
+            if (currentText.length >= targetLen * 0.95) { toast('该章已接近目标字数'); return; }
+            isGenerating = true; $('btnGenerate').disabled = true;
+            $('streamCard').style.display = 'block'; $('streamText').textContent = currentText;
+            $('chapterTag').textContent = `续写第${chap.number}章（${currentText.length}/${targetLen}字）...`;
+            let fullText = currentText;
+            try {
+                let attempts = 0;
+                while (isGenerating && fullText.length < targetLen * 0.95 && attempts < 10) {
+                    attempts++;
+                    const contPrompt = `【复盘续写】全文：\n${fullText}\n（字数${fullText.length}/${targetLen}）\n根据概要(${chap.summary})继续，字数接近时收尾。直接输出续写。`;
+                    let cont = '';
+                    await robustCallZhipu(s.apiKey, s.model, '同一位作家。', contPrompt, 4000, (c)=>{cont+=c; $('streamText').textContent = fullText + cont;});
+                    fullText += cont;
+                    if (cont.length < 20) break;
+                }
+                const data = ensureChapterData(index); data.versions[data.activeVersion] = fullText;
+                updateDashboard(); saveCurrentProject(); toast('续写完成');
+            } catch (err) { toast('续写失败：'+err.message); }
+            finally { isGenerating = false; $('btnGenerate').disabled = false; $('streamCard').style.display = 'none'; }
+        };
+
+        function updateDashboard(){
+            const s = currentSettings || updateWordsPerChapter();
+            $('dashboardCard').style.display = 'block';
+            let html = '', tw = 0;
+            const targetPer = s.wordsPerChapter || 500;
+            chapterContents.forEach((data, i) => {
+                const text = getActiveChapterContent(i);
+                tw += text.length;
+                const pct = Math.min(100, Math.round((text.length / targetPer) * 100));
+                const incomplete = text.length < targetPer * 0.95;
+                html += `<div style="margin-bottom:12px;">
+                    <strong>第${i+1}章</strong> ${text.length}/${targetPer}字
+                    <div class="progress-bar-bg" style="height:8px;margin:4px 0;"><div class="progress-bar-fill" style="width:${pct}%;height:8px;"></div></div>
+                    <div class="dashboard-actions">
+                        <button class="btn btn-danger" onclick="deleteChapter(${i})">🗑️ 删除</button>
+                        <button class="btn" onclick="regenerateChapter(${i})">🔄 重新生成</button>
+                        ${incomplete ? `<button class="btn btn-accent" onclick="continueChapterFromDashboard(${i})">▶️ 续写</button>` : ''}
+                    </div>
+                </div>`;
+            });
+            if (chapterContents.length === 0) html = '<p>尚无已生成章节</p>';
+            $('chapterDashboard').innerHTML = html;
+            const tp = Math.min(100, Math.round((tw / (s.totalWords || 2500)) * 100));
+            $('totalProgressText').textContent = tp + '%';
+        }
+
+        function displayResult(){
+            currentNovelFullText = (parsedOutline.bookTitle?`《${parsedOutline.bookTitle}》\n\n`:'') + chapterContents.map((d,i)=>getActiveChapterContent(i)).join('\n\n');
+            $('resultCard').style.display='block';
+            let html = parsedOutline.bookTitle?`<h2>《${parsedOutline.bookTitle}》</h2>`:''; html+=`<p>${currentSettings.genre} · ${currentSettings.hero}</p>`;
+            chapterContents.forEach((d,i)=>{ html+=`<hr><div>${getActiveChapterContent(i)}</div>`; });
+            $('resultContent').innerHTML = html;
+        }
+
+        // 导出与分享
+        window.copyNovel=()=>navigator.clipboard.writeText(currentNovelFullText).then(()=>toast('已复制'));
+        window.downloadTxt=()=>{const b=new Blob([currentNovelFullText]);const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='小说.txt';a.click();};
+        window.downloadEpub=async()=>{
+            if(!currentNovelFullText)return;
+            const title=parsedOutline.bookTitle||'AI小说';const zip=new JSZip();
+            let html=`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>${title}</title></head><body>`;
+            chapterContents.forEach((d,i)=>html+=`<h2>第${i+1}章</h2><p>${getActiveChapterContent(i).replace(/\n/g,'<br/>')}</p>`);
+            html+='</body></html>';
+            zip.file('OEBPS/content.xhtml',html);
+            zip.file('META-INF/container.xml',`<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.xhtml" media-type="application/oebps-package+xml"/></rootfiles></container>`);
+            const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${title}.epub`;a.click();toast('EPUB导出');
+        };
+        $('generateEndingsBtn').addEventListener('click',async()=>{if(!currentNovelFullText)return;const s=currentSettings||getSettings();$('endingsContainer').textContent='...';let r='';await robustCallZhipu(s.apiKey,s.model,'小说家。',`三种结局：${currentNovelFullText.slice(-1000)}`,1200,(c)=>{r+=c;$('endingsContainer').textContent=r;});});
+        $('generateStatsBtn').addEventListener('click',async()=>{if(!currentNovelFullText)return;const s=currentSettings||getSettings();$('statsContainer').textContent='...';let r='';await robustCallZhipu(s.apiKey,s.model,'分析。',`统计角色情感：${currentNovelFullText.slice(0,4000)}`,1500,(c)=>{r+=c;$('statsContainer').textContent=r;});});
+        $('generateShareLinkBtn').addEventListener('click',generateShareLink);
+        $('loadSharedBtn').addEventListener('click',loadSharedLink);
+        $('closeSharedViewBtn').addEventListener('click',closeSharedView);
+
+        $('stopStreamBtn').addEventListener('click',()=>{if(abortController)abortController.abort();isGenerating=false;$('btnGenerate').disabled=false;$('continueBar').style.display='block';toast('已停止');});
+        $('btnContinue').addEventListener('click',()=>{syncOutlineFromEditor();if(!parsedOutline||!parsedOutline.chapters.length){customAlert('无提纲');return;}$('continueBar').style.display='none';startGeneration(true);});
+        $('btnGenerate').addEventListener('click',(e)=>{e.preventDefault();startGeneration(false);});
+
+        // 项目管理
+        function renderProjectList(){
+            const projs=getAllProjects();const c=$('projectList');
+            if(!Object.keys(projs).length){c.innerHTML='<p>暂无项目</p>';return;}
+            let h='';for(const[id,p]of Object.entries(projs)){h+=`<div class="project-item"><b>${p.outline?.bookTitle||'未命名'}</b> (${p.chapterContents?.length||0}/${p.outline?.chapters?.length||0}章)<br><button class="btn btn-accent" onclick="resumeProject('${id}')">📝 续写</button> <button class="btn" onclick="viewProjectDetail('${id}')">👁️ 查看</button> <button class="btn btn-danger" onclick="delProj('${id}')">🗑️</button></div>`;}c.innerHTML=h;
+        }
+        window.resumeProject=function(id){
+            const p=loadProject(id);if(!p)return;
+            currentSettings=p.settings;parsedOutline=p.outline;chapterContents=p.chapterContents||[];activeProjectId=id;
+            if(currentSettings){$('apiKey').value=currentSettings.apiKey||'';$('modelSelect').value=currentSettings.model||'glm-4-flash';$('heroName').value=currentSettings.hero||'';$('storySummary').value=currentSettings.storySummary||'';$('worldSetting').value=currentSettings.worldSetting||'';$('characterRelations').value=currentSettings.characterRelations||'';$('styleTone').value=currentSettings.style||'细腻婉转';$('moodTone').value=currentSettings.moodTone||'无';$('totalWords').value=currentSettings.totalWords||2500;$('chapterCount').value=currentSettings.chapterCount||5;updateWordsPerChapter();const rc=$('roleListContainer');rc.innerHTML='';(currentSettings.roles||['苏婉清']).forEach(r=>{const div=document.createElement('div');div.style.display='flex';div.innerHTML=`<input type="text" class="role-input" value="${r}"><button class="btn btn-danger" onclick="removeRole(this)">✕</button>`;rc.appendChild(div);});}
+            renderOutlineEditor();$('outlineCard').style.display='block';updateDashboard();$('dashboardCard').style.display='block';$('streamCard').style.display='none';$('resultCard').style.display='none';$('continueBar').style.display='block';closeSidebar();toast('已加载');
+        };
+        window.viewProjectDetail = function(id) {
+            const p = loadProject(id); if(!p) return;
+            const chapters = p.chapterContents || [];
+            if(chapters.length === 0) { customAlert('暂无章节内容'); return; }
+            let listHtml = '<div style="text-align:left;">';
+            chapters.forEach((data, i) => listHtml += `<div class="chapter-item" onclick="viewChapterContent('${id}', ${i})">第${i+1}章</div>`);
+            listHtml += '</div>';
+            $('modalMessage').textContent = '选择章节查看完整内容';
+            $('modalExtra').innerHTML = listHtml;
+            $('modalCancelBtn').style.display = 'inline-block';
+            $('modalCancelBtn').textContent = '关闭';
+            $('modalCancelBtn').onclick = closeModal;
+            $('modalConfirmBtn').style.display = 'none';
+            $('modalOverlay').classList.add('active');
+        };
+        window.viewChapterContent = function(projectId, chapterIdx) {
+            const p = loadProject(projectId); if(!p) return;
+            const data = p.chapterContents[chapterIdx];
+            const text = (data.versions ? data.versions[data.activeVersion||0] : (typeof data === 'string' ? data : ''));
+            showChapterContent(`第${chapterIdx+1}章`, text);
+        };
+        window.delProj=function(id){customConfirm('删除项目？').then(ok=>{if(ok){deleteProject(id);renderProjectList();toast('项目已删除');}});};
+        function closeSidebar(){$('sidebar').classList.remove('open');$('sidebarOverlay').classList.remove('open');}
+        function openSidebar(){renderProjectList();$('sidebar').classList.add('open');$('sidebarOverlay').classList.add('open');}
+        $('menuBtn').addEventListener('click',openSidebar);
+        $('closeSidebarBtn').addEventListener('click',closeSidebar);
+        $('sidebarOverlay').addEventListener('click',closeSidebar);
+
+        function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+        async function startGeneration(fromContinuation=false){
+            if(isGenerating)return;
+            const s=getSettings();if(!s.apiKey){customAlert('请填入API Key');return;}
+            isGenerating=true;abortController=null;currentSettings=s;
+            $('btnGenerate').disabled=true;$('streamCard').style.display='block';$('resultCard').style.display='none';$('dashboardCard').style.display='block';$('streamText').textContent='';$('chapterTag').textContent='📋 准备...';$('continueBar').style.display='none';
+            try{
+                if(!fromContinuation){
+                    syncOutlineFromEditor();
+                    if(!parsedOutline.chapters.length){$('chapterTag').textContent='生成初始提纲...';await generateInitialOutline(s);renderOutlineEditor();$('outlineCard').style.display='block';}
+                    else{$('outlineCard').style.display='block';}
+                    chapterContents=[];activeProjectId='project_'+Date.now();saveCurrentProject();
+                }else{
+                    if(!parsedOutline||!parsedOutline.chapters.length){customAlert('无提纲');return;}
+                    syncOutlineFromEditor();
+                    if(chapterContents.length){
+                        const lastIdx=chapterContents.length-1;
+                        const lastText=getActiveChapterContent(lastIdx);
+                        const targetLen=currentSettings.wordsPerChapter;
+                        if(lastText.length<targetLen*0.95){
+                            $('chapterTag').textContent=`补全第${lastIdx+1}章...`;
+                            const content=await generateChapterWithContinuation(s,parsedOutline.chapters[lastIdx],lastIdx);
+                            const d=ensureChapterData(lastIdx);d.versions[d.activeVersion]=content;
+                            updateDashboard();saveCurrentProject();
+                        }
+                    }
+                    if(parsedOutline.chapters.length<=chapterContents.length){customAlert('提纲已全部生成完毕');return;}
+                }
+                const totalChap=parsedOutline.chapters.length;
+                const startIdx=chapterContents.length;
+                for(let i=startIdx;i<totalChap;i++){
+                    if(!isGenerating)break;
+                    const chap=parsedOutline.chapters[i];
+                    $('chapterTag').textContent=`第${chap.number}章：${chap.title} (目标${s.wordsPerChapter}字)`;
+                    const content=await generateChapterWithContinuation(s,chap,i);
+                    ensureChapterData(i);chapterContents[i].versions.push(content);chapterContents[i].activeVersion=chapterContents[i].versions.length-1;
+                    updateDashboard();saveCurrentProject();
+                }
+                if(isGenerating){$('streamCard').style.display='none';displayResult();toast('✨ 完成！');}
+            }catch(err){if(err.name!=='AbortError')customAlert('出错：'+err.message);}
+            finally{isGenerating=false;abortController=null;$('btnGenerate').disabled=false;if(!isGenerating&&chapterContents.length)$('continueBar').style.display='block';}
+        }
+
+        updateWordsPerChapter();
+        if (checkSharedContent()) $('shareInputCard').style.display='none';
+    })();
+    </script>
+</body>
+</html>
