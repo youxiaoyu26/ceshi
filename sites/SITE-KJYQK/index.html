@@ -1,0 +1,744 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>入职日记：我成为了TF四代经纪人</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Courier Prime', 'Segoe UI Emoji', 'PingFang SC', 'Kalam', 'Caveat', 'Bradley Hand', cursive, monospace;
+            background: #FFF5F0;
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        .app {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #FFF9F5;
+            background-image: radial-gradient(circle at 10% 20%, rgba(232, 162, 162, 0.05) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            min-height: 90vh;
+            position: relative;
+            box-shadow: 8px 8px 0 rgba(232, 162, 162, 0.15), 0 0 0 1px #F5D0C0, 0 0 0 6px #FFF5F0;
+            border-radius: 12px;
+            padding: 16px 12px 32px;
+        }
+
+        .tape {
+            position: absolute;
+            background: rgba(245, 208, 192, 0.7);
+            width: 80px;
+            height: 24px;
+            transform: rotate(-8deg);
+            top: 20px;
+            right: 25px;
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            pointer-events: none;
+            z-index: 5;
+        }
+        .tape:after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            left: 10px;
+            width: 60px;
+            height: 12px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(232,162,162,0.2) 8px, rgba(232,162,162,0.2) 16px);
+        }
+
+        .page {
+            display: none;
+            padding: 12px 8px 40px;
+            animation: pageTurn 0.4s ease;
+            position: relative;
+        }
+
+        .active-page {
+            display: block;
+        }
+
+        @keyframes pageTurn {
+            0% { opacity: 0; transform: translateX(6px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            font-family: 'Kalam', 'Caveat', cursive;
+            color: #E8A2A2;
+            text-shadow: 2px 2px 0 #FDF0EA;
+            letter-spacing: -0.5px;
+            margin-bottom: 16px;
+            line-height: 1.2;
+            border-left: 5px solid #E8A2A2;
+            padding-left: 16px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Kalam', cursive;
+            color: #E8A2A2;
+            margin: 20px 0 6px;
+            display: inline-block;
+            background: #FDF0EA;
+            padding: 0 12px 0 6px;
+            letter-spacing: -0.2px;
+            border-bottom: 2px dotted #F5D0C0;
+        }
+
+        .sub {
+            color: #C48A8A;
+            font-size: 14px;
+            margin-bottom: 22px;
+            border-bottom: 1px dashed #F5D0C0;
+            padding-bottom: 6px;
+            font-family: monospace;
+        }
+
+        .vintage-option {
+            background: #FDF0EA;
+            border-radius: 30px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #9B6B6B;
+            transition: all 0.2s;
+            border: 1px solid #F5D0C0;
+            box-shadow: 2px 2px 0 #F5E0D8;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .vintage-option.selected {
+            background: #E8A2A2;
+            border-color: #D68A8A;
+            color: white;
+            box-shadow: 1px 1px 0 #D68A8A;
+            transform: translate(1px, 1px);
+        }
+
+        /* ========= 抓娃娃机样式 ========= */
+        .claw-machine {
+            background: linear-gradient(145deg, #F5E6D8, #F0E0D0);
+            border-radius: 48px 48px 32px 32px;
+            padding: 20px 12px 16px;
+            margin: 20px 0;
+            position: relative;
+            border: 3px solid #E8C8A8;
+            box-shadow: inset 0 0 0 2px #FFF8F0, 0 8px 0 #D4B894;
+        }
+
+        /* 娃娃机顶部装饰 */
+        .claw-top {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #E8C8A8;
+            width: 80px;
+            height: 20px;
+            border-radius: 20px 20px 8px 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #9B6B6B;
+            line-height: 20px;
+            font-family: monospace;
+        }
+
+        /* 娃娃机玻璃罩效果 */
+        .claw-glass {
+            background: rgba(255, 245, 240, 0.4);
+            border-radius: 32px;
+            padding: 8px;
+        }
+
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px 10px;
+            margin: 8px 0;
+            max-height: 380px;
+            overflow-y: auto;
+            padding: 8px 4px;
+        }
+
+        /* 娃娃玩偶样式 */
+        .claw-doll {
+            background: #FDF0EA;
+            border-radius: 32px;
+            padding: 12px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid #F5D0C0;
+            box-shadow: 0 5px 0 #E8D0B8;
+            position: relative;
+        }
+
+        /* 娃娃被抓走的效果 */
+        .claw-doll.caught {
+            opacity: 0.4;
+            transform: scale(0.85);
+            filter: grayscale(0.2);
+            box-shadow: none;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .claw-doll.selected {
+            background: #E8A2A2;
+            border-color: #D68A8A;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #E8D0B8;
+        }
+
+        .claw-doll.selected .doll-avatar {
+            background: white;
+            color: #E8A2A2;
+        }
+
+        .doll-avatar {
+            width: 56px;
+            height: 56px;
+            background: #FFF5F0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 700;
+            color: #E8A2A2;
+            margin: 0 auto 8px;
+            border: 2px solid #F5D0C0;
+            font-family: 'Kalam', cursive;
+            transition: all 0.2s;
+        }
+
+        .doll-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #9B6B6B;
+            font-family: monospace;
+        }
+
+        .claw-doll.selected .doll-name {
+            color: white;
+        }
+
+        /* 抓娃娃机提示 */
+        .claw-tip {
+            background: #F5E0D0;
+            border-radius: 30px;
+            padding: 8px 16px;
+            margin-top: 16px;
+            text-align: center;
+            font-size: 12px;
+            color: #B88A6A;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .claw-tip span {
+            font-size: 16px;
+        }
+
+        /* 抓取计数 */
+        .catch-count {
+            background: #E8C8A8;
+            border-radius: 30px;
+            padding: 6px 16px;
+            display: inline-block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #7A5A3A;
+            margin-bottom: 12px;
+        }
+
+        /* 其他原有样式 */
+        .duty-row {
+            background: #FDF0EA;
+            border-radius: 60px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #F5D0C0;
+        }
+
+        .duty-name {
+            min-width: 85px;
+            font-weight: 700;
+            color: #9B6B6B;
+            font-size: 15px;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .duty-tag-group {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .duty-tag {
+            background: #FFF5F0;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #9B6B6B;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid #F5D0C0;
+            font-family: monospace;
+        }
+
+        .duty-tag.selected {
+            background: #E8A2A2;
+            color: white;
+            border-color: #D68A8A;
+        }
+
+        .vintage-btn {
+            background: #FDF0EA;
+            border: 2px solid #F5D0C0;
+            border-radius: 48px;
+            width: 100%;
+            padding: 14px 20px;
+            font-weight: 700;
+            font-size: 18px;
+            color: #9B6B6B;
+            margin-top: 32px;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: 'Courier Prime', monospace;
+            letter-spacing: 1px;
+            box-shadow: 3px 3px 0 rgba(232, 162, 162, 0.2);
+        }
+
+        .vintage-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 rgba(232, 162, 162, 0.15);
+        }
+
+        .double-btn {
+            display: flex;
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .double-btn button {
+            flex: 1;
+            background: #FDF0EA;
+            border: 1px solid #F5D0C0;
+            border-radius: 48px;
+            padding: 12px;
+            font-weight: 600;
+            font-family: monospace;
+            color: #9B6B6B;
+            cursor: pointer;
+        }
+
+        .result-poster {
+            background: #FFF9F5;
+            border-radius: 24px;
+            padding: 24px 18px;
+            margin: 20px 0;
+            border: 1px solid #F5D0C0;
+            box-shadow: inset 0 0 0 1px #FFF5F0, 4px 4px 0 #F5E0D8;
+        }
+
+        .tf-handmade-logo {
+            background: #FDF0EA;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            border: 2px solid #F5D0C0;
+            box-shadow: 4px 4px 0 #F5E0D8;
+            font-family: 'Kalam', cursive;
+        }
+        .tf-handmade-logo .tf-big {
+            font-size: 42px;
+            font-weight: 800;
+            color: #E8A2A2;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+        .tf-handmade-logo .tf-small {
+            font-size: 14px;
+            font-weight: 600;
+            color: #C48A8A;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+        .tf-handmade-logo .tf-family {
+            font-size: 9px;
+            color: #C48A8A;
+            letter-spacing: 1px;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        .count-badge {
+            background: #FDF0EA;
+            padding: 5px 14px;
+            border-radius: 60px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #9B6B6B;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #F5D0C0;
+        }
+
+        footer {
+            text-align: center;
+            color: #C48A8A;
+            font-size: 11px;
+            margin-top: 32px;
+            font-family: monospace;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 60px;
+            border: 1px solid #F5D0C0;
+            background: #FFF9F5;
+            font-size: 15px;
+            margin-top: 18px;
+            font-family: 'Courier Prime', monospace;
+            color: #9B6B6B;
+        }
+
+        .selected-count {
+            text-align: right;
+            font-size: 13px;
+            font-weight: 500;
+            color: #C48A8A;
+            margin: 8px 0 12px;
+            font-family: monospace;
+        }
+
+        .sticker-deco {
+            position: absolute;
+            font-size: 24px;
+            opacity: 0.2;
+            pointer-events: none;
+            transform: rotate(-5deg);
+        }
+
+        /* 滚动条美化 */
+        .member-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .member-grid::-webkit-scrollbar-track {
+            background: #F5E0D8;
+            border-radius: 4px;
+        }
+        .member-grid::-webkit-scrollbar-thumb {
+            background: #E8A2A2;
+            border-radius: 4px;
+        }
+    </style>
+<style type="text/css" id="__via_marker__"></style></head>
+<body>
+<div class="app" style="position: relative;">
+    <div class="tape"></div>
+    <div class="sticker-deco" style="top: 15px; left: 10px;">🌸</div>
+    <div class="sticker-deco" style="bottom: 20px; right: 15px;">🍰</div>
+
+    <!-- 封面页 -->
+    <div id="pageCover" class="page active-page" style="text-align: center;">
+        <div class="tf-handmade-logo" style="width: 110px; height: 110px; margin: 20px auto;">
+            <div class="tf-big">TF</div>
+            <div class="tf-small">四代</div>
+            <div class="tf-family">FAMILY</div>
+        </div>
+        <h1 style="text-align: center; border-left: none;">入职日记：<br>我成为了TF四代经纪人</h1>
+        <p style="color: #C48A8A; font-weight: 500; margin: 12px 0;">亲手组建你的专属男团</p>
+        <div style="width: 50px; height: 2px; background: #F5D0C0; margin: 24px auto;"></div>
+        <p style="margin: 32px 0 20px; color: #C48A8A;">点击开始，开启你的成团之旅</p>
+        <button id="startBtn" class="vintage-btn">开始成团 ✨</button>
+    </div>
+
+    <!-- 玩法须知页 -->
+    <div id="pageIntro" class="page">
+        <div style="text-align: center; margin-bottom: 12px;">
+            <span style="background: #FDF0EA; padding: 4px 18px; border-radius: 30px; font-size: 12px; color:#9B6B6B;">📌 各位新晋经纪人请注意！</span>
+        </div>
+        <div style="background: #FFF9F5; border-radius: 28px; padding: 22px; margin: 20px 0; border: 1px solid #F5D0C0;">
+            <p style="line-height: 1.6; color: #9B6B6B;">
+                本次成团全程由你做主：<br><br>
+                ➕ 选定团人数 → 🧸 抓取心仪成员 → 🎭 分配队内担当 → 🎨 敲定团名风格<br><br>
+                打造独属于你的四代限定男团，快来试试吧！
+            </p>
+        </div>
+        <button id="toNext1" class="vintage-btn">下一步 ➡️</button>
+    </div>
+
+    <!-- 选人数页 -->
+    <div id="pageCount" class="page">
+        <h2>第一步 · 确定团人数</h2>
+        <div class="sub">你想打造几人限定男团？</div>
+        <div id="countOptions">
+            <div data-count="5" class="vintage-option">🌟 5人精致团（顶配小众，实力拉满）</div>
+            <div data-count="7" class="vintage-option">💎 7人经典团（楼系标配，人气均衡）</div>
+            <div data-count="9" class="vintage-option">🔥 9人大型团（完颜全员，舞台震撼）</div>
+            <div data-count="0" class="vintage-option">✨ 自由人数团（随心挑选，无拘无束）</div>
+        </div>
+        <button id="confirmCountBtn" class="vintage-btn">确认人数 · 下一步</button>
+    </div>
+
+    <!-- 选成员页 - 抓娃娃机风格 -->
+    <div id="pageMembers" class="page">
+        <h2>第二步 · 抓取你的心仪成员</h2>
+        <div class="sub">🎮 点击娃娃机里的玩偶，抓取你想要的少年！</div>
+        
+        <div class="claw-machine">
+            <div class="claw-top">🪄 抓娃娃机 🪄</div>
+            <div class="claw-glass">
+                <div id="memberGrid" class="member-grid"><div class="claw-doll ">
+                <div class="doll-avatar">官</div>
+                <div class="doll-name">官俊臣</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">张</div>
+                <div class="doll-name">张桂源</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">张</div>
+                <div class="doll-name">张函瑞</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">王</div>
+                <div class="doll-name">王橹杰</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">左</div>
+                <div class="doll-name">左奇函</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">陈</div>
+                <div class="doll-name">陈奕恒</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">杨</div>
+                <div class="doll-name">杨博文</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">杨</div>
+                <div class="doll-name">杨涵博</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">张</div>
+                <div class="doll-name">张奕然</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">聂</div>
+                <div class="doll-name">聂玮辰</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">陈</div>
+                <div class="doll-name">陈思罕</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">魏</div>
+                <div class="doll-name">魏子宸</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">李</div>
+                <div class="doll-name">李煜东</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">陈</div>
+                <div class="doll-name">陈浚铭</div>
+            </div><div class="claw-doll ">
+                <div class="doll-avatar">王</div>
+                <div class="doll-name">王烁然</div>
+            </div></div>
+            </div>
+            <div class="claw-tip">
+                <span>🕹️</span> 点击玩偶抓取 → 已抓取 <span id="selectedMemberCount" style="font-weight:bold; color:#E8A2A2;">0</span> 只 <span>🧸</span>
+            </div>
+        </div>
+        
+        <button id="confirmMembersBtn" class="vintage-btn">🎁 抓取完毕 · 去分配担当</button>
+    </div>
+
+    <!-- 担当分配页 -->
+    <div id="pageDuty" class="page">
+        <h2>第三步 · 分配队内担当</h2>
+        <div class="sub">每位成员至少1个担当，最多2个（含Rap担）</div>
+        <div id="dutyListContainer"></div>
+        <button id="confirmDutyBtn" class="vintage-btn">分配完毕 · 下一步</button>
+    </div>
+
+    <!-- 团名风格页 -->
+    <div id="pageStyle" class="page">
+        <h2>第四步 · 打造团魂与风格</h2>
+        <div style="margin-bottom: 12px;"><strong style="color:#E8A2A2;">🎨 团队主打风格</strong></div>
+        <div id="styleOptions">
+            <div data-style="元气校园少年风" class="vintage-option selected">🍎 元气校园少年风</div>
+            <div data-style="酷帅实力炸场风" class="vintage-option">⚡ 酷帅实力炸场风</div>
+            <div data-style="温柔治愈清新风" class="vintage-option">🌿 温柔治愈清新风</div>
+            <div data-style="鬼马搞怪欢乐风" class="vintage-option">🎈 鬼马搞怪欢乐风</div>
+            <div data-style="清冷高级氛围感" class="vintage-option">❄️ 清冷高级氛围感</div>
+        </div>
+        <div style="margin: 28px 0 8px;"><strong style="color:#E8A2A2;">🏷️ 定制专属团名</strong></div>
+        <div id="recNames" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+            <span data-name="星序少年" class="duty-tag">星序少年</span>
+            <span data-name="雾岛来信" class="duty-tag">雾岛来信</span>
+            <span data-name="肆季航线" class="duty-tag">肆季航线</span>
+            <span data-name="星火纪元" class="duty-tag">星火纪元</span>
+            <span data-name="橘子汽水" class="duty-tag">橘子汽水</span>
+        </div>
+        <input type="text" id="customName" placeholder="自定义团名 (最多8字)" maxlength="8">
+        <button id="finishBtn" class="vintage-btn">敲定一切 · 查看成团结果 🎉</button>
+    </div>
+
+    <!-- 结果页 -->
+    <div id="pageResult" class="page">
+        <h2>🎉 恭喜！你的专属男团正式出道</h2>
+        <div class="result-poster" id="resultContent"></div>
+        <div style="text-align: center; font-style: italic; color: #C48A8A;">以热爱为名，赴少年之约 🌸<br>你打造的TF四代新团，未来一路繁花，顶峰相见！</div>
+        <div class="double-btn">
+            <button id="restartBtn">🔄 重新成团</button>
+            <button id="shareBtn">📤 分享我的成团结果</button>
+        </div>
+        <footer>TF家族四代 · 专属限定团</footer>
+    </div>
+</div>
+
+<script>
+    const ALL_MEMBERS = [
+        "官俊臣","张桂源","张函瑞","王橹杰","左奇函","陈奕恒","杨博文",
+        "杨涵博","张奕然","聂玮辰","陈思罕","魏子宸","李煜东","陈浚铭","王烁然"
+    ];
+    const DUTIES = ["队长","主唱","主舞","Rap担","门面","综艺担当","气氛担当","酷拽担当","温柔担当","创作担当","全能忙内"];
+
+    let selectedCountType = 0;
+    let selectedMembers = [];
+    let memberDuties = {};
+    let selectedStyle = "元气校园少年风";
+    let finalGroupName = "星序少年";
+
+    function getInitial(name) { return name.charAt(0); }
+    function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id).classList.add('active-page'); }
+
+    // 抓娃娃机风格的成员渲染
+    function renderMemberGrid() {
+        const container = document.getElementById('memberGrid');
+        container.innerHTML = '';
+        ALL_MEMBERS.forEach(name => {
+            const isSelected = selectedMembers.includes(name);
+            const div = document.createElement('div');
+            // 被抓走的娃娃添加 caught 类
+            div.className = `claw-doll ${isSelected ? 'selected caught' : ''}`;
+            div.innerHTML = `
+                <div class="doll-avatar">${getInitial(name)}</div>
+                <div class="doll-name">${name}</div>
+            `;
+            // 只有未被抓取的娃娃才能点击
+            if (!isSelected) {
+                div.onclick = () => {
+                    let maxLimit = selectedCountType > 0 ? selectedCountType : ALL_MEMBERS.length;
+                    if (selectedMembers.length >= maxLimit) {
+                        alert(`🎮 娃娃机最多只能抓取${maxLimit}个玩偶！`);
+                        return;
+                    }
+                    selectedMembers.push(name);
+                    memberDuties[name] = [];
+                    renderMemberGrid();
+                    document.getElementById('selectedMemberCount').innerHTML = `${selectedMembers.length}`;
+                };
+            }
+            container.appendChild(div);
+        });
+        document.getElementById('selectedMemberCount').innerHTML = `${selectedMembers.length}`;
+    }
+
+    function renderDutyPage() {
+        const container = document.getElementById('dutyListContainer');
+        container.innerHTML = '';
+        for(let member of selectedMembers) {
+            const current = memberDuties[member] || [];
+            const row = document.createElement('div');
+            row.className = 'duty-row';
+            row.innerHTML = `<div class="duty-name">${member}</div><div class="duty-tag-group" id="dutyGroup-${member}"></div>`;
+            container.appendChild(row);
+            const group = row.querySelector(`.duty-tag-group`);
+            DUTIES.forEach(duty => {
+                const tag = document.createElement('span');
+                tag.innerText = duty;
+                tag.className = `duty-tag ${current.includes(duty) ? 'selected' : ''}`;
+                tag.onclick = () => {
+                    let arr = memberDuties[member] || [];
+                    if(arr.includes(duty)) arr = arr.filter(d => d !== duty);
+                    else { if(arr.length >= 2) { alert("每位成员最多选2个担当"); return; } arr.push(duty); }
+                    memberDuties[member] = arr;
+                    renderDutyPage();
+                };
+                group.appendChild(tag);
+            });
+        }
+    }
+
+    function showResult() {
+        const resultDiv = document.getElementById('resultContent');
+        let memberHtml = '';
+        selectedMembers.forEach(m => {
+            let duties = memberDuties[m] || [];
+            let dutyStr = duties.length ? duties.join('、') : '未分配';
+            memberHtml += `<div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px dotted #F5D0C0;"><span>${m}</span><span style="color:#E8A2A2;">${dutyStr}</span></div>`;
+        });
+        resultDiv.innerHTML = `
+            <div style="text-align:center; margin-bottom: 16px;"><span style="background:#FDF0EA; padding:4px 24px; border-radius:40px; color:#9B6B6B;">🎤 出道官宣</span></div>
+            <div style="font-size:28px; font-weight:800; text-align:center; color:#E8A2A2;">${finalGroupName}</div>
+            <div style="text-align:center; margin:14px 0; display:flex; justify-content:center; gap:12px;"><span class="count-badge">👥 ${selectedMembers.length}人</span><span class="count-badge">🎨 ${selectedStyle}</span></div>
+            <div style="margin:20px 0 8px; font-weight:700; color:#9B6B6B;">✨ 成员担当公示</div>
+            ${memberHtml}
+        `;
+        showPage('pageResult');
+    }
+
+    function finalBuild() {
+        if(selectedMembers.length === 0) { alert("🎮 请先抓取至少一个玩偶才能成团！"); return; }
+        for(let m of selectedMembers) if(!memberDuties[m]?.length) { alert(`请为 ${m} 至少分配一个担当`); return; }
+        let custom = document.getElementById('customName').value.trim();
+        finalGroupName = custom || document.querySelector('#recNames .duty-tag.selected')?.getAttribute('data-name') || "星序少年";
+        let styleCard = document.querySelector('#styleOptions .vintage-option.selected');
+        if(styleCard) selectedStyle = styleCard.getAttribute('data-style');
+        showResult();
+    }
+
+    document.getElementById('startBtn').onclick = () => showPage('pageIntro');
+    document.getElementById('toNext1').onclick = () => showPage('pageCount');
+    document.querySelectorAll('#countOptions .vintage-option').forEach(opt => {
+        opt.onclick = () => {
+            document.querySelectorAll('#countOptions .vintage-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            selectedCountType = opt.getAttribute('data-count') === '0' ? 0 : parseInt(opt.getAttribute('data-count'));
+        };
+    });
+    document.getElementById('confirmCountBtn').onclick = () => { if(selectedCountType === undefined) { alert("请选择成团人数"); return; } selectedMembers = []; memberDuties = {}; renderMemberGrid(); showPage('pageMembers'); };
+    document.getElementById('confirmMembersBtn').onclick = () => { let max = selectedCountType > 0 ? selectedCountType : ALL_MEMBERS.length; if(selectedMembers.length===0) { alert("至少抓取一位成员！"); return; } if(selectedMembers.length > max) { alert(`限定人数为${max}人`); return; } renderDutyPage(); showPage('pageDuty'); };
+    document.getElementById('confirmDutyBtn').onclick = () => { for(let m of selectedMembers) if(!memberDuties[m]?.length) { alert("请为每位成员至少选择一个担当"); return; } showPage('pageStyle'); };
+    document.querySelectorAll('#styleOptions .vintage-option').forEach(opt => { opt.onclick = () => { document.querySelectorAll('#styleOptions .vintage-option').forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); }; });
+    document.querySelectorAll('#recNames .duty-tag').forEach(tag => { tag.onclick = () => { document.querySelectorAll('#recNames .duty-tag').forEach(t => t.classList.remove('selected')); tag.classList.add('selected'); document.getElementById('customName').value = ''; }; });
+    document.getElementById('finishBtn').onclick = finalBuild;
+    document.getElementById('restartBtn').onclick = () => { selectedCountType=0; selectedMembers=[]; memberDuties={}; selectedStyle="元气校园少年风"; finalGroupName="星序少年"; renderMemberGrid(); showPage('pageCover'); };
+    document.getElementById('shareBtn').onclick = () => alert(`✨ 分享我的成团结果 ✨\n团名：${finalGroupName}\n人数：${selectedMembers.length}\n风格：${selectedStyle}\n感谢参与TF四代成团！`);
+    document.querySelector('#styleOptions .vintage-option').classList.add('selected');
+    renderMemberGrid();
+</script>
+
+</body></html>
