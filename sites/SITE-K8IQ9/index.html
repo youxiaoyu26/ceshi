@@ -1,0 +1,636 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>手握1亿 · 捧红我的三代担 | 剧情向H5</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #0a0a1a;
+            font-family: 'PingFang SC', 'Helvetica Neue', Roboto, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #f0eef7;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: radial-gradient(circle at 10% 20%, #12102a, #03010f);
+            min-height: 100vh;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease;
+            padding: 24px 20px 40px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        .title-lg {
+            font-size: 28px;
+            font-weight: 800;
+            text-align: center;
+            background: linear-gradient(135deg, #FFD966, #FFB347, #FF8C42);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .sub {
+            text-align: center;
+            font-size: 14px;
+            color: #b9b3e6;
+            margin-bottom: 32px;
+            border-top: 1px solid rgba(255,215,0,0.3);
+            display: inline-block;
+            width: 100%;
+            padding-top: 12px;
+        }
+
+        .card {
+            background: rgba(20, 18, 45, 0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            padding: 24px 20px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 210, 100, 0.3);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+        }
+
+        .story-text {
+            font-size: 17px;
+            line-height: 1.5;
+            color: #e9e6ff;
+            background: rgba(0,0,0,0.4);
+            padding: 18px;
+            border-radius: 24px;
+            margin: 16px 0;
+            border-left: 4px solid #FFB347;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin: 20px 0 10px;
+        }
+
+        .option-btn {
+            background: rgba(30, 28, 60, 0.9);
+            border: 1px solid #f3b33d60;
+            border-radius: 60px;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #faf7ff;
+            text-align: left;
+            transition: all 0.2s;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        .option-btn:active {
+            background: #f3b33d30;
+            transform: scale(0.98);
+        }
+
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .member-item {
+            background: #1f1c3a;
+            border-radius: 40px;
+            text-align: center;
+            padding: 10px 6px;
+            font-weight: 600;
+            font-size: 15px;
+            border: 1px solid #554d8e;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .member-item.selected {
+            background: linear-gradient(145deg, #FFB347, #FF8C42);
+            color: #0a0a1a;
+            border-color: #FFE3A4;
+            box-shadow: 0 0 8px #ffb347aa;
+            font-weight: 800;
+        }
+
+        .next-btn, .restart-btn {
+            background: linear-gradient(95deg, #FFB347, #FF8C42);
+            border: none;
+            border-radius: 48px;
+            padding: 14px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #0a0a1a;
+            width: 100%;
+            margin-top: 24px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            box-shadow: 0 4px 12px #ff8c4266;
+        }
+
+        .ending-box {
+            background: rgba(0,0,0,0.6);
+            border-radius: 32px;
+            padding: 28px 20px;
+            text-align: center;
+            border: 1px solid #FFD966;
+        }
+
+        .ending-title {
+            font-size: 26px;
+            font-weight: 800;
+            margin: 16px 0;
+            color: #FFDFA5;
+        }
+
+        .ending-desc {
+            font-size: 18px;
+            line-height: 1.45;
+            margin: 20px 0;
+        }
+
+        .badge {
+            background: #FFB347;
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 60px;
+            color: #0f0b1f;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .crisis-box {
+            background: #2a264f;
+            padding: 12px 16px;
+            border-radius: 24px;
+            margin-bottom: 16px;
+            font-size: 15px;
+            color: #FFDD99;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 10px;
+            color: #5b5580;
+            margin-top: 30px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #1e1b3a, #12102a);
+            border-radius: 48px;
+            padding: 32px 24px;
+            max-width: 320px;
+            width: 80%;
+            text-align: center;
+            border: 1px solid #FFC857;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-content p {
+            font-size: 18px;
+            line-height: 1.5;
+            margin: 20px 0;
+            color: #FFF2D7;
+        }
+
+        .modal-btn {
+            background: #FFB347;
+            border: none;
+            border-radius: 60px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f0b1f;
+            margin-top: 12px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .step-indicator {
+            text-align: center;
+            font-size: 13px;
+            color: #FFD966;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .flash-page {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, #1a1635, #03010f);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+        }
+        .flash-page.active {
+            display: flex;
+        }
+        .flash-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #FFD966;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+        .flash-dots {
+            font-size: 32px;
+            color: #FFB347;
+            letter-spacing: 8px;
+        }
+        .flash-sub {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #b9b3e6;
+        }
+    </style>
+<style type="text/css" id="__via_marker__"></style></head>
+<body>
+<div class="app-container" id="app">
+
+    <div id="coverPage" class="page active">
+        <div style="text-align: center; margin-top: 20px;">✨</div>
+        <div class="title-lg" style="font-size: 32px; margin-top: 20px;">手握1亿</div>
+        <div class="title-lg" style="font-size: 24px; margin-top: -8px;">专属捧红我的三代担</div>
+        <div class="sub" style="margin-top: 16px;">✨ 剧情向测试 | 每题触发专属剧情 | 最终锁定顶流结局 ✨</div>
+        <div class="card" style="text-align: center;">
+            <p style="margin-bottom: 16px;">1亿专属捧星基金，你的每一个选择，<br>改写他的顶流之路。</p>
+            <div class="next-btn" id="startBtn">开始测试 →</div>
+        </div>
+        <footer>⭐ 全程无雷点 · 本命专属剧情</footer>
+    </div>
+
+    <div id="storyPage" class="page">
+        <div class="story-text">
+            📖 你意外继承了1亿专属捧星基金，唯一规则：<br><br>
+            这笔钱，只为你心底最在意的那个三代小孩铺路，从舞台、资源、团队到危机处理，全由你操盘。<br><br>
+            你的每一次决策，都在决定他最终成为哪种顶流。<br><br>
+            💡 准备好了吗？开启你的专属捧红计划。
+        </div>
+        <div class="next-btn" id="toSelectMember">开启旅程 →</div>
+    </div>
+
+    <div id="memberPage" class="page">
+        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">🎯 第1题 · 锁定你的专属捧红对象</div>
+        <div class="member-grid" id="memberGrid"></div>
+        <div class="next-btn" id="confirmMemberBtn" style="background: #5a4d88;">确认本命，启动1亿计划</div>
+    </div>
+
+    <div id="questionPage" class="page">
+        <div class="step-indicator" id="stepIndicator"></div>
+        <div id="questionHeader" style="font-size: 22px; font-weight: 800; margin-bottom: 8px;"></div>
+        <div id="questionDesc" style="margin-bottom: 12px; color: #cdc6ff;"></div>
+        <div id="optionsContainer" class="option-group"></div>
+    </div>
+
+    <div id="flashPage" class="flash-page">
+        <div class="flash-text">✨ 您的剧情已触发完毕 ✨</div>
+        <div class="flash-dots" id="flashDots">。。。</div>
+        <div class="flash-sub">正在生成专属顶流结局...</div>
+    </div>
+
+    <div id="endingPage" class="page">
+        <div class="ending-box" id="endingContent"></div>
+        <button id="restartBtn" class="restart-btn" style="margin-top: 28px;">✨ 再次捧红 ✨</button>
+        <footer>你的偏爱与规划，终让他光芒万丈。</footer>
+    </div>
+
+</div>
+
+<script>
+    const ALL_MEMBERS = ["朱志鑫","苏新皓","张泽禹","张极","左航","童禹坤","邓佳鑫","张子墨","黄朔","穆祉丞","余宇涵","张峻豪"];
+
+    const endingTextMap = {
+        "朱志鑫": { stage:"舞台张力断层，solo舞台刷屏全网，成为三代绝对ACE中心，直拍数据断层领先", singer:"声线共情力拉满，音源成绩亮眼，兼具颜值与唱功，实力主唱实至名归", variety:"温柔高情商圈粉全年龄段，路人缘爆棚，国民度稳居三代前列", fashion:"高奢代言、杂志封面不断，凭颜值与气质登顶内娱新生代颜值门面", actor:"镜头感绝佳，适配青春/清冷类角色，成功转型新生代潜力演员", allround:"唱跳、影视、综艺、时尚全面开花，无短板全能顶流" },
+        "苏新皓": { stage:"教科书级唱跳实力，三代舞台实力天花板，舞台零失误", singer:"唱跳创作全能，实力派唱跳歌手，业务能力全网认可", variety:"真诚踏实性格圈粉无数，观众缘极佳，曝光度与国民度一路飙升", fashion:"利落气场拉满，时尚资源优质，高级感出圈", actor:"角色塑造自然，适配热血少年角色，演员路稳步推进", allround:"舞台能打、唱功扎实、演戏有灵气，全方位全能偶像" },
+        "张泽禹": { stage:"舞台稳定抓人，vocal与表现力兼具，每场舞台带来惊喜", singer:"治愈嗓音感染力拉满，三代实力主唱代表，音源成绩亮眼", variety:"温柔有趣情商高，综艺表现舒适，路人缘稳居前列", fashion:"清爽干练气质，时尚资源顺畅，简约高级", actor:"治愈系角色适配极高，演技细腻共情力强", allround:"音乐为主多栖开花，唱演俱佳的全能艺人" },
+        "张极": { stage:"少年感与舞台张力并存，成为舞台最耀眼的存在", singer:"清亮音色辨识度拉满，三代核心主唱，歌声圈粉无数", variety:"阳光元气性格讨喜，综艺感拉满，全年龄段吸粉", fashion:"少年高级脸横扫时尚资源，商务接到手软", actor:"外形贴合青春剧，演技自然，轻松收获剧粉", allround:"唱跳综艺影视全面发展，阳光潜力无限" },
+        "左航": { stage:"说唱舞台态度鲜明，个人风格极强，三代说唱舞台标杆", singer:"原创作品全面出圈，新生代创作型歌手代表", variety:"清醒有趣金句频出，综艺搞笑担当", fashion:"个性气质独特，时尚表现力出众", actor:"可塑性强，适配叛逆/清醒类角色", allround:"创作、舞台、综艺、影视全面开花" },
+        "童禹坤": { stage:"温柔氛围感舞台，细腻表现力独一份，舞台魅力拉满", singer:"抒情嗓音治愈出圈，三代温柔系实力主唱", variety:"安静细腻不抢戏，性格温柔讨喜，观众缘极佳", fashion:"干净少年气质，时尚造型简约高级", actor:"温柔系角色适配，眼神有戏", allround:"唱歌舞台演戏均衡发展，安稳踏实" },
+        "邓佳鑫": { stage:"舞台情感浓度拉满，歌声共情力超强，情绪价值天花板", singer:"唱功实力全面回归，音源舞台双爆，实力唱将巅峰", variety:"温柔真诚有分寸，综艺表现舒适自然", fashion:"清冷温柔气质，时尚资源高级", actor:"深情细腻角色适配，演技真挚动人", allround:"音乐为主多栖发展，稳步逆袭爆红" },
+        "张子墨": { stage:"舞台干净利落，表现力稳定，个人特色鲜明", singer:"创作声乐双在线，作品质感十足，新生代潜力唱作人", variety:"安静聪明有想法，综艺表现舒适圈粉", fashion:"清冷少年感，时尚表现力高级", actor:"文艺气质适配校园与文艺类角色", allround:"创作舞台影视均衡发展，潜力十足" },
+        "黄朔": { stage:"舞台稳定大气，唱跳均衡，舞台可靠担当", singer:"声乐功底扎实，音色清亮，实力派靠谱主唱", variety:"稳重踏实性格圈粉，综艺表现自然", fashion:"清爽帅气外形，时尚商务资源顺畅", actor:"外形正气，适配青春正向角色", allround:"唱跳演戏综艺全面发展，路人缘拉满" },
+        "穆祉丞": { stage:"元气舞台活力爆棚，感染力超强，舞台活力担当", singer:"活泼音色辨识度高，成为元气系实力歌手", variety:"可爱元气性格，综艺活力担当", fashion:"少年感十足，时尚造型清爽吸睛", actor:"阳光可爱角色适配，观众缘超强", allround:"唱跳综艺演戏全面开花，元气偶像" },
+        "余宇涵": { stage:"舞蹈力量感张力拉满，三代舞蹈天花板", singer:"唱跳均衡发展，实力稳步上涨", variety:"直率可爱性格圈粉，综艺真实讨喜", fashion:"凌厉帅气气质，时尚表现力突出", actor:"适配热血少年角色，镜头感绝佳", allround:"舞蹈为主多栖发展，唱演俱佳" },
+        "张峻豪": { stage:"说唱舞台节奏拉满，态度鲜明，三代说唱标杆", singer:"原创说唱作品出圈，新生代实力说唱歌手", variety:"聪明有梗综艺感强，综艺人气担当", fashion:"潮流个性气质，时尚资源风格鲜明", actor:"适配少年反差角色，可塑性强", allround:"说唱、舞台、综艺、影视全面发展" }
+    };
+
+    const endingKeyMap = { "A": "stage", "B": "singer", "C": "variety", "D": "fashion", "E": "actor", "F": "allround" };
+    const endingTitleMap = {
+        "A": "🎭 舞台封神结局", "B": "🎤 实力歌手结局", "C": "📺 国民综艺结局",
+        "D": "👑 时尚顶流结局", "E": "🎬 影视演员结局", "F": "✨ 全能两栖艺人结局"
+    };
+
+    let currentMember = "";
+    let answers = {};
+    let currentQuestion = 2;
+    let crisisEvent = "";
+
+    const pages = {
+        cover: document.getElementById("coverPage"),
+        story: document.getElementById("storyPage"),
+        member: document.getElementById("memberPage"),
+        question: document.getElementById("questionPage"),
+        flash: document.getElementById("flashPage"),
+        ending: document.getElementById("endingPage")
+    };
+
+    function showPage(pageName) {
+        Object.keys(pages).forEach(p => pages[p].classList.remove("active"));
+        pages[pageName].classList.add("active");
+    }
+
+    function showFlashAndEnding(finalEnding) {
+        showPage("flash");
+        let dotCount = 0;
+        const flashDots = document.getElementById("flashDots");
+        const dotInterval = setInterval(() => {
+            dotCount = (dotCount % 3) + 1;
+            flashDots.innerText = "。".repeat(dotCount);
+        }, 400);
+        setTimeout(() => {
+            clearInterval(dotInterval);
+            const endingKey = endingKeyMap[finalEnding];
+            const endingTitle = endingTitleMap[finalEnding];
+            const desc = endingTextMap[currentMember]?.[endingKey] || "凭借你的精准决策，他在行业内站稳脚跟，成为无可替代的顶流。";
+            document.getElementById("endingContent").innerHTML = `
+                <div style="font-size: 28px;">🏆 顶流加冕 · 捧红计划圆满收官</div>
+                <div style="margin: 16px 0;">恭喜你！1亿捧红计划完美落地，<br>你选择的 <strong style="color:#FFC857;">${currentMember}</strong>，在你的操盘下成功登顶顶流！</div>
+                <div class="ending-title">${endingTitle}</div>
+                <div class="ending-desc">${desc}</div>
+                <div class="badge">✨ 你的偏爱与规划，终让他光芒万丈 ✨</div>
+            `;
+            showPage("ending");
+        }, 1500);
+    }
+
+    function showPlotModal(plotText, onClose) {
+        const modal = document.createElement("div");
+        modal.className = "modal-overlay";
+        modal.innerHTML = `<div class="modal-content"><div style="font-size: 32px;">✨</div><p>${plotText}</p><button class="modal-btn">继续旅程 ➡️</button></div>`;
+        document.body.appendChild(modal);
+        modal.querySelector(".modal-btn").onclick = () => { modal.remove(); if(onClose) onClose(); };
+    }
+
+    // ========== 各题剧情 ==========
+    function getQ2Plot(opt, member) {
+        if(opt === "A") return `🎬 剧情触发：${member} 闭关15天全力特训，舞台上线当晚屠榜热搜，直拍半小时破百万播放，舞台口碑直接封神，但密集行程导致体力透支。`;
+        if(opt === "B") return `🎧 剧情触发：${member} 单曲空降音乐榜单前列，声线/创作实力被全网认可，吸大批音源路人粉，但音乐制作耗资巨大。`;
+        if(opt === "C") return `📺 剧情触发：${member} 凭性格在综艺疯狂圈粉，路人认知度一夜暴涨，商业价值快速提升，但练习时间被挤占。`;
+        return `📸 剧情触发：全网铺满${member}的正面物料，路人好感度拉满，颜值出圈吸大批颜粉，但缺乏实力作品支撑。`;
+    }
+
+    function getQ3Plot(q2, q3opt, member) {
+        if(q2 === "A") {
+            if(q3opt === "A") return `✨ ${member} 追加资金做系列舞台，舞台实力稳步登顶，成为三代舞台天花板。`;
+            if(q3opt === "B") return `💪 ${member} 暂停密集行程调整体力，状态快速回暖，后续舞台更稳更炸。`;
+            return `🎬 ${member} 穿插综艺转化热度，舞台人气转路人粉，国民度再上一个台阶。`;
+        }
+        if(q2 === "B") {
+            if(q3opt === "A") return `🏆 ${member} 追加预算冲打歌舞台，确立实力歌手定位，路人盘长期稳定。`;
+            if(q3opt === "B") return `🎵 ${member} 筹备线下签唱会，精准固粉，粉丝粘性拉满。`;
+            return `📺 ${member} 匀预算接综艺，提升国民度，颜值+实力双向出圈。`;
+        }
+        if(q2 === "C") {
+            if(q3opt === "A") return `🏋️ ${member} 推多余综艺回练习室，快速补强业务能力，摆脱“只会综艺”标签。`;
+            if(q3opt === "B") return `🎙️ ${member} 继续接优质综艺，成为综艺宠儿，国民度直线飙升。`;
+            return `🎤 ${member} 穿插舞台行程，曝光不断层，人气稳步爬升。`;
+        }
+        if(q3opt === "A") return `🎶 ${member} 立即安排舞台/单曲，用实力稳住颜值粉，摆脱“花瓶”标签。`;
+        if(q3opt === "B") return `📸 ${member} 持续投放颜值物料，短期热度拉满，颜值记忆点加深。`;
+        return `👔 ${member} 对接时尚资源，直接登顶三代颜值顶流，时尚资源快速破圈。`;
+    }
+
+    function getQ4Plot(opt, member) {
+        if(opt === "A") return `💼 ${member} 接高品质代言，商业价值飙升，国民度进一步提升，但需要投入大量时间配合拍摄。`;
+        if(opt === "B") return `🎯 ${member} 谨慎选择只接高契合度代言，口碑极佳，但商业曝光节奏较慢。`;
+        return `🌊 ${member} 全面铺开商业合作，短期内收入暴增，但路人评价出现“恰饭太多”的声音。`;
+    }
+
+    function getQ5Plot(opt, member) {
+        if(opt === "A") return `⚔️ ${member} 配置强硬资源型团队，拿到最优渥资源，但易引来同行粉丝摩擦。`;
+        if(opt === "B") return `🌸 ${member} 配置温柔呵护型团队，状态始终稳定，但爆红节奏相对平缓。`;
+        if(opt === "C") return `📖 ${member} 配置专业实力型团队，实力稳步提升，作品口碑拉满。`;
+        return `🌟 ${member} 配置全能保障型团队，各维度发展均衡，但资金消耗较快。`;
+    }
+
+    function getQ6Plot(opt, member) {
+        if(opt === "A") return `💖 ${member} 组建专业粉丝运营团队，粉丝忠诚度大幅提升，控评能力一骑绝尘，但路人缘略有下滑。`;
+        if(opt === "B") return `🎁 ${member} 加大福利投放，粉丝粘性拉满，核心粉圈极其稳固，但预算消耗较快。`;
+        return `🌱 ${member} 采用自然吸粉策略，粉丝质量极高，路人好感度持续上涨，但涨粉速度相对平缓。`;
+    }
+
+    function getRandomCrisis() {
+        const crises = ["⚠️ 连续行程体力下滑，被路人吐槽状态不稳", "⚠️ 网上出现无关紧要的造谣抹黑", "⚠️ 公司想分流他的优质资源"];
+        return crises[Math.floor(Math.random() * crises.length)];
+    }
+
+    function getQ7Plot(opt, member, crisis) {
+        if(opt === "A") return `📰 危机处理：${crisis}<br>🔥 火速公关压负面，风评快速回稳，保护${member}的心态不受影响。`;
+        if(opt === "B") return `🎥 危机处理：${crisis}<br>🎬 放出幕后努力花絮，用真诚扭转风评，${member}路人好感度大幅回升。`;
+        if(opt === "C") return `🛡️ 危机处理：${crisis}<br>💪 强硬维护拒绝资源分流，${member}核心资源牢牢保住。`;
+        return `⚡ 危机处理：${crisis}<br>✨ 不做过度回应，${member}用后续舞台/作品惊艳出圈，口碑更硬更稳。`;
+    }
+
+    function getQ8Plot(opt, member) {
+        if(opt === "A") return `🎨 ${member} 跨界艺术展/潮牌合作，格调瞬间拉满，时尚圈认可度飙升，但大众认知度提升有限。`;
+        if(opt === "B") return `🎮 ${member} 参与热门游戏/动漫IP联动，成功打入年轻圈层，破圈效果显著。`;
+        return `📚 ${member} 出版个人写真/随笔集，文艺路线稳固核心粉，口碑极佳。`;
+    }
+
+    function getQ9Plot(opt, member) {
+        if(opt === "A") return `🌍 ${member} 成立个人公益基金，正能量形象出圈，官媒点赞，路人好感度爆棚。`;
+        if(opt === "B") return `🏫 ${member} 资助乡村教育，被主流媒体报道，国民好感度大幅提升。`;
+        return `🌱 ${member} 参与环保公益活动，圈粉高知群体，口碑持续发酵。`;
+    }
+
+    function renderQuestion() {
+        const stepInd = document.getElementById("stepIndicator");
+        const header = document.getElementById("questionHeader");
+        const descDiv = document.getElementById("questionDesc");
+        const optsDiv = document.getElementById("optionsContainer");
+
+        stepInd.innerText = `第 ${currentQuestion} / 10 题 · 资金决策中`;
+
+        // 第2题
+        if(currentQuestion === 2) {
+            header.innerText = `💰 第2题 · 首笔2000万启动资金，你优先投入？`;
+            descDiv.innerHTML = `✨ 为 ${currentMember} 做出第一个重要决定 ✨`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">🎤 A. 顶级solo舞台（顶配舞美+专属编舞）</div><div class="option-btn" data-val="B">🎧 B. 个人原创单曲（顶级词曲团队+MV）</div><div class="option-btn" data-val="C">📺 C. 热门综艺常驻（高曝光综艺）</div><div class="option-btn" data-val="D">📸 D. 全网颜值+正面宣发（精修物料+公益联动）</div>`;
+        }
+        // 第3题
+        else if(currentQuestion === 3) {
+            header.innerText = `📌 第3题 · 针对上一阶段发展，你的应对选择？`;
+            let optsHtml = "";
+            if(answers[2] === "A") optsHtml = `<div class="option-btn" data-val="A">🎭 A. 追加资金做系列舞台</div><div class="option-btn" data-val="B">🩹 B. 暂停密集行程调整体力</div><div class="option-btn" data-val="C">📺 C. 穿插综艺转化热度</div>`;
+            else if(answers[2] === "B") optsHtml = `<div class="option-btn" data-val="A">🏆 A. 追加预算冲打歌舞台</div><div class="option-btn" data-val="B">🎫 B. 筹备线下签唱会</div><div class="option-btn" data-val="C">🎬 C. 匀预算接综艺</div>`;
+            else if(answers[2] === "C") optsHtml = `<div class="option-btn" data-val="A">📚 A. 推多余综艺回练习室</div><div class="option-btn" data-val="B">🎙️ B. 继续接优质综艺</div><div class="option-btn" data-val="C">🎤 C. 穿插舞台行程</div>`;
+            else optsHtml = `<div class="option-btn" data-val="A">🎵 A. 立即安排舞台/单曲</div><div class="option-btn" data-val="B">📸 B. 持续投放颜值物料</div><div class="option-btn" data-val="C">👔 C. 对接时尚资源</div>`;
+            optsDiv.innerHTML = optsHtml;
+            descDiv.innerHTML = `⭐ 根据${currentMember}的发展路径，选择最佳应对 ⭐`;
+        }
+        // 第4题：商务代言
+        else if(currentQuestion === 4) {
+            header.innerText = `💼 第4题 · 商务代言策略如何选择？`;
+            descDiv.innerHTML = `代言质量影响商业价值和路人缘`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">🏷️ A. 接高品质代言（一线品牌，提升格调）</div><div class="option-btn" data-val="B">🎯 B. 谨慎接洽，只选高契合度品牌</div><div class="option-btn" data-val="C">🌊 C. 全面铺开，短期快速变现</div>`;
+        }
+        // 第5题：团队配置
+        else if(currentQuestion === 5) {
+            header.innerText = `🤝 第5题 · 为他配置专属团队`;
+            descDiv.innerHTML = `团队风格直接影响${currentMember}的事业走向`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">⚔️ A. 强硬资源型团队</div><div class="option-btn" data-val="B">🌸 B. 温柔呵护型团队</div><div class="option-btn" data-val="C">📖 C. 专业实力型团队</div><div class="option-btn" data-val="D">🌟 D. 全能保障型团队</div>`;
+        }
+        // 第6题：粉丝运营
+        else if(currentQuestion === 6) {
+            header.innerText = `💝 第6题 · 粉丝运营策略如何制定？`;
+            descDiv.innerHTML = `粉丝是顶流之路的基石`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">🎯 A. 组建专业粉丝运营团队</div><div class="option-btn" data-val="B">🎁 B. 加大福利和互动投入</div><div class="option-btn" data-val="C">🌱 C. 自然吸粉，专注作品转化</div>`;
+        }
+        // 第7题：危机处理
+        else if(currentQuestion === 7) {
+            crisisEvent = getRandomCrisis();
+            header.innerText = `⚠️ 第7题 · 突发小危机，你的处理方式`;
+            descDiv.innerHTML = `<div class="crisis-box">📢 危机事件：${crisisEvent}</div>`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">📰 A. 火速公关压负面</div><div class="option-btn" data-val="B">🎬 B. 放出幕后努力花絮</div><div class="option-btn" data-val="C">🛡️ C. 强硬维护拒绝资源分流</div><div class="option-btn" data-val="D">💪 D. 不做过度回应，用后续表现打脸</div>`;
+        }
+        // 第8题：跨界发展
+        else if(currentQuestion === 8) {
+            header.innerText = `🎨 第8题 · 是否尝试跨界发展？`;
+            descDiv.innerHTML = `跨界能拓宽事业版图，但也有风险`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">🎨 A. 跨界艺术/潮牌合作</div><div class="option-btn" data-val="B">🎮 B. 游戏/动漫IP联动</div><div class="option-btn" data-val="C">📚 C. 出版个人作品集</div>`;
+        }
+        // 第9题：公益形象
+        else if(currentQuestion === 9) {
+            header.innerText = `🌍 第9题 · 公益形象如何打造？`;
+            descDiv.innerHTML = `正能量形象助力顶流之路`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">💝 A. 成立个人公益基金</div><div class="option-btn" data-val="B">🏫 B. 资助教育/扶贫项目</div><div class="option-btn" data-val="C">🌱 C. 参与环保公益活动</div>`;
+        }
+        // 第10题：最终结局
+        else if(currentQuestion === 10) {
+            header.innerText = `🎯 第10题 · 剩余资金全部投入，锁定最终顶流结局！`;
+            descDiv.innerHTML = `1亿终极决策，决定${currentMember}的顶流定位`;
+            optsDiv.innerHTML = `<div class="option-btn" data-val="A">🔥 A. 年末盛典solo舞台炸场</div><div class="option-btn" data-val="B">💿 B. 打造第二首个人单曲+实体专辑</div><div class="option-btn" data-val="C">🎙️ C. 深耕综艺常驻资源</div><div class="option-btn" data-val="D">📷 D. 拿下高奢杂志封面+品牌合作</div><div class="option-btn" data-val="E">🎞️ E. 对接优质影视资源</div><div class="option-btn" data-val="F">🌈 F. 均衡布局音乐+舞台+综艺+影视</div>`;
+        }
+
+        // 绑定选项事件
+        document.querySelectorAll(".option-btn").forEach(btn => {
+            btn.onclick = () => {
+                const val = btn.getAttribute("data-val");
+                
+                // 第10题：直接闪屏+结局
+                if(currentQuestion === 10) {
+                    showFlashAndEnding(val);
+                    return;
+                }
+                
+                // 第2-9题：先弹剧情窗
+                let plotText = "";
+                if(currentQuestion === 2) plotText = getQ2Plot(val, currentMember);
+                else if(currentQuestion === 3) plotText = getQ3Plot(answers[2], val, currentMember);
+                else if(currentQuestion === 4) plotText = getQ4Plot(val, currentMember);
+                else if(currentQuestion === 5) plotText = getQ5Plot(val, currentMember);
+                else if(currentQuestion === 6) plotText = getQ6Plot(val, currentMember);
+                else if(currentQuestion === 7) plotText = getQ7Plot(val, currentMember, crisisEvent);
+                else if(currentQuestion === 8) plotText = getQ8Plot(val, currentMember);
+                else if(currentQuestion === 9) plotText = getQ9Plot(val, currentMember);
+                
+                showPlotModal(plotText, () => {
+                    answers[currentQuestion] = val;
+                    currentQuestion++;
+                    renderQuestion();
+                });
+            };
+        });
+    }
+
+    function renderMemberSelect() {
+        const grid = document.getElementById("memberGrid");
+        grid.innerHTML = "";
+        ALL_MEMBERS.forEach(m => {
+            const div = document.createElement("div");
+            div.className = "member-item";
+            div.innerText = m;
+            div.onclick = () => {
+                document.querySelectorAll(".member-item").forEach(el => el.classList.remove("selected"));
+                div.classList.add("selected");
+                currentMember = m;
+            };
+            grid.appendChild(div);
+        });
+    }
+
+    function restart() {
+        currentMember = "";
+        answers = {};
+        currentQuestion = 2;
+        crisisEvent = "";
+        showPage("cover");
+    }
+
+    document.getElementById("startBtn").onclick = () => showPage("story");
+    document.getElementById("toSelectMember").onclick = () => {
+        renderMemberSelect();
+        showPage("member");
+    };
+    document.getElementById("confirmMemberBtn").onclick = () => {
+        if(!currentMember) {
+            alert("请先选择你的专属捧红对象💖");
+            return;
+        }
+        currentQuestion = 2;
+        answers = {};
+        renderQuestion();
+        showPage("question");
+    };
+    document.getElementById("restartBtn").onclick = () => restart();
+</script>
+
+</body></html>
