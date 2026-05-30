@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>星光之路 ✨ 偶像养成记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background: #0a0a0f;
+            color: #e8e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ===== 开场画面 ===== */
+        #splash {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        #splash.hide {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .5s;
+        }
+        #splash h1 {
+            font-size: 1.7rem;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #c9a0dc, #f0b8cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        #splash .sub {
+            color: #9898a8;
+            font-size: .8rem;
+            margin-bottom: 20px;
+        }
+        #splash input {
+            width: 260px;
+            padding: 11px;
+            border: 2px solid #2a2a3a;
+            border-radius: 12px;
+            background: #16161f;
+            color: #e8e8f0;
+            font-size: .95rem;
+            text-align: center;
+            outline: none;
+            margin-bottom: 8px;
+            transition: border-color .2s;
+        }
+        #splash input:focus {
+            border-color: #c9a0dc;
+        }
+        #splash input::placeholder {
+            color: #686878;
+        }
+        #splash .lbl {
+            color: #9898a8;
+            font-size: .75rem;
+            margin: 10px 0 6px;
+        }
+        #splash .opt-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            max-width: 340px;
+            margin-bottom: 4px;
+        }
+        #splash .opt-row span {
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            border: 2px solid #2a2a3a;
+            font-size: .78rem;
+            background: #1e1e2a;
+            color: #9898a8;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+        #splash .opt-row span.sel {
+            border-color: #fff;
+            color: #fff;
+            background: #2a2a3a;
+        }
+        #colorRow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            max-width: 300px;
+            margin: 8px 0;
+        }
+        #colorRow span {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color .2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+        }
+        #colorRow span.sel {
+            border-color: #fff;
+            transform: scale(1.15);
+        }
+        #goBtn {
+            padding: 12px 44px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #c9a0dc, #f0b8cc);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            letter-spacing: 1px;
+            transition: transform .2s, box-shadow .2s;
+        }
+        #goBtn:active {
+            transform: scale(.95);
+            box-shadow: 0 0 20px rgba(201, 160, 220, .5);
+        }
+
+        /* ===== 主界面 ===== */
+        #app {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app.show {
+            display: flex;
+        }
+
+        /* 顶部栏 */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #16161f;
+            border-bottom: 1px solid #2a2a3a;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .topbar .tleft {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .topbar .av {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--sc, #c9a0dc), #f0b8cc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .topbar .av img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .topbar .nm {
+            font-weight: 700;
+            font-size: .9rem;
+            white-space: nowrap;
+        }
+        .topbar .tag {
+            font-size: .6rem;
+            background: var(--sc, #c9a0dc);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+        .topbar .week {
+            font-size: .65rem;
+            color: #9898a8;
+            white-space: nowrap;
+        }
+        .topbar .save-btn {
+            font-size: .65rem;
+            padding: 5px 10px;
+            border: 1px solid #2a2a3a;
+            border-radius: 8px;
+            background: #1e1e2a;
+            color: #9898a8;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all .2s;
+        }
+        .topbar .save-btn:active {
+            border-color: var(--sc, #c9a0dc);
+            color: var(--sc, #c9a0dc);
+        }
+
+        /* 属性面板 */
+        .stat-panel {
+            padding: 10px 14px;
+            background: #12121a;
+            border-bottom: 1px solid #2a2a3a;
+            flex-shrink: 0;
+        }
+        .stat-panel .srow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: .72rem;
+        }
+        .stat-panel .srow:last-child {
+            margin-bottom: 0;
+        }
+        .stat-panel .sk {
+            width: 44px;
+            flex-shrink: 0;
+            color: #9898a8;
+            text-align: right;
+            font-size: .68rem;
+        }
+        .stat-panel .sbar-wrap {
+            flex: 1;
+            height: 8px;
+            background: #1e1e2a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .stat-panel .sbar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .4s ease;
+        }
+        .stat-panel .sv {
+            width: 32px;
+            flex-shrink: 0;
+            font-size: .7rem;
+            font-weight: 600;
+            text-align: left;
+        }
+        .stat-panel .stress-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            font-size: .65rem;
+            color: #9898a8;
+        }
+        .stat-panel .stress-row .stress-val {
+            font-weight: 600;
+        }
+        .stat-panel .stress-row .stress-val.warn {
+            color: #f87171;
+            animation: pulse .8s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .4;
+            }
+        }
+        .money-row {
+            display: flex;
+            gap: 12px;
+            font-size: .7rem;
+            color: #f5c882;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* 内容区 */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 20px;
+        }
+
+        /* 行动选择区 */
+        .action-title {
+            font-size: .8rem;
+            font-weight: 700;
+            color: #c9a0dc;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .action-title .ap-left {
+            font-size: .65rem;
+            color: #f5c882;
+            margin-left: auto;
+        }
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .action-card {
+            background: #16161f;
+            border: 2px solid #2a2a3a;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all .2s;
+            text-align: center;
+            position: relative;
+        }
+        .action-card:active {
+            transform: scale(.96);
+        }
+        .action-card.sel {
+            border-color: var(--sc, #c9a0dc);
+            background: #1e1a28;
+            box-shadow: 0 0 12px rgba(201, 160, 220, .2);
+        }
+        .action-card .ac-emoji {
+            font-size: 1.6rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .action-card .ac-name {
+            font-size: .75rem;
+            font-weight: 600;
+        }
+        .action-card .ac-desc {
+            font-size: .6rem;
+            color: #9898a8;
+            margin-top: 1px;
+        }
+        .action-card .ac-cost {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: .55rem;
+            color: #f5c882;
+            background: #1e1e2a;
+            padding: 1px 6px;
+            border-radius: 6px;
+        }
+
+        /* 已选行动 */
+        .queue-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            min-height: 28px;
+            font-size: .7rem;
+            color: #9898a8;
+            padding: 4px 0;
+        }
+        .queue-row .qitem {
+            background: var(--sc, #c9a0dc);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: .68rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .queue-row .qitem:active {
+            opacity: .6;
+        }
+
+        /* 执行按钮 */
+        .exec-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--sc, #c9a0dc), #f0b8cc);
+            color: #fff;
+            font-weight: 700;
+            font-size: .9rem;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all .2s;
+        }
+        .exec-btn:active {
+            transform: scale(.97);
+            box-shadow: 0 0 24px rgba(201, 160, 220, .5);
+        }
+        .exec-btn:disabled {
+            opacity: .4;
+            pointer-events: none;
+        }
+
+        /* 日志区 */
+        .log-section {
+            background: #16161f;
+            border-radius: 14px;
+            padding: 12px;
+            border: 1px solid #2a2a3a;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-section h4 {
+            font-size: .75rem;
+            color: #9898a8;
+            margin-bottom: 8px;
+            position: sticky;
+            top: 0;
+            background: #16161f;
+            padding-bottom: 4px;
+            z-index: 1;
+        }
+        .log-item {
+            font-size: .7rem;
+            padding: 4px 0;
+            border-bottom: 1px solid #1e1e2a;
+            color: #b8b8c8;
+            animation: fadeIn .3s ease;
+        }
+        .log-item.good {
+            color: #4ade80;
+        }
+        .log-item.bad {
+            color: #f87171;
+        }
+        .log-item.milestone {
+            color: #f5c882;
+            font-weight: 600;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 弹窗 */
+        .modal-bg {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-bg.show {
+            display: flex;
+        }
+        .modal {
+            background: #16161f;
+            border-radius: 18px;
+            padding: 20px;
+            width: 90%;
+            max-width: 380px;
+            border: 1px solid #2a2a3a;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            margin-bottom: 10px;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .modal .mbtn {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .modal .mbtn button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: .8rem;
+            transition: all .2s;
+        }
+        .modal .mbtn .bc {
+            background: #1e1e2a;
+            color: #9898a8;
+        }
+        .modal .mbtn .bp {
+            background: var(--sc, #c9a0dc);
+            color: #fff;
+        }
+        .modal .shop-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #1e1e2a;
+            gap: 8px;
+        }
+        .modal .shop-item .si-info {
+            flex: 1;
+            font-size: .75rem;
+        }
+        .modal .shop-item .si-name {
+            font-weight: 600;
+        }
+        .modal .shop-item .si-desc {
+            font-size: .65rem;
+            color: #9898a8;
+        }
+        .modal .shop-item .si-price {
+            font-size: .7rem;
+            color: #f5c882;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .modal .shop-item button {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: .7rem;
+            font-weight: 600;
+            background: var(--sc, #c9a0dc);
+            color: #fff;
+            white-space: nowrap;
+            transition: all .2s;
+        }
+        .modal .shop-item button:active {
+            transform: scale(.93);
+        }
+        .modal .shop-item button:disabled {
+            opacity: .4;
+            pointer-events: none;
+        }
+
+        /* 头像弹窗 */
+        .av-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .av-grid div {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background: #1e1e2a;
+            transition: all .2s;
+            margin: 0 auto;
+        }
+        .av-grid div.sel {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+        .av-upload {
+            text-align: center;
+            margin-top: 8px;
+        }
+        .av-upload label {
+            padding: 6px 14px;
+            border: 1px dashed #4a4a5a;
+            border-radius: 8px;
+            color: #9898a8;
+            font-size: .75rem;
+            cursor: pointer;
+        }
+        .av-upload input {
+            display: none;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #16161f;
+            border: 1px solid var(--sc, #c9a0dc);
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: .78rem;
+            z-index: 500;
+            animation: toastIn .3s ease;
+            pointer-events: none;
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* 粒子效果 */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 300;
+            font-weight: 700;
+            animation: particleUp .8s ease-out forwards;
+        }
+        @keyframes particleUp {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-60px) scale(1.4);
+            }
+        }
+
+        /* 响应式 */
+        @media (min-width: 420px) {
+            .action-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 开场画面 ===== -->
+    <div id="splash">
+        <h1>🌟 星光之路</h1>
+        <div class="sub">偶像养成记 · 从练习生到顶流</div>
+        <input id="ni" placeholder="输入你的艺名" maxlength="10">
+        <input id="fi" placeholder="粉丝名（不填自动生成）" maxlength="8">
+        <div class="lbl">选择你的定位 🎯</div>
+        <div class="opt-row" id="roleRow">
+            <span data-role="vocal">🎤 主唱</span>
+            <span data-role="dance">💃 主舞</span>
+            <span data-role="all">🌟 全能</span>
+        </div>
+        <div class="lbl">选择经纪公司 🏢</div>
+        <div class="opt-row" id="compRow">
+            <span data-comp="small">🏠 小型公司</span>
+            <span data-comp="mid">🏢 中型公司</span>
+            <span data-comp="big">🏙️ 大型公司</span>
+        </div>
+        <div class="lbl">选择你的应援色 ✨</div>
+        <div id="colorRow"></div>
+        <button id="goBtn">开始逐梦 💫</button>
+        <div style="color:#9898a8;font-size:.6rem;margin-top:8px">从练习生开始，努力成为顶流吧！</div>
+    </div>
+
+    <!-- ===== 主界面 ===== -->
+    <div id="app">
+        <!-- 顶部栏 -->
+        <div class="topbar">
+            <div class="tleft">
+                <div class="av" id="myAv" title="点击换头像">🌟</div>
+                <span class="nm" id="bNm">小星</span>
+                <span class="tag" id="bTag">练习生</span>
+            </div>
+            <span class="week" id="bWeek">第1周</span>
+            <span class="save-btn" id="saveBtn">💾 存档</span>
+        </div>
+
+        <!-- 属性面板 -->
+        <div class="stat-panel" id="statPanel">
+            <div class="srow"><span class="sk">🎤唱功</span><div class="sbar-wrap"><div class="sbar-fill" id="sbVocal" style="width:20%;background:#a8d8ea;"></div></div><span class="sv" id="svVocal">20</span></div>
+            <div class="srow"><span class="sk">💃舞蹈</span><div class="sbar-wrap"><div class="sbar-fill" id="sbDance" style="width:20%;background:#f0b8cc;"></div></div><span class="sv" id="svDance">20</span></div>
+            <div class="srow"><span class="sk">🎭表现</span><div class="sbar-wrap"><div class="sbar-fill" id="sbExpress" style="width:20%;background:#d4a0e8;"></div></div><span class="sv" id="svExpress">20</span></div>
+            <div class="srow"><span class="sk">💎颜值</span><div class="sbar-wrap"><div class="sbar-fill" id="sbVisual" style="width:20%;background:#f5c882;"></div></div><span class="sv" id="svVisual">20</span></div>
+            <div class="srow"><span class="sk">💪体能</span><div class="sbar-wrap"><div class="sbar-fill" id="sbStamina" style="width:20%;background:#a8e6cf;"></div></div><span class="sv" id="svStamina">20</span></div>
+            <div class="srow"><span class="sk">🔥人气</span><div class="sbar-wrap"><div class="sbar-fill" id="sbPop" style="width:5%;background:#f87171;"></div></div><span class="sv" id="svPop">5</span></div>
+            <div class="stress-row">😰 压力：<span class="stress-val" id="stressVal">10</span>/100 &nbsp;|&nbsp; 💰 金钱：<span style="color:#f5c882;font-weight:600;" id="moneyVal">500</span></div>
+            <div class="money-row" id="rankRow">📊 练习生排名：<span id="rankVal">--</span></div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="content" id="contentArea">
+            <!-- 行动选择 -->
+            <div class="action-title">📋 本周行动规划 <span class="ap-left">行动点：<b id="apLeft">4</b>/4</span></div>
+            <div class="action-grid" id="actionGrid"></div>
+            <div class="queue-row" id="queueRow">📌 已选：<span style="color:#9898a8;">点击下方卡片添加</span></div>
+            <button class="exec-btn" id="execBtn" disabled>⚡ 执行本周计划</button>
+
+            <!-- 日志区 -->
+            <div class="log-section" id="logSection">
+                <h4>📜 训练日志</h4>
+                <div id="logList"><div class="log-item" style="color:#9898a8;">等待你的第一次训练...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 月末评价弹窗 -->
+    <div class="modal-bg" id="evalBg">
+        <div class="modal">
+            <h3 id="evalTitle">📅 月末评价</h3>
+            <div id="evalContent" style="font-size:.8rem;line-height:1.6;"></div>
+            <div class="mbtn"><button class="bp" id="evalOk">知道了 💪</button></div>
+        </div>
+    </div>
+
+    <!-- 商店弹窗 -->
+    <div class="modal-bg" id="shopBg">
+        <div class="modal">
+            <h3>🛒 练习生商店</h3>
+            <div id="shopItems"></div>
+            <div class="mbtn"><button class="bc" id="shopClose">关闭</button></div>
+        </div>
+    </div>
+
+    <!-- 出道弹窗 -->
+    <div class="modal-bg" id="debutBg">
+        <div class="modal" style="text-align:center;">
+            <div style="font-size:3rem;margin-bottom:8px;">🎉</div>
+            <h3 id="debutTitle">恭喜出道！</h3>
+            <div id="debutContent" style="font-size:.8rem;line-height:1.6;color:#b8b8c8;"></div>
+            <div class="mbtn"><button class="bp" id="debutOk">太棒了！✨</button></div>
+        </div>
+    </div>
+
+    <!-- 头像弹窗 -->
+    <div class="modal-bg" id="avBg">
+        <div class="modal av-modal">
+            <h3>✨ 换头像</h3>
+            <div class="av-grid" id="avGrid"></div>
+            <div class="av-upload"><label>📷 上传头像<input type="file" id="avFile" accept="image/*"></label></div>
+            <div class="mbtn" style="margin-top:12px"><button class="bc" id="avNo">取消</button><button class="bp" id="avOk">确定</button></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 颜色配置 =====
+        var CL = [
+            ['薰衣草紫', '#c9a0dc', '#f3e8f8'],
+            ['蜜桃粉', '#f0b8cc', '#fdeef2'],
+            ['天空蓝', '#a8d8ea', '#e8f4f8'],
+            ['薄荷绿', '#a8e6cf', '#e8f8f0'],
+            ['奶油橙', '#f5c882', '#fef5e0'],
+            ['玫瑰粉', '#e8a0b0', '#f8e8ec'],
+            ['丁香紫', '#d4a0e8', '#f0e0f8'],
+            ['湖水蓝', '#a0c8e0', '#e0f0f8'],
+            ['樱花粉', '#f0a8c0', '#fce8ee'],
+            ['焦糖金', '#e0b878', '#f8f0e0'],
+            ['珊瑚橘', '#f0a898', '#fce8e0'],
+            ['星河蓝', '#b0b8e8', '#e8e8f8'],
+            ['暖白色', '#f5f0e8', '#fdfaf5'],
+            ['月光银', '#c8c8d0', '#f0f0f2']
+        ];
+        var selCI = -1;
+        var cr = document.getElementById('colorRow');
+        for (var ci = 0; ci < CL.length; ci++) {
+            var s = document.createElement('span');
+            s.style.background = CL[ci][1];
+            s.title = CL[ci][0];
+            s.style.boxShadow = '0 2px 6px ' + CL[ci][1] + '44';
+            (function(idx, el) {
+                el.onclick = function() {
+                    var all = cr.querySelectorAll('span');
+                    for (var j = 0; j < all.length; j++) all[j].className = '';
+                    el.className = 'sel';
+                    selCI = idx;
+                };
+            })(ci, s);
+            cr.appendChild(s);
+        }
+
+        // ===== 头像列表 =====
+        var AVATARS = ['🌟', '🌙', '🦋', '🐱', '🐰', '🌸', '🎵', '💫', '🎀', '🍬', '🧊', '🍰', '🦊', '🌺', '🐧', '🫧', '🪐', '🍒',
+            '☁️', '🍭'
+        ];
+
+        // ===== 游戏状态 =====
+        var idolN = '',
+            fanN = '',
+            scH = '#c9a0dc',
+            scL = '#f3e8f8',
+            scNm = '薰衣草紫';
+        var myAvatar = '🌟',
+            myAvatarType = 'emoji';
+        var role = 'all'; // vocal / dance / all
+        var company = 'mid'; // small / mid / big
+        var week = 1;
+        var actionPoints = 4;
+        var maxAP = 4;
+        var queue = []; // 本周已选行动
+        var debuted = false;
+
+        // 属性
+        var stats = { vocal: 20, dance: 20, express: 20, visual: 20, stamina: 20, pop: 5 };
+        var stress = 10;
+        var money = 500;
+        var lastTrain = {}; // 记录上周训练类型，用于递减检测
+        var trainStreak = {}; // 连续训练计数
+
+        // 日志
+        var logs = [];
+
+        // ===== 计算排名 =====
+        function calcRank() {
+            var total = stats.vocal + stats.dance + stats.express + stats.visual + stats.stamina + stats.pop * 2;
+            if (debuted) total += 60;
+            if (total >= 350) return '🏆 顶流 #1';
+            if (total >= 280) return '🥇 一线 #TOP5';
+            if (total >= 220) return '🥈 二线 #TOP20';
+            if (total >= 160) return '🥉 三线 #TOP50';
+            if (total >= 110) return '📈 上升期 #TOP100';
+            if (total >= 70) return '🎯 新人 #TOP200';
+            return '🌱 练习生 #' + Math.max(1, Math.floor((300 - total) / 3));
+        }
+
+        function getPhase() {
+            var total = stats.vocal + stats.dance + stats.express + stats.visual + stats.stamina + stats.pop * 2;
+            if (debuted && stats.pop >= 150) return '顶流偶像';
+            if (debuted && stats.pop >= 80) return '当红艺人';
+            if (debuted) return '新人艺人';
+            if (stats.pop >= 40) return '出道预备';
+            return '练习生';
+        }
+
+        // ===== 粉丝名生成 =====
+        function genFanName(name) {
+            var sum = 0;
+            for (var i = 0; i < name.length; i++) sum += name.charCodeAt(i);
+            var fn = ['奶冻', '泡芙', '布蕾', '麻薯', '可丽饼', '奶盖', '曲奇', '芋圆', '奶霜', '桃桃冰', '棉花糖', '糖豆', '蜜桃', '云朵', '汤圆',
+                '豆乳', '慕斯', '雪媚娘'
+            ];
+            return fn[sum % fn.length];
+        }
+
+        // ===== 更新UI =====
+        function updateUI() {
+            document.getElementById('bNm').textContent = idolN;
+            document.getElementById('bTag').textContent = getPhase();
+            document.getElementById('bWeek').textContent = '第' + week + '周';
+            document.getElementById('apLeft').textContent = actionPoints;
+            document.getElementById('stressVal').textContent = stress;
+            if (stress > 75) document.getElementById('stressVal').classList.add('warn');
+            else document.getElementById('stressVal').classList.remove('warn');
+            document.getElementById('moneyVal').textContent = money;
+            document.getElementById('rankVal').textContent = calcRank();
+
+            // 属性条
+            var keys = ['vocal', 'dance', 'express', 'visual', 'stamina', 'pop'];
+            var colors = ['#a8d8ea', '#f0b8cc', '#d4a0e8', '#f5c882', '#a8e6cf', '#f87171'];
+            for (var i = 0; i < keys.length; i++) {
+                var val = stats[keys[i]];
+                var pct = Math.min(100, val);
+                document.getElementById('sb' + keys[i].charAt(0).toUpperCase() + keys[i].slice(1)).style.width = pct + '%';
+                document.getElementById('sv' + keys[i].charAt(0).toUpperCase() + keys[i].slice(1)).textContent = val;
+            }
+
+            // 行动按钮状态
+            renderActionCards();
+            renderQueue();
+            document.getElementById('execBtn').disabled = queue.length === 0;
+            document.getElementById('execBtn').textContent = queue.length === 0 ? '⚡ 请先选择行动' : '⚡ 执行本周计划 (' + queue
+                .length + '项)';
+
+            // 更新CSS变量
+            document.documentElement.style.setProperty('--sc', scH);
+            document.documentElement.style.setProperty('--scl', scL);
+            updateAvUI();
+        }
+
+        function updateAvUI() {
+            var el = document.getElementById('myAv');
+            if (myAvatarType === 'img') el.innerHTML = '<img src="' + myAvatar + '">';
+            else el.textContent = myAvatar;
+        }
+
+        function addLog(msg, type) {
+            logs.unshift({ msg: msg, type: type || 'normal', week: week });
+            if (logs.length > 50) logs.pop();
+            renderLogs();
+        }
+
+        function renderLogs() {
+            var list = document.getElementById('logList');
+            var html = '';
+            for (var i = 0; i < logs.length; i++) {
+                var cls = 'log-item';
+                if (logs[i].type === 'good') cls += ' good';
+                if (logs[i].type === 'bad') cls += ' bad';
+                if (logs[i].type === 'milestone') cls += ' milestone';
+                html += '<div class="' + cls + '">[第' + logs[i].week + '周] ' + logs[i].msg + '</div>';
+            }
+            list.innerHTML = html || '<div class="log-item" style="color:#9898a8;">等待你的第一次训练...</div>';
+        }
+
+        function renderQueue() {
+            var row = document.getElementById('queueRow');
+            if (queue.length === 0) {
+                row.innerHTML = '📌 已选：<span style="color:#9898a8;">点击下方卡片添加</span>';
+            } else {
+                var html = '📌 已选：';
+                for (var i = 0; i < queue.length; i++) {
+                    html += '<span class="qitem" data-idx="' + i + '">' + queue[i].emoji + ' ' + queue[i].name +
+                        ' <small>✕</small></span> ';
+                }
+                row.innerHTML = html;
+                // 绑定点击取消
+                var items = row.querySelectorAll('.qitem');
+                for (var j = 0; j < items.length; j++) {
+                    (function(idx) {
+                        items[j].onclick = function() {
+                            var removed = queue.splice(idx, 1)[0];
+                            actionPoints += (removed.cost || 1);
+                            updateUI();
+                            toast('已取消：' + removed.name);
+                        };
+                    })(j);
+                }
+            }
+        }
+
+        // ===== 行动定义 =====
+        var ACTIONS = [
+            { id: 'vocal_train', emoji: '🎤', name: '唱歌训练', desc: '唱功+6~12', cost: 1, effect: function() { return { vocal: ri(
+                        6, 12), stamina: ri(0, 2), stress: ri(8, 15) }; } },
+            { id: 'dance_train', emoji: '💃', name: '舞蹈训练', desc: '舞蹈+6~12', cost: 1, effect: function() { return { dance: ri(
+                        6, 12), stamina: ri(0, 2), stress: ri(8, 15) }; } },
+            { id: 'express_train', emoji: '🎭', name: '表情管理', desc: '表现力+5~10', cost: 1, effect: function() { return { express: ri(
+                        5, 10), visual: ri(0, 3), stress: ri(5, 10) }; } },
+            { id: 'fitness', emoji: '💪', name: '体能训练', desc: '体能+5~10', cost: 1, effect: function() { return { stamina: ri(5,
+                        10), stress: ri(6, 12) }; } },
+            { id: 'rest', emoji: '😴', name: '休息放松', desc: '压力-15~25', cost: 1, effect: function() { return { stress: -ri(15,
+                        25), stamina: ri(1, 3) }; } },
+            { id: 'social', emoji: '📱', name: '社交营业', desc: '人气+3~7, 金钱+50~150', cost: 1, effect: function() { return { pop: ri(
+                        3, 7), money: ri(50, 150), stress: ri(2, 5) }; } },
+            { id: 'audition', emoji: '🎬', name: '试镜挑战', desc: '综合考验, 消耗2点', cost: 2, effect: function() {
+                    var total = stats.vocal + stats.dance + stats.express + stats.visual;
+                    var success = total > 100 + ri(-20, 20);
+                    if (success) return { pop: ri(8, 20), money: ri(200, 600), stress: ri(10, 18),
+                        vocal: ri(1, 4), dance: ri(1, 4), express: ri(1, 4) };
+                    else return { stress: ri(15, 25), pop: ri(-3, 1) };
+                } },
+            { id: 'shop', emoji: '🛒', name: '商店购物', desc: '购买道具', cost: 0, isShop: true },
+        ];
+
+        // 出道后解锁
+        var DEBUT_ACTIONS = [
+            { id: 'release_song', emoji: '🎵', name: '发布单曲', desc: '人气+10~25, 金钱+500~1500', cost: 2, effect: function() {
+                    var bonus = Math.floor(stats.vocal / 10);
+                    return { pop: ri(10, 25) + bonus, money: ri(500, 1500), stress: ri(5, 10), vocal: ri(1, 3) }; } },
+            { id: 'variety_show', emoji: '📺', name: '上综艺', desc: '人气+8~18, 表现+3~6', cost: 2, effect: function() {
+                    return { pop: ri(8, 18), express: ri(3, 6), money: ri(300, 800), stress: ri(3, 8) }; } },
+            { id: 'endorsement', emoji: '💼', name: '接代言', desc: '金钱+800~2000, 人气+3~8', cost: 1, effect: function() {
+                    return { money: ri(800, 2000), pop: ri(3, 8), visual: ri(1, 3), stress: ri(3, 6) }; } },
+        ];
+
+        function getAvailableActions() {
+            var acts = ACTIONS.slice();
+            if (debuted) acts = acts.concat(DEBUT_ACTIONS);
+            return acts;
+        }
+
+        function renderActionCards() {
+            var grid = document.getElementById('actionGrid');
+            var acts = getAvailableActions();
+            var html = '';
+            for (var i = 0; i < acts.length; i++) {
+                var a = acts[i];
+                var disabled = actionPoints < (a.cost || 1) && a.id !== 'shop';
+                var selClass = '';
+                for (var j = 0; j < queue.length; j++) {
+                    if (queue[j].id === a.id && a.id !== 'shop') selClass = ' sel';
+                }
+                html += '<div class="action-card' + selClass + '" data-aid="' + a.id + '"' + (disabled ?
+                    ' style="opacity:.4;pointer-events:none;"' : '') + '>';
+                if (a.cost > 1) html += '<span class="ac-cost">' + a.cost + '点</span>';
+                html += '<span class="ac-emoji">' + a.emoji + '</span>';
+                html += '<div class="ac-name">' + a.name + '</div>';
+                html += '<div class="ac-desc">' + a.desc + '</div>';
+                html += '</div>';
+            }
+            grid.innerHTML = html;
+
+            // 绑定事件
+            var cards = grid.querySelectorAll('.action-card');
+            for (var k = 0; k < cards.length; k++) {
+                cards[k].onclick = function() {
+                    var aid = this.getAttribute('data-aid');
+                    handleActionClick(aid);
+                };
+            }
+        }
+
+        function handleActionClick(aid) {
+            if (aid === 'shop') {
+                openShop();
+                return;
+            }
+            var acts = getAvailableActions();
+            var action = null;
+            for (var i = 0; i < acts.length; i++) {
+                if (acts[i].id === aid) { action = acts[i]; break; }
+            }
+            if (!action) return;
+            if (actionPoints < (action.cost || 1)) {
+                toast('行动点不足！');
+                return;
+            }
+            // 检查是否已在队列中
+            for (var j = 0; j < queue.length; j++) {
+                if (queue[j].id === aid) {
+                    toast('已在计划中，点击队列可取消');
+                    return;
+                }
+            }
+            queue.push(action);
+            actionPoints -= (action.cost || 1);
+            updateUI();
+            spawnParticle(action.emoji);
+        }
+
+        function spawnParticle(emoji) {
+            var p = document.createElement('div');
+            p.className = 'particle';
+            p.textContent = emoji;
+            p.style.left = (30 + Math.random() * 40) + '%';
+            p.style.top = '55%';
+            p.style.fontSize = '1.5rem';
+            document.body.appendChild(p);
+            setTimeout(function() { p.remove(); }, 800);
+        }
+
+        // ===== 执行本周计划 =====
+        function executeWeek() {
+            if (queue.length === 0) return;
+            var weekLogs = [];
+            var totalStressChange = 0;
+            var statChanges = { vocal: 0, dance: 0, express: 0, visual: 0, stamina: 0, pop: 0, money: 0, stress: 0 };
+
+            for (var i = 0; i < queue.length; i++) {
+                var action = queue[i];
+                var eff = action.effect();
+                for (var key in eff) {
+                    if (key === 'money') statChanges.money += eff[key];
+                    else if (key === 'stress') statChanges.stress += eff[key];
+                    else if (statChanges[key] !== undefined) statChanges[key] += eff[key];
+                }
+                // 连续训练检测
+                var trainId = action.id;
+                if (trainStreak[trainId] === undefined) trainStreak[trainId] = 0;
+                trainStreak[trainId]++;
+                if (trainStreak[trainId] > 2 && action.id.indexOf('train') >= 0) {
+                    // 连续3次以上同类型训练，效果递减
+                    var penalty = Math.floor((trainStreak[trainId] - 2) * 0.3 * (eff.vocal || eff.dance || eff.express || eff
+                        .stamina || 5));
+                    if (penalty > 0 && (eff.vocal || eff.dance || eff.express || eff.stamina)) {
+                        for (var sk in statChanges) {
+                            if (sk !== 'stress' && sk !== 'money' && sk !== 'pop' && statChanges[sk] > 0) statChanges[
+                                sk] = Math.max(0, statChanges[sk] - penalty);
+                        }
+                        weekLogs.push('⚠️ 连续训练' + action.name + '效果递减(-' + penalty + ')');
+                    }
+                }
+                // 重置其他训练 streak
+                for (var tid in trainStreak) {
+                    if (tid !== trainId && trainId.indexOf('train') >= 0 && tid.indexOf('train') >= 0) trainStreak[tid] = 0;
+                }
+                if (action.id === 'rest') {
+                    for (var tid2 in trainStreak) trainStreak[tid2] = Math.max(0, trainStreak[tid2] - 1);
+                }
+            }
+
+            // 应用属性变化
+            stats.vocal = Math.max(0, Math.min(100, stats.vocal + statChanges.vocal));
+            stats.dance = Math.max(0, Math.min(100, stats.dance + statChanges.dance));
+            stats.express = Math.max(0, Math.min(100, stats.express + statChanges.express));
+            stats.visual = Math.max(0, Math.min(100, stats.visual + statChanges.visual));
+            stats.stamina = Math.max(0, Math.min(100, stats.stamina + statChanges.stamina));
+            stats.pop = Math.max(0, Math.min(200, stats.pop + statChanges.pop));
+            stress = Math.max(0, Math.min(100, stress + statChanges.stress));
+            money += statChanges.money;
+            if (money < 0) money = 0;
+
+            totalStressChange = statChanges.stress;
+
+            // 压力影响
+            if (stress > 80) {
+                var penalty2 = Math.floor((stress - 80) / 5);
+                stats.vocal = Math.max(0, stats.vocal - penalty2);
+                stats.dance = Math.max(0, stats.dance - penalty2);
+                weekLogs.push('😰 压力过高！属性受到' + penalty2 + '点损耗');
+            }
+            if (stress > 95) {
+                weekLogs.push('💔 压力爆表！下周需要强制休息！');
+                // 下周强制休息
+                setTimeout(function() {
+                    actionPoints = Math.max(1, actionPoints - 2);
+                    stress = Math.max(20, stress - 30);
+                    addLog('因压力过大被强制休息，压力-30', 'bad');
+                }, 100);
+            }
+
+            // 体能影响
+            if (stats.stamina < 15) {
+                weekLogs.push('😩 体能不足，训练效果大打折扣');
+                stats.vocal = Math.max(0, stats.vocal - 3);
+                stats.dance = Math.max(0, stats.dance - 3);
+            }
+
+            // 记录日志
+            var actionNames = [];
+            for (var j = 0; j < queue.length; j++) actionNames.push(queue[j].emoji + queue[j].name);
+            addLog('本周完成：' + actionNames.join('、'), 'normal');
+            for (var l = 0; l < weekLogs.length; l++) addLog(weekLogs[l], 'bad');
+
+            // 随机事件
+            triggerRandomEvent();
+
+            // 推进周数
+            week++;
+            queue = [];
+            actionPoints = maxAP;
+            trainStreak = {};
+
+            // 月末评价
+            if (week % 4 === 0) {
+                triggerMonthlyEval();
+            }
+
+            // 检测出道
+            if (!debuted && stats.pop >= 50 && (stats.vocal + stats.dance + stats.express) / 3 >= 35) {
+                triggerDebut();
+            }
+
+            // 出道后每月固定收入
+            if (debuted && week % 4 === 0) {
+                var income = 300 + stats.pop * 10;
+                money += income;
+                addLog('💰 本月结算收入：' + income + '元', 'good');
+            }
+
+            updateUI();
+            document.getElementById('logSection').scrollTop = 0;
+        }
+
+        // ===== 随机事件 =====
+        function triggerRandomEvent() {
+            var roll = Math.random();
+            if (roll < 0.25) {
+                // 好事
+                var goodEvents = [
+                    { msg: '🌟 练习视频意外走红！人气+8', eff: { pop: 8 } },
+                    { msg: '🎁 前辈送了你训练器材，体能+5', eff: { stamina: 5 } },
+                    { msg: '📰 被娱乐博主推荐！人气+6', eff: { pop: 6 } },
+                    { msg: '💌 收到粉丝暖心应援信，压力-10', eff: { stress: -10 } },
+                    { msg: '🏆 公司内部小考核获得表扬，表现力+4', eff: { express: 4 } },
+                    { msg: '🍰 队友请你吃饭，心情变好，压力-8', eff: { stress: -8 } },
+                    { msg: '📸 被街拍摄影师拍到，颜值+3人气+4', eff: { visual: 3, pop: 4 } },
+                ];
+                var ev = goodEvents[Math.floor(Math.random() * goodEvents.length)];
+                applyEvent(ev);
+                addLog(ev.msg, 'good');
+            } else if (roll < 0.45) {
+                // 坏事
+                var badEvents = [
+                    { msg: '😤 被网络黑子恶意攻击，压力+12', eff: { stress: 12 } },
+                    { msg: '🤕 训练中轻微扭伤，体能-4', eff: { stamina: -4 } },
+                    { msg: '📉 同期练习生表现亮眼，你被冷落，人气-3', eff: { pop: -3 } },
+                    { msg: '😓 连续训练导致疲惫累积，压力+10', eff: { stress: 10 } },
+                    { msg: '🗣️ 被传不实谣言，压力+15人气-2', eff: { stress: 15, pop: -2 } },
+                ];
+                var ev2 = badEvents[Math.floor(Math.random() * badEvents.length)];
+                applyEvent(ev2);
+                addLog(ev2.msg, 'bad');
+            }
+        }
+
+        function applyEvent(ev) {
+            for (var key in ev.eff) {
+                if (key === 'stress') stress = Math.max(0, Math.min(100, stress + ev.eff[key]));
+                else if (key === 'pop') stats.pop = Math.max(0, Math.min(200, stats.pop + ev.eff[key]));
+                else if (stats[key] !== undefined) stats[key] = Math.max(0, Math.min(100, stats[key] + ev.eff[key]));
+            }
+        }
+
+        // ===== 月末评价 =====
+        function triggerMonthlyEval() {
+            var total = stats.vocal + stats.dance + stats.express + stats.visual + stats.stamina;
+            var avg = total / 5;
+            var grade, bonus, msg;
+            if (avg >= 75) { grade = 'S';
+                bonus = 800;
+                msg = '太出色了！公司高层对你赞不绝口！'; }
+            else if (avg >= 60) { grade = 'A';
+                bonus = 500;
+                msg = '表现优秀，继续加油！'; }
+            else if (avg >= 45) { grade = 'B';
+                bonus = 300;
+                msg = '稳步提升中，还有进步空间。'; }
+            else if (avg >= 30) { grade = 'C';
+                bonus = 150;
+                msg = '需要更加努力才行。'; }
+            else { grade = 'D';
+                bonus = 50;
+                msg = '这样下去可不行，要加把劲了！'; }
+
+            money += bonus;
+            var popBonus = grade === 'S' ? 10 : grade === 'A' ? 6 : grade === 'B' ? 3 : grade === 'C' ? 1 : 0;
+            stats.pop = Math.min(200, stats.pop + popBonus);
+
+            addLog('📅 月末评价：' + grade + '级！' + msg + ' 奖金+' + bonus + '元 人气+' + popBonus, 'milestone');
+
+            // 弹窗
+            document.getElementById('evalTitle').textContent = '📅 第' + week + '周 月末评价';
+            document.getElementById('evalContent').innerHTML =
+                '<div style="text-align:center;font-size:2rem;margin:10px 0;">' + grade + '</div>' +
+                '<p>' + msg + '</p>' +
+                '<p style="margin-top:6px;">💰 奖金：<b style="color:#f5c882;">+' + bonus + '元</b></p>' +
+                '<p>🔥 人气：<b style="color:#f87171;">+' + popBonus + '</b></p>' +
+                '<p style="color:#9898a8;font-size:.7rem;">当前排名：' + calcRank() + '</p>';
+            document.getElementById('evalBg').classList.add('show');
+        }
+
+        // ===== 出道 =====
+        function triggerDebut() {
+            debuted = true;
+            maxAP = 5;
+            actionPoints = 5;
+            money += 2000;
+            stats.pop = Math.max(stats.pop, 55);
+            addLog('🎉🎉 恭喜出道！你正式成为了一名艺人！', 'milestone');
+            document.getElementById('debutTitle').textContent = '🎉 恭喜出道！';
+            document.getElementById('debutContent').innerHTML =
+                '<p>经过' + week + '周的努力，</p>' +
+                '<p><b style="color:' + scH + ';">' + idolN + '</b> 正式出道！</p>' +
+                '<p style="margin-top:6px;">粉丝名：<b>' + fanN + '</b></p>' +
+                '<p>应援色：<b style="color:' + scH + ';">' + scNm + '</b></p>' +
+                '<p style="margin-top:6px;">💰 出道奖金：<b style="color:#f5c882;">+2000元</b></p>' +
+                '<p>⚡ 行动点提升至5点/周</p>' +
+                '<p style="color:#9898a8;font-size:.7rem;">新解锁：发布单曲、上综艺、接代言</p>';
+            document.getElementById('debutBg').classList.add('show');
+            updateUI();
+        }
+
+        // ===== 商店 =====
+        var SHOP_ITEMS = [
+            { id: 'energy_drink', name: '🧃 能量饮料', desc: '压力-20', price: 300, effect: function() { stress = Math.max(0, stress -
+                        20); }, canBuy: function() { return stress > 5; } },
+            { id: 'skincare', name: '💆 美容护理', desc: '颜值+8', price: 600, effect: function() { stats.visual = Math.min(100, stats
+                        .visual + 8); }, canBuy: function() { return stats.visual < 95; } },
+            { id: 'coach', name: '👨‍🏫 特训课程', desc: '随机属性+10', price: 1000, effect: function() { var keys = ['vocal', 'dance',
+                        'express', 'stamina'
+                    ];
+                    var k = keys[Math.floor(Math.random() * keys.length)];
+                    stats[k] = Math.min(100, stats[k] + 10); }, canBuy: function() { return true; } },
+            { id: 'lucky_charm', name: '🍀 幸运符', desc: '本周好运加成', price: 400, effect: function() { stats.pop = Math.min(200, stats
+                        .pop + ri(3, 8));
+                    stress = Math.max(0, stress - 5); }, canBuy: function() { return true; } },
+        ];
+
+        function openShop() {
+            var container = document.getElementById('shopItems');
+            var html = '';
+            for (var i = 0; i < SHOP_ITEMS.length; i++) {
+                var item = SHOP_ITEMS[i];
+                var canBuy = item.canBuy() && money >= item.price;
+                html += '<div class="shop-item">';
+                html += '<div class="si-info"><div class="si-name">' + item.name + '</div><div class="si-desc">' + item.desc +
+                    '</div></div>';
+                html += '<span class="si-price">💲' + item.price + '</span>';
+                html += '<button data-sid="' + item.id + '"' + (canBuy ? '' : ' disabled') + '>' + (money >= item.price ? '购买' :
+                    '不够钱') + '</button>';
+                html += '</div>';
+            }
+            container.innerHTML = html;
+            document.getElementById('shopBg').classList.add('show');
+
+            // 绑定购买
+            var btns = container.querySelectorAll('button');
+            for (var j = 0; j < btns.length; j++) {
+                btns[j].onclick = function() {
+                    var sid = this.getAttribute('data-sid');
+                    for (var k = 0; k < SHOP_ITEMS.length; k++) {
+                        if (SHOP_ITEMS[k].id === sid && money >= SHOP_ITEMS[k].price && SHOP_ITEMS[k].canBuy()) {
+                            money -= SHOP_ITEMS[k].price;
+                            SHOP_ITEMS[k].effect();
+                            addLog('🛒 购买了' + SHOP_ITEMS[k].name, 'good');
+                            toast('购买成功！');
+                            updateUI();
+                            openShop(); // 刷新商店界面
+                            return;
+                        }
+                    }
+                    toast('无法购买！');
+                };
+            }
+        }
+
+        // ===== Toast =====
+        function toast(msg) {
+            var old = document.querySelector('.toast');
+            if (old) old.remove();
+            var t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(function() { t.remove(); }, 2200);
+        }
+
+        // ===== 工具函数 =====
+        function rr(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+        function ri(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+        // ===== 初始化 =====
+        function init(name, customFan, selRole, selComp) {
+            idolN = name.trim() || '小星';
+            role = selRole || 'all';
+            company = selComp || 'mid';
+            fanN = customFan && customFan.trim() ? customFan.trim() : genFanName(idolN);
+
+            // 应援色
+            var sum = 0;
+            for (var i = 0; i < idolN.length; i++) sum += idolN.charCodeAt(i);
+            var c = selCI >= 0 ? CL[selCI] : CL[sum % CL.length];
+            scNm = c[0];
+            scH = c[1];
+            scL = c[2];
+
+            // 初始属性根据定位
+            if (role === 'vocal') { stats = { vocal: 32, dance: 16, express: 20, visual: 20, stamina: 20, pop: 5 }; } else if (
+                role === 'dance') { stats = { vocal: 16, dance: 32, express: 20, visual: 20, stamina: 20, pop: 5 }; } else { stats = {
+                    vocal: 22, dance: 22, express: 24, visual: 20, stamina: 20, pop: 5 }; }
+
+            // 公司加成
+            if (company === 'small') { money = 350;
+                maxAP = 4;
+                actionPoints = 4;
+                stats.stamina += 3; } else if (company === 'mid') { money = 600;
+                maxAP = 4;
+                actionPoints = 4; } else { money = 1000;
+                maxAP = 4;
+                actionPoints = 4;
+                stats.pop += 3;
+                stress = 15; }
+
+            week = 1;
+            queue = [];
+            logs = [];
+            debuted = false;
+            trainStreak = {};
+            stress = company === 'big' ? 15 : 10;
+
+            document.getElementById('splash').classList.add('hide');
+            document.getElementById('app').classList.add('show');
+            updateAvUI();
+            updateUI();
+            renderActionCards();
+            renderLogs();
+            addLog('🌟 欢迎！' + idolN + ' 开始了练习生生涯！', 'milestone');
+            addLog('定位：' + (role === 'vocal' ? '主唱' : role === 'dance' ? '主舞' : '全能') + ' | 公司：' + (company === 'small' ? '小型' :
+                company === 'mid' ? '中型' : '大型'), 'normal');
+            addLog('粉丝名：' + fanN + ' | 应援色：' + scNm, 'normal');
+            toast('欢迎，' + idolN + '！开始训练吧 💪');
+        }
+
+        // ===== 存档 =====
+        function saveGame() {
+            var data = {
+                idolN: idolN,
+                fanN: fanN,
+                scH: scH,
+                scL: scL,
+                scNm: scNm,
+                selCI: selCI,
+                role: role,
+                company: company,
+                week: week,
+                stats: stats,
+                stress: stress,
+                money: money,
+                debuted: debuted,
+                maxAP: maxAP,
+                actionPoints: actionPoints,
+                myAvatar: myAvatar,
+                myAvatarType: myAvatarType,
+                logs: logs.slice(0, 30)
+            };
+            try {
+                localStorage.setItem('idol_growth_save', JSON.stringify(data));
+                toast('存档成功！💾');
+            } catch (e) { toast('存档失败，存储空间不足'); }
+        }
+
+        function loadGame() {
+            try {
+                var s = localStorage.getItem('idol_growth_save');
+                if (!s) return false;
+                var d = JSON.parse(s);
+                if (!d.idolN) return false;
+                idolN = d.idolN;
+                fanN = d.fanN;
+                scH = d.scH;
+                scL = d.scL;
+                scNm = d.scNm;
+                selCI = d.selCI >= 0 ? d.selCI : -1;
+                role = d.role;
+                company = d.company;
+                week = d.week;
+                stats = d.stats;
+                stress = d.stress;
+                money = d.money;
+                debuted = d.debuted || false;
+                maxAP = d.maxAP || 4;
+                actionPoints = d.actionPoints || 4;
+                if (d.myAvatar) myAvatar = d.myAvatar;
+                if (d.myAvatarType) myAvatarType = d.myAvatarType;
+                if (d.logs) logs = d.logs;
+                queue = [];
+                trainStreak = {};
+                return true;
+            } catch (e) { return false; }
+        }
+
+        function autoLoad() {
+            if (loadGame()) {
+                document.getElementById('ni').value = idolN;
+                document.getElementById('fi').value = fanN;
+                if (selCI >= 0) {
+                    var all = cr.querySelectorAll('span');
+                    if (all[selCI]) all[selCI].className = 'sel';
+                }
+                // 设置角色和公司选择
+                var roleSpans = document.querySelectorAll('#roleRow span');
+                for (var i = 0; i < roleSpans.length; i++) {
+                    roleSpans[i].className = roleSpans[i].getAttribute('data-role') === role ? 'sel' : '';
+                }
+                var compSpans = document.querySelectorAll('#compRow span');
+                for (var j = 0; j < compSpans.length; j++) {
+                    compSpans[j].className = compSpans[j].getAttribute('data-comp') === company ? 'sel' : '';
+                }
+                document.getElementById('splash').classList.add('hide');
+                document.getElementById('app').classList.add('show');
+                updateAvUI();
+                updateUI();
+                renderActionCards();
+                renderLogs();
+                toast('已读取存档 💾 第' + week + '周');
+            }
+        }
+
+        // ===== 事件绑定 =====
+        document.getElementById('goBtn').onclick = function() {
+            var n = document.getElementById('ni').value.trim();
+            var f = document.getElementById('fi').value.trim();
+            if (!n) { toast('请输入艺名~'); return; }
+            if (!role) { toast('请选择定位~'); return; }
+            if (!company) { toast('请选择公司~'); return; }
+            init(n, f, role, company);
+        };
+
+        // 角色选择
+        document.getElementById('roleRow').onclick = function(e) {
+            var span = e.target.closest('span');
+            if (!span) return;
+            var all = document.querySelectorAll('#roleRow span');
+            for (var i = 0; i < all.length; i++) all[i].className = '';
+            span.className = 'sel';
+            role = span.getAttribute('data-role');
+        };
+
+        // 公司选择
+        document.getElementById('compRow').onclick = function(e) {
+            var span = e.target.closest('span');
+            if (!span) return;
+            var all = document.querySelectorAll('#compRow span');
+            for (var i = 0; i < all.length; i++) all[i].className = '';
+            span.className = 'sel';
+            company = span.getAttribute('data-comp');
+        };
+
+        // 执行按钮
+        document.getElementById('execBtn').onclick = function() {
+            if (queue.length === 0) return;
+            executeWeek();
+            document.getElementById('contentArea').scrollTop = 0;
+        };
+
+        // 存档按钮
+        document.getElementById('saveBtn').onclick = saveGame;
+
+        // 月末评价关闭
+        document.getElementById('evalOk').onclick = function() {
+            document.getElementById('evalBg').classList.remove('show');
+            updateUI();
+        };
+
+        // 商店关闭
+        document.getElementById('shopClose').onclick = function() {
+            document.getElementById('shopBg').classList.remove('show');
+            updateUI();
+        };
+
+        // 出道弹窗关闭
+        document.getElementById('debutOk').onclick = function() {
+            document.getElementById('debutBg').classList.remove('show');
+            updateUI();
+            renderActionCards();
+        };
+
+        // 头像弹窗
+        document.getElementById('myAv').onclick = function() {
+            document.getElementById('avBg').classList.add('show');
+            var selAv = myAvatar;
+            var g = document.getElementById('avGrid');
+            g.innerHTML = '';
+            for (var i = 0; i < AVATARS.length; i++) {
+                var d = document.createElement('div');
+                d.textContent = AVATARS[i];
+                (function(idx, el) {
+                    el.onclick = function() {
+                        g.querySelectorAll('div').forEach(function(x) { x.className = ''; });
+                        el.className = 'sel';
+                        selAv = AVATARS[idx];
+                        myAvatarType = 'emoji';
+                    };
+                })(i, d);
+                g.appendChild(d);
+                if (AVATARS[i] === myAvatar) d.className = 'sel';
+            }
+            document.getElementById('avOk').onclick = function() {
+                myAvatar = selAv;
+                updateAvUI();
+                document.getElementById('avBg').classList.remove('show');
+                toast('头像已更换 ✨');
+            };
+        };
+        document.getElementById('avNo').onclick = function() { document.getElementById('avBg').classList.remove('show'); };
+        document.getElementById('avFile').onchange = function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                myAvatar = ev.target.result;
+                myAvatarType = 'img';
+                updateAvUI();
+                document.getElementById('avBg').classList.remove('show');
+                toast('头像已上传 ✨');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // 键盘快捷操作
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && document.getElementById('splash').classList.contains('hide') && !document
+                .getElementById('evalBg').classList.contains('show') && !document.getElementById('shopBg').classList
+                .contains('show') && !document.getElementById('debutBg').classList.contains('show') && !document
+                .getElementById('avBg').classList.contains('show')) {
+                if (queue.length > 0) executeWeek();
+            }
+        });
+
+        // ===== 自动加载存档 =====
+        setTimeout(autoLoad, 400);
+
+        // ===== 默认选中第一个颜色 =====
+        if (cr.querySelectorAll('span').length > 0) {
+            var firstColor = cr.querySelectorAll('span')[0];
+            firstColor.className = 'sel';
+            selCI = 0;
+        }
+
+        // ===== 默认选中全能和中型公司 =====
+        (function() {
+            var roleSpans = document.querySelectorAll('#roleRow span');
+            for (var i = 0; i < roleSpans.length; i++) {
+                if (roleSpans[i].getAttribute('data-role') === 'all') roleSpans[i].className = 'sel';
+            }
+            var compSpans = document.querySelectorAll('#compRow span');
+            for (var j = 0; j < compSpans.length; j++) {
+                if (compSpans[j].getAttribute('data-comp') === 'mid') compSpans[j].className = 'sel';
+            }
+            role = 'all';
+            company = 'mid';
+        })();
+
+        console.log('🌟 星光之路 - 偶像养成记 已就绪');
+        console.log('从练习生开始，通过训练、试镜、营业，努力出道成为顶流吧！');
+        console.log('💡 提示：选择行动→执行计划→月末评价→出道→登顶！');
+        console.log('🎯 出道条件：人气≥50 且 平均实力≥35');
+        console.log('🛒 压力大或需要提升时记得去商店购物哦~');
+    </script>
+</body>
+</html>
