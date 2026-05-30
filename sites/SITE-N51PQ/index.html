@@ -1,0 +1,787 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>入职日记：我成为了TF四代经纪人</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Courier Prime', 'Segoe UI Emoji', 'PingFang SC', 'Kalam', 'Caveat', 'Bradley Hand', cursive, monospace;
+            background: #F0F8FF;
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        .app {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #FFFFFF;
+            background-image: radial-gradient(circle at 10% 20%, rgba(91, 155, 213, 0.04) 2%, transparent 2.5%);
+            background-size: 28px 28px;
+            min-height: 90vh;
+            position: relative;
+            box-shadow: 8px 8px 0 rgba(91, 155, 213, 0.1), 0 0 0 1px #C5E0F5, 0 0 0 6px #F0F8FF;
+            border-radius: 12px;
+            padding: 16px 12px 32px;
+        }
+
+        .tape {
+            position: absolute;
+            background: rgba(197, 224, 245, 0.7);
+            width: 80px;
+            height: 24px;
+            transform: rotate(-8deg);
+            top: 20px;
+            right: 25px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .tape:after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            left: 10px;
+            width: 60px;
+            height: 12px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(91,155,213,0.15) 8px, rgba(91,155,213,0.15) 16px);
+        }
+
+        .page {
+            display: none;
+            padding: 12px 8px 40px;
+            animation: pageTurn 0.4s ease;
+        }
+
+        .active-page {
+            display: block;
+        }
+
+        @keyframes pageTurn {
+            0% { opacity: 0; transform: translateX(6px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            font-family: 'Kalam', 'Caveat', cursive;
+            color: #5B9BD5;
+            text-shadow: 2px 2px 0 #EBF3FA;
+            letter-spacing: -0.5px;
+            margin-bottom: 16px;
+            line-height: 1.2;
+            border-left: 5px solid #5B9BD5;
+            padding-left: 16px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Kalam', cursive;
+            color: #5B9BD5;
+            margin: 20px 0 6px;
+            display: inline-block;
+            background: #F5F9FF;
+            padding: 0 12px 0 6px;
+            border-bottom: 2px dotted #C5E0F5;
+        }
+
+        .sub {
+            color: #7A9EC2;
+            font-size: 14px;
+            margin-bottom: 22px;
+            border-bottom: 1px dashed #C5E0F5;
+            padding-bottom: 6px;
+        }
+
+        .vintage-option {
+            background: #F5F9FF;
+            border-radius: 30px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #5A6B7A;
+            transition: all 0.2s;
+            border: 1px solid #C5E0F5;
+            box-shadow: 2px 2px 0 #E8F0F8;
+        }
+
+        .vintage-option.selected {
+            background: #5B9BD5;
+            border-color: #4A8AC0;
+            color: white;
+            box-shadow: 1px 1px 0 #4A8AC0;
+            transform: translate(1px, 1px);
+        }
+
+        .claw-machine {
+            background: linear-gradient(145deg, #E8F0F8, #E0EAF5);
+            border-radius: 48px 48px 32px 32px;
+            padding: 20px 12px 16px;
+            margin: 20px 0;
+            position: relative;
+            border: 3px solid #B8D4F0;
+            box-shadow: inset 0 0 0 2px #FFFFFF, 0 8px 0 #A8C4E0;
+        }
+
+        .claw-top {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #B8D4F0;
+            width: 100px;
+            height: 20px;
+            border-radius: 20px 20px 8px 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #5A6B7A;
+            line-height: 20px;
+        }
+
+        .claw-glass {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 32px;
+            padding: 12px;
+            min-height: 320px;
+        }
+
+        .doll-pool {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .claw-doll {
+            background: #FFFFFF;
+            border-radius: 32px;
+            padding: 10px 6px;
+            text-align: center;
+            border: 2px solid #C5E0F5;
+            box-shadow: 0 5px 0 #D0E4F0;
+        }
+
+        .doll-avatar {
+            width: 52px;
+            height: 52px;
+            background: #F5F9FF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #5B9BD5;
+            margin: 0 auto 6px;
+            border: 2px solid #C5E0F5;
+        }
+
+        .doll-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #5A6B7A;
+        }
+
+        .claw-control {
+            background: #E0EAF5;
+            border-radius: 40px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+            border: 1px solid #B8D4F0;
+        }
+
+        .catch-btn {
+            background: #5B9BD5;
+            border: none;
+            border-radius: 60px;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 0 #3A7AB0;
+            transition: 0.05s linear;
+        }
+
+        .catch-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #3A7AB0;
+        }
+
+        .catch-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .catch-stats {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #5A6B7A;
+        }
+
+        .catch-stats span {
+            font-size: 24px;
+            color: #5B9BD5;
+        }
+
+        .caught-area {
+            background: #F0F6FC;
+            border-radius: 24px;
+            padding: 12px;
+            margin-top: 16px;
+            border: 1px dashed #B8D4F0;
+        }
+
+        .caught-title {
+            font-size: 12px;
+            color: #7A9EC2;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .caught-dolls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 50px;
+        }
+
+        .caught-badge {
+            background: #5B9BD5;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+        }
+        .shaking {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        .duty-row {
+            background: #F5F9FF;
+            border-radius: 60px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #C5E0F5;
+        }
+
+        .duty-name {
+            min-width: 85px;
+            font-weight: 700;
+            color: #5A6B7A;
+            font-size: 15px;
+        }
+
+        .duty-tag-group {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .duty-tag {
+            background: #FFFFFF;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #5A6B7A;
+            cursor: pointer;
+            border: 1px solid #C5E0F5;
+        }
+
+        .duty-tag.selected {
+            background: #5B9BD5;
+            color: white;
+        }
+
+        .vintage-btn {
+            background: #F5F9FF;
+            border: 2px solid #C5E0F5;
+            border-radius: 48px;
+            width: 100%;
+            padding: 14px 20px;
+            font-weight: 700;
+            font-size: 18px;
+            color: #5A6B7A;
+            margin-top: 32px;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 rgba(91, 155, 213, 0.15);
+        }
+
+        .vintage-btn:active {
+            transform: translate(2px, 2px);
+        }
+
+        .double-btn {
+            display: flex;
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .double-btn button {
+            flex: 1;
+            background: #F5F9FF;
+            border: 1px solid #C5E0F5;
+            border-radius: 48px;
+            padding: 12px;
+            font-weight: 600;
+            color: #5A6B7A;
+            cursor: pointer;
+        }
+
+        .result-poster {
+            background: #FFFFFF;
+            border-radius: 24px;
+            padding: 24px 18px;
+            margin: 20px 0;
+            border: 1px solid #C5E0F5;
+            box-shadow: inset 0 0 0 1px #FFFFFF, 4px 4px 0 #E8F0F8;
+        }
+
+        .tf-handmade-logo {
+            background: #F5F9FF;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            border: 2px solid #C5E0F5;
+            box-shadow: 4px 4px 0 #E8F0F8;
+        }
+        .tf-handmade-logo .tf-big {
+            font-size: 42px;
+            font-weight: 800;
+            color: #5B9BD5;
+            letter-spacing: 2px;
+        }
+        .tf-handmade-logo .tf-small {
+            font-size: 14px;
+            font-weight: 600;
+            color: #7A9EC2;
+            margin-top: 4px;
+        }
+        .tf-handmade-logo .tf-family {
+            font-size: 9px;
+            color: #7A9EC2;
+            margin-top: 4px;
+        }
+
+        .count-badge {
+            background: #F5F9FF;
+            padding: 5px 14px;
+            border-radius: 60px;
+            font-size: 13px;
+            color: #5A6B7A;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #C5E0F5;
+        }
+
+        footer {
+            text-align: center;
+            color: #A0B8D0;
+            font-size: 11px;
+            margin-top: 32px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 60px;
+            border: 1px solid #C5E0F5;
+            background: #FFFFFF;
+            font-size: 15px;
+            margin-top: 18px;
+        }
+
+        .sticker-deco {
+            position: absolute;
+            font-size: 24px;
+            opacity: 0.15;
+            pointer-events: none;
+            transform: rotate(-5deg);
+        }
+    </style>
+<style type="text/css" id="__via_marker__"></style></head>
+<body>
+<div class="app" style="position: relative;">
+    <div class="tape"></div>
+    <div class="sticker-deco" style="top: 15px; left: 10px;">☁️</div>
+    <div class="sticker-deco" style="bottom: 20px; right: 15px;">🌊</div>
+
+    <div id="pageCover" class="page active-page" style="text-align: center;">
+        <div class="tf-handmade-logo" style="margin: 20px auto;">
+            <div class="tf-big">TF</div>
+            <div class="tf-small">四代</div>
+            <div class="tf-family">FAMILY</div>
+        </div>
+        <h1 style="text-align: center; border-left: none;">入职日记：<br>我成为了TF四代经纪人</h1>
+        <p style="color: #7A9EC2; margin: 12px 0;">亲手组建你的专属男团</p>
+        <div style="width: 50px; height: 2px; background: #C5E0F5; margin: 24px auto;"></div>
+        <p style="margin: 32px 0 20px; color: #7A9EC2;">点击开始，开启你的成团之旅</p>
+        <button id="startBtn" class="vintage-btn">开始成团 ✨</button>
+    </div>
+
+    <div id="pageIntro" class="page">
+        <div style="text-align: center; margin-bottom: 12px;">
+            <span style="background: #F5F9FF; padding: 4px 18px; border-radius: 30px; font-size: 12px;">📌 各位新晋经纪人请注意！</span>
+        </div>
+        <div style="background: #FFFFFF; border-radius: 28px; padding: 22px; margin: 20px 0; border: 1px solid #C5E0F5;">
+            <p style="line-height: 1.6; color: #5A6B7A;">
+                本次成团全程由你做主：<br><br>
+                ➕ 选定团人数 → 🎮 抓娃娃机随机抓取成员 → 🎭 分配队内担当 → 🎨 敲定团名风格<br><br>
+                打造独属于你的四代限定男团，快来试试吧！
+            </p>
+        </div>
+        <button id="toNext1" class="vintage-btn">下一步 ➡️</button>
+    </div>
+
+    <div id="pageCount" class="page">
+        <h2>第一步 · 确定团人数</h2>
+        <div class="sub">你想打造几人限定男团？</div>
+        <div id="countOptions">
+            <div data-count="5" class="vintage-option">🌟 5人精致团（顶配小众，实力拉满）</div>
+            <div data-count="7" class="vintage-option">💎 7人经典团（楼系标配，人气均衡）</div>
+            <div data-count="9" class="vintage-option">🔥 9人大型团（完颜全员，舞台震撼）</div>
+            <div data-count="0" class="vintage-option">✨ 自由人数团（随心挑选，无拘无束）</div>
+        </div>
+        <button id="confirmCountBtn" class="vintage-btn">确认人数 · 进入娃娃机</button>
+    </div>
+
+    <div id="pageMembers" class="page">
+        <h2>第二步 · 抓娃娃机 🎮</h2>
+        <div class="sub">点击摇杆，随机抓取你心仪的成员玩偶！（王烁然是隐藏款✨）</div>
+        
+        <div class="claw-machine">
+            <div class="claw-top">🪄 抓娃娃机 🪄</div>
+            <div class="claw-glass">
+                <div id="dollPool" class="doll-pool"></div>
+                <div class="claw-control">
+                    <div class="catch-stats">
+                        📦 已抓取 <span id="caughtCount">0</span> / <span id="maxCount">∞</span>
+                    </div>
+                    <button id="catchBtn" class="catch-btn">🕹️ 抓取一次</button>
+                </div>
+                <div class="caught-area">
+                    <div class="caught-title">🧸 你的战利品 👇</div>
+                    <div id="caughtDolls" class="caught-dolls"></div>
+                </div>
+            </div>
+        </div>
+        <button id="confirmMembersBtn" class="vintage-btn">✅ 抓取完毕 · 去分配担当</button>
+    </div>
+
+    <div id="pageDuty" class="page">
+        <h2>第三步 · 分配队内担当</h2>
+        <div class="sub">每位成员至少1个担当，最多2个（含Rap担）</div>
+        <div id="dutyListContainer"></div>
+        <button id="confirmDutyBtn" class="vintage-btn">分配完毕 · 下一步</button>
+    </div>
+
+    <div id="pageStyle" class="page">
+        <h2>第四步 · 打造团魂与风格</h2>
+        <div style="margin-bottom: 12px;"><strong>🎨 团队主打风格</strong></div>
+        <div id="styleOptions">
+            <div data-style="元气校园少年风" class="vintage-option selected">🍎 元气校园少年风</div>
+            <div data-style="酷帅实力炸场风" class="vintage-option">⚡ 酷帅实力炸场风</div>
+            <div data-style="温柔治愈清新风" class="vintage-option">🌿 温柔治愈清新风</div>
+            <div data-style="鬼马搞怪欢乐风" class="vintage-option">🎈 鬼马搞怪欢乐风</div>
+            <div data-style="清冷高级氛围感" class="vintage-option">❄️ 清冷高级氛围感</div>
+        </div>
+        <div style="margin: 28px 0 8px;"><strong>🏷️ 定制专属团名</strong></div>
+        <div id="recNames" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+            <span data-name="星序少年" class="duty-tag">星序少年</span>
+            <span data-name="雾岛来信" class="duty-tag">雾岛来信</span>
+            <span data-name="肆季航线" class="duty-tag">肆季航线</span>
+            <span data-name="星火纪元" class="duty-tag">星火纪元</span>
+            <span data-name="橘子汽水" class="duty-tag">橘子汽水</span>
+        </div>
+        <input type="text" id="customName" placeholder="自定义团名 (最多8字)" maxlength="8">
+        <button id="finishBtn" class="vintage-btn">敲定一切 · 查看成团结果 🎉</button>
+    </div>
+
+    <div id="pageResult" class="page">
+        <h2>🎉 恭喜！你的专属男团正式出道</h2>
+        <div class="result-poster" id="resultContent"></div>
+        <div style="text-align: center; font-style: italic; color: #7A9EC2;">以热爱为名，赴少年之约 🌊<br>你打造的TF四代新团，未来一路繁花，顶峰相见！</div>
+        <div class="double-btn">
+            <button id="restartBtn">🔄 重新成团</button>
+            <button id="shareBtn">📤 分享我的成团结果</button>
+        </div>
+        <footer>TF家族四代 · 专属限定团</footer>
+    </div>
+</div>
+
+<script>
+    const ALL_MEMBERS = [
+        "官俊臣","张桂源","张函瑞","王橹杰","左奇函","陈奕恒","杨博文",
+        "杨涵博","张奕然","聂玮辰","陈思罕","魏子宸","李煜东","陈浚铭","王烁然"
+    ];
+    
+    // 🎯 概率权重设置：王烁然权重1，其他成员权重10
+    // 王烁然被抓到的概率 = 1 / (1 + 14×10) ≈ 0.7%
+    // 其他成员被抓到的概率 ≈ 7% 每人
+    const MEMBER_WEIGHTS = {
+        "官俊臣": 10, "张桂源": 10, "张函瑞": 10, "王橹杰": 10, "左奇函": 10,
+        "陈奕恒": 10, "杨博文": 10, "杨涵博": 10, "张奕然": 10, "聂玮辰": 10,
+        "陈思罕": 10, "魏子宸": 10, "李煜东": 10, "陈浚铭": 10, "王烁然": 1
+    };
+    
+    const DUTIES = ["队长","主唱","主舞","Rap担","门面","综艺担当","气氛担当","酷拽担当","温柔担当","创作担当","全能忙内"];
+
+    let selectedCountType = 0;
+    let availableMembers = [];
+    let selectedMembers = [];
+    let memberDuties = {};
+    let selectedStyle = "元气校园少年风";
+    let finalGroupName = "星序少年";
+
+    function getInitial(name) { return name.charAt(0); }
+    function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page')); document.getElementById(id).classList.add('active-page'); }
+
+    // 根据权重随机选择一个成员
+    function getRandomMemberByWeight(members) {
+        // 计算总权重
+        let totalWeight = 0;
+        for (let member of members) {
+            totalWeight += MEMBER_WEIGHTS[member];
+        }
+        // 随机一个值
+        let random = Math.random() * totalWeight;
+        let accumulated = 0;
+        for (let member of members) {
+            accumulated += MEMBER_WEIGHTS[member];
+            if (random <= accumulated) {
+                return member;
+            }
+        }
+        return members[0]; // fallback
+    }
+
+    function renderClawMachine() {
+        const poolDiv = document.getElementById('dollPool');
+        const caughtDiv = document.getElementById('caughtDolls');
+        const maxLimit = selectedCountType > 0 ? selectedCountType : ALL_MEMBERS.length;
+        
+        poolDiv.innerHTML = '';
+        availableMembers.forEach(name => {
+            const doll = document.createElement('div');
+            doll.className = 'claw-doll';
+            // 王烁然的玩偶加一个✨稀有标记
+            const rareMark = name === "王烁然" ? '<span style="font-size:10px; margin-left:4px;">✨</span>' : '';
+            doll.innerHTML = `<div class="doll-avatar">${getInitial(name)}</div><div class="doll-name">${name}${rareMark}</div>`;
+            poolDiv.appendChild(doll);
+        });
+        
+        caughtDiv.innerHTML = '';
+        selectedMembers.forEach(name => {
+            const badge = document.createElement('span');
+            badge.className = 'caught-badge';
+            badge.innerText = name;
+            caughtDiv.appendChild(badge);
+        });
+        
+        document.getElementById('caughtCount').innerText = selectedMembers.length;
+        document.getElementById('maxCount').innerText = maxLimit === ALL_MEMBERS.length ? '∞' : maxLimit;
+        
+        const catchBtn = document.getElementById('catchBtn');
+        if (selectedMembers.length >= maxLimit) {
+            catchBtn.classList.add('disabled');
+            catchBtn.disabled = true;
+        } else {
+            catchBtn.classList.remove('disabled');
+            catchBtn.disabled = false;
+        }
+    }
+    
+    function catchRandom() {
+        const maxLimit = selectedCountType > 0 ? selectedCountType : ALL_MEMBERS.length;
+        if (selectedMembers.length >= maxLimit) {
+            alert(`🎮 已经抓够${maxLimit}个玩偶啦！`);
+            return;
+        }
+        if (availableMembers.length === 0) {
+            alert("🎮 娃娃机里没有玩偶了！");
+            return;
+        }
+        
+        // 🎯 使用权重随机抓取
+        const caught = getRandomMemberByWeight(availableMembers);
+        
+        const catchBtn = document.getElementById('catchBtn');
+        catchBtn.classList.add('shaking');
+        setTimeout(() => catchBtn.classList.remove('shaking'), 300);
+        
+        const index = availableMembers.indexOf(caught);
+        if (index !== -1) availableMembers.splice(index, 1);
+        selectedMembers.push(caught);
+        memberDuties[caught] = [];
+        
+        renderClawMachine();
+        
+        // 稀有提示
+        const isRare = (caught === "王烁然");
+        const msg = document.createElement('div');
+        msg.style.cssText = 'position:fixed; top:40%; left:50%; transform:translate(-50%,-50%); background:#5B9BD5; color:white; padding:12px 24px; border-radius:60px; font-weight:bold; z-index:1000; animation:fadeOut 1s ease forwards;';
+        msg.innerText = isRare ? `✨✨ 恭喜！抓到了稀有隐藏款 ${caught} ！ ✨✨` : `🎉 抓到了 ${caught} ！`;
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 1200);
+    }
+    
+    function renderDutyPage() {
+        const container = document.getElementById('dutyListContainer');
+        container.innerHTML = '';
+        for(let member of selectedMembers) {
+            const current = memberDuties[member] || [];
+            const row = document.createElement('div');
+            row.className = 'duty-row';
+            row.innerHTML = `<div class="duty-name">${member}</div><div class="duty-tag-group" id="dutyGroup-${member}"></div>`;
+            container.appendChild(row);
+            const group = row.querySelector(`.duty-tag-group`);
+            DUTIES.forEach(duty => {
+                const tag = document.createElement('span');
+                tag.innerText = duty;
+                tag.className = `duty-tag ${current.includes(duty) ? 'selected' : ''}`;
+                tag.onclick = () => {
+                    let arr = memberDuties[member] || [];
+                    if(arr.includes(duty)) arr = arr.filter(d => d !== duty);
+                    else { if(arr.length >= 2) { alert("每位成员最多选2个担当"); return; } arr.push(duty); }
+                    memberDuties[member] = arr;
+                    renderDutyPage();
+                };
+                group.appendChild(tag);
+            });
+        }
+    }
+
+    function showResult() {
+        const resultDiv = document.getElementById('resultContent');
+        let memberHtml = '';
+        selectedMembers.forEach(m => {
+            let duties = memberDuties[m] || [];
+            let dutyStr = duties.length ? duties.join('、') : '未分配';
+            memberHtml += `<div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px dotted #C5E0F5;"><span>${m}</span><span style="color:#5B9BD5;">${dutyStr}</span></div>`;
+        });
+        resultDiv.innerHTML = `
+            <div style="text-align:center; margin-bottom: 16px;"><span style="background:#F5F9FF; padding:4px 24px; border-radius:40px;">🎤 出道官宣</span></div>
+            <div style="font-size:28px; font-weight:800; text-align:center; color:#5B9BD5;">${finalGroupName}</div>
+            <div style="text-align:center; margin:14px 0; display:flex; justify-content:center; gap:12px;"><span class="count-badge">👥 ${selectedMembers.length}人</span><span class="count-badge">🎨 ${selectedStyle}</span></div>
+            <div style="margin:20px 0 8px; font-weight:700;">✨ 成员担当公示</div>
+            ${memberHtml}
+        `;
+        showPage('pageResult');
+    }
+
+    function finalBuild() {
+        if(selectedMembers.length === 0) { alert("🎮 请先抓取至少一个玩偶！"); return; }
+        for(let m of selectedMembers) if(!memberDuties[m]?.length) { alert(`请为 ${m} 至少分配一个担当`); return; }
+        let custom = document.getElementById('customName').value.trim();
+        finalGroupName = custom || document.querySelector('#recNames .duty-tag.selected')?.getAttribute('data-name') || "星序少年";
+        let styleCard = document.querySelector('#styleOptions .vintage-option.selected');
+        if(styleCard) selectedStyle = styleCard.getAttribute('data-style');
+        showResult();
+    }
+
+    document.getElementById('startBtn').onclick = () => showPage('pageIntro');
+    document.getElementById('toNext1').onclick = () => showPage('pageCount');
+    
+    document.querySelectorAll('#countOptions .vintage-option').forEach(opt => {
+        opt.onclick = () => {
+            document.querySelectorAll('#countOptions .vintage-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            selectedCountType = opt.getAttribute('data-count') === '0' ? 0 : parseInt(opt.getAttribute('data-count'));
+        };
+    });
+    
+    document.getElementById('confirmCountBtn').onclick = () => {
+        if(selectedCountType === undefined) { alert("请选择成团人数"); return; }
+        availableMembers = [...ALL_MEMBERS];
+        selectedMembers = [];
+        memberDuties = {};
+        renderClawMachine();
+        showPage('pageMembers');
+    };
+    
+    document.getElementById('catchBtn').onclick = catchRandom;
+    
+    document.getElementById('confirmMembersBtn').onclick = () => {
+        if(selectedMembers.length === 0) { alert("至少抓取一位成员！"); return; }
+        renderDutyPage();
+        showPage('pageDuty');
+    };
+    
+    document.getElementById('confirmDutyBtn').onclick = () => {
+        for(let m of selectedMembers) if(!memberDuties[m]?.length) { alert("请为每位成员至少选择一个担当"); return; }
+        showPage('pageStyle');
+    };
+    
+    document.querySelectorAll('#styleOptions .vintage-option').forEach(opt => {
+        opt.onclick = () => {
+            document.querySelectorAll('#styleOptions .vintage-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+        };
+    });
+    
+    document.querySelectorAll('#recNames .duty-tag').forEach(tag => {
+        tag.onclick = () => {
+            document.querySelectorAll('#recNames .duty-tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+            document.getElementById('customName').value = '';
+        };
+    });
+    
+    document.getElementById('finishBtn').onclick = finalBuild;
+    document.getElementById('restartBtn').onclick = () => {
+        selectedCountType = 0;
+        availableMembers = [...ALL_MEMBERS];
+        selectedMembers = [];
+        memberDuties = {};
+        selectedStyle = "元气校园少年风";
+        finalGroupName = "星序少年";
+        renderClawMachine();
+        showPage('pageCover');
+    };
+    document.getElementById('shareBtn').onclick = () => alert(`✨ 分享我的成团结果 ✨\n团名：${finalGroupName}\n人数：${selectedMembers.length}\n风格：${selectedStyle}\n感谢参与TF四代成团！`);
+    
+    document.querySelector('#styleOptions .vintage-option').classList.add('selected');
+    renderClawMachine();
+</script>
+
+</body></html>
