@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧校园 | 未来从这里开始</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 头部样式 */
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .logo i {
+            color: var(--secondary-color);
+            margin-right: 10px;
+        }
+        
+        .logo span {
+            color: var(--secondary-color);
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        
+        nav ul li {
+            margin-left: 25px;
+        }
+        
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+            padding: 5px 0;
+            position: relative;
+        }
+        
+        nav ul li a:hover {
+            color: var(--secondary-color);
+        }
+        
+        nav ul li a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--secondary-color);
+            left: 0;
+            bottom: -5px;
+            transition: width 0.3s;
+        }
+        
+        nav ul li a:hover::after {
+            width: 100%;
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* 英雄区域 */
+        .hero {
+            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.9)), url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 150px 0 100px;
+            text-align: center;
+            margin-top: 70px;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            line-height: 1.8;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 2px solid var(--secondary-color);
+        }
+        
+        .btn:hover {
+            background-color: transparent;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid white;
+            margin-left: 15px;
+        }
+        
+        .btn-outline:hover {
+            background-color: white;
+            color: var(--primary-color);
+        }
+        
+        /* 部分样式 */
+        section {
+            padding: 80px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            position: relative;
+            display: inline-block;
+            padding-bottom: 15px;
+        }
+        
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            width: 70px;
+            height: 3px;
+            background-color: var(--secondary-color);
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .section-title p {
+            color: #666;
+            max-width: 700px;
+            margin: 15px auto 0;
+            font-size: 1.1rem;
+        }
+        
+        /* 关于我们 */
+        .about-content {
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+        
+        .about-text {
+            flex: 1;
+        }
+        
+        .about-text h3 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .about-text p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+        
+        .about-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+            display: block;
+        }
+        
+        .stat-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .about-image {
+            flex: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .about-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.5s;
+        }
+        
+        .about-image:hover img {
+            transform: scale(1.05);
+        }
+        
+        /* 院系介绍 */
+        .departments {
+            background-color: #f5f7fa;
+        }
+        
+        .department-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .department-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .department-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-image {
+            height: 200px;
+            overflow: hidden;
+        }
+        
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+        
+        .department-card:hover .card-image img {
+            transform: scale(1.1);
+        }
+        
+        .card-content {
+            padding: 25px;
+        }
+        
+        .card-content h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .card-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .card-icon {
+            background-color: var(--secondary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-top: -40px;
+            margin-left: 25px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 校园生活 */
+        .campus-life-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .life-item {
+            text-align: center;
+            padding: 30px 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .life-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .life-icon {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: var(--secondary-color);
+            font-size: 2rem;
+        }
+        
+        .life-item h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
+        /* 新闻和活动 */
+        .news {
+            background-color: #f5f7fa;
+        }
+        
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+        }
+        
+        .news-item {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .news-date {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 10px 20px;
+            display: inline-block;
+            border-radius: 0 0 10px 0;
+            font-weight: 600;
+        }
+        
+        .news-content {
+            padding: 25px;
+        }
+        
+        .news-content h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        /* 页脚 */
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 60px 0 30px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-column h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+        }
+        
+        .footer-column p, .footer-column li {
+            color: #ddd;
+            margin-bottom: 10px;
+        }
+        
+        .footer-column ul {
+            list-style: none;
+        }
+        
+        .footer-column ul li {
+            margin-bottom: 8px;
+        }
+        
+        .footer-column ul li i {
+            margin-right: 10px;
+            color: var(--secondary-color);
+        }
+        
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .social-icons a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .social-icons a:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .about-content {
+                flex-direction: column;
+            }
+            
+            .hero h1 {
+                font-size: 2.8rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            nav ul {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background-color: var(--primary-color);
+                flex-direction: column;
+                padding: 20px;
+                box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+            }
+            
+            nav ul.active {
+                display: flex;
+            }
+            
+            nav ul li {
+                margin: 10px 0;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+            
+            .hero p {
+                font-size: 1.1rem;
+            }
+            
+            .btn-container {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+            }
+            
+            .btn-outline {
+                margin-left: 0;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .hero {
+                padding: 120px 0 80px;
+            }
+            
+            section {
+                padding: 60px 0;
+            }
+            
+            .section-title h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部导航 -->
+    <header>
+        <div class="container header-container">
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>智慧</span>校园
+            </div>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <nav>
+                <ul id="navMenu">
+                    <li><a href="#home">首页</a></li>
+                    <li><a href="#about">关于我们</a></li>
+                    <li><a href="#departments">院系介绍</a></li>
+                    <li><a href="#campus-life">校园生活</a></li>
+                    <li><a href="#news">新闻动态</a></li>
+                    <li><a href="#contact">联系我们</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 英雄区域 -->
+    <section class="hero" id="home">
+        <div class="container">
+            <h1>欢迎来到智慧校园</h1>
+            <p>一所融合创新、学术卓越与多元文化的现代化高等教育学府。我们致力于培养未来的领导者和创新者，提供卓越的教育资源和丰富的学习体验。</p>
+            <div class="btn-container">
+                <a href="#about" class="btn">了解更多</a>
+                <a href="#contact" class="btn btn-outline">联系我们</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 关于我们 -->
+    <section id="about">
+        <div class="container">
+            <div class="section-title">
+                <h2>关于我们</h2>
+                <p>智慧校园是一所拥有百年历史的知名学府，致力于提供世界一流的教育和研究环境。</p>
+            </div>
+            
+            <div class="about-content">
+                <div class="about-text">
+                    <h3>我们的使命与愿景</h3>
+                    <p>智慧校园成立于1920年，经过百年发展，已成为国内领先的研究型大学之一。我们秉承"明德、博学、创新、担当"的校训，致力于培养具有全球视野和社会责任感的优秀人才。</p>
+                    <p>学校现有三个校区，占地面积2000余亩，拥有现代化的教学设施、先进的实验室和丰富的图书馆资源。我们与全球200多所高校建立了合作关系，为学生提供丰富的国际交流机会。</p>
+                    
+                    <div class="about-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="studentsCount">0</span>
+                            <span class="stat-text">在校学生</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="facultyCount">0</span>
+                            <span class="stat-text">教职员工</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="programsCount">0</span>
+                            <span class="stat-text">学术项目</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="yearsCount">0</span>
+                            <span class="stat-text">建校历史</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="about-image">
+                    <img src="https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="智慧校园校园风景">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 院系介绍 -->
+    <section class="departments" id="departments">
+        <div class="container">
+            <div class="section-title">
+                <h2>院系介绍</h2>
+                <p>我们提供多元化的学术课程，涵盖理工、人文、社科、医学等多个领域</p>
+            </div>
+            
+            <div class="department-cards">
+                <div class="department-card">
+                    <div class="card-icon">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="计算机科学学院">
+                    </div>
+                    <div class="card-content">
+                        <h3>计算机科学学院</h3>
+                        <p>培养具备创新能力和实践能力的计算机科学人才，研究方向包括人工智能、大数据、网络安全等前沿领域。</p>
+                        <a href="#" class="btn">了解更多</a>
+                    </div>
+                </div>
+                
+                <div class="department-card">
+                    <div class="card-icon">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="工程学院">
+                    </div>
+                    <div class="card-content">
+                        <h3>工程学院</h3>
+                        <p>提供机械、电子、土木、化工等工程学科的教育，注重理论与实践相结合，培养解决复杂工程问题的能力。</p>
+                        <a href="#" class="btn">了解更多</a>
+                    </div>
+                </div>
+                
+                <div class="department-card">
+                    <div class="card-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1551601651-2a8555f1a136?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="医学院">
+                    </div>
+                    <div class="card-content">
+                        <h3>医学院</h3>
+                        <p>拥有先进的医学实验室和附属医院，培养具备扎实医学知识和临床技能的医学专业人才。</p>
+                        <a href="#" class="btn">了解更多</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 校园生活 -->
+    <section id="campus-life">
+        <div class="container">
+            <div class="section-title">
+                <h2>校园生活</h2>
+                <p>丰富多彩的校园活动和学生社团，让每一位学生都能找到属于自己的舞台</p>
+            </div>
+            
+            <div class="campus-life-grid">
+                <div class="life-item">
+                    <div class="life-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>学生组织</h3>
+                    <p>100+学生社团和组织，涵盖学术、艺术、体育、公益等各个领域。</p>
+                </div>
+                
+                <div class="life-item">
+                    <div class="life-icon">
+                        <i class="fas fa-futbol"></i>
+                    </div>
+                    <h3>体育设施</h3>
+                    <p>现代化体育场馆、健身房、游泳池、田径场等完善的体育设施。</p>
+                </div>
+                
+                <div class="life-item">
+                    <div class="life-icon">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <h3>艺术文化</h3>
+                    <p>音乐会、艺术展览、戏剧表演、文化节等丰富多彩的文化活动。</p>
+                </div>
+                
+                <div class="life-item">
+                    <div class="life-icon">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <h3>志愿服务</h3>
+                    <p>参与社区服务、国际志愿者项目，培养社会责任感和领导力。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 新闻动态 -->
+    <section class="news" id="news">
+        <div class="container">
+            <div class="section-title">
+                <h2>新闻动态</h2>
+                <p>了解校园最新动态、学术成果和活动信息</p>
+            </div>
+            
+            <div class="news-grid">
+                <div class="news-item">
+                    <div class="news-date">2023年10月15日</div>
+                    <div class="news-content">
+                        <h3>智慧校园举办国际学术研讨会</h3>
+                        <p>来自全球20多个国家的专家学者齐聚智慧校园，共同探讨人工智能在教育领域的应用与发展趋势。</p>
+                        <a href="#" class="btn">阅读更多</a>
+                    </div>
+                </div>
+                
+                <div class="news-item">
+                    <div class="news-date">2023年9月28日</div>
+                    <div class="news-content">
+                        <h3>学生团队在创新大赛中荣获金奖</h3>
+                        <p>我校计算机科学学院学生团队在全国大学生创新创业大赛中表现优异，凭借"智能医疗辅助系统"项目荣获金奖。</p>
+                        <a href="#" class="btn">阅读更多</a>
+                    </div>
+                </div>
+                
+                <div class="news-item">
+                    <div class="news-date">2023年9月10日</div>
+                    <div class="news-content">
+                        <h3>新图书馆正式对外开放</h3>
+                        <p>投资2亿元建设的现代化图书馆正式开放，馆藏纸质图书200万册，电子资源500万种，提供智能化借阅服务。</p>
+                        <a href="#" class="btn">阅读更多</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>智慧校园</h3>
+                    <p>一所融合创新、学术卓越与多元文化的现代化高等教育学府。我们致力于培养未来的领导者和创新者。</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-weixin"></i></a>
+                        <a href="#"><i class="fab fa-weibo"></i></a>
+                        <a href="#"><i class="fab fa-qq"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>快速链接</h3>
+                    <ul>
+                        <li><a href="#home"><i class="fas fa-chevron-right"></i> 首页</a></li>
+                        <li><a href="#about"><i class="fas fa-chevron-right"></i> 关于我们</a></li>
+                        <li><a href="#departments"><i class="fas fa-chevron-right"></i> 院系介绍</a></li>
+                        <li><a href="#campus-life"><i class="fas fa-chevron-right"></i> 校园生活</a></li>
+                        <li><a href="#news"><i class="fas fa-chevron-right"></i> 新闻动态</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>联系我们</h3>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i> 中国北京市海淀区学院路1号</li>
+                        <li><i class="fas fa-phone"></i> (010) 1234-5678</li>
+                        <li><i class="fas fa-envelope"></i> info@smartcampus.edu.cn</li>
+                        <li><i class="fas fa-clock"></i> 周一至周五: 8:00-17:00</li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>微信公众号</h3>
+                    <p>扫描二维码关注我们的微信公众号，获取最新校园资讯和活动信息。</p>
+                    <div style="background-color: #fff; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin-top: 10px;">
+                        <span style="color: #333;">微信二维码</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2023 智慧校园 版权所有 | 设计制作:柚小屿</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 移动端菜单切换
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navMenu = document.getElementById('navMenu');
+        
+        mobileMenuBtn.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+            mobileMenuBtn.innerHTML = navMenu.classList.contains('active') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        });
+        
+        // 点击菜单项后关闭移动菜单
+        document.querySelectorAll('nav ul li a').forEach(link => {
+            link.addEventListener('click', () => {
+                navMenu.classList.remove('active');
+                mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            });
+        });
+        
+        // 滚动时改变导航栏样式
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 50) {
+                header.style.backgroundColor = 'rgba(44, 62, 80, 0.95)';
+                header.style.backdropFilter = 'blur(5px)';
+            } else {
+                header.style.backgroundColor = 'var(--primary-color)';
+                header.style.backdropFilter = 'none';
+            }
+        });
+        
+        // 数字计数动画
+        function animateCounter(elementId, target, duration) {
+            const element = document.getElementById(elementId);
+            let start = 0;
+            const increment = target / (duration / 16); // 假设60fps
+            const timer = setInterval(() => {
+                start += increment;
+                if (start >= target) {
+                    element.textContent = target.toLocaleString();
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(start).toLocaleString();
+                }
+            }, 16);
+        }
+        
+        // 当关于我们部分进入视口时触发计数动画
+        const aboutSection = document.getElementById('about');
+        let countersAnimated = false;
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !countersAnimated) {
+                    animateCounter('studentsCount', 25000, 2000);
+                    animateCounter('facultyCount', 1800, 2000);
+                    animateCounter('programsCount', 120, 2000);
+                    animateCounter('yearsCount', 103, 2000);
+                    countersAnimated = true;
+                }
+            });
+        }, { threshold: 0.3 });
+        
+        observer.observe(aboutSection);
+        
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // 页面加载动画
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s';
+            
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
