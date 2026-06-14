@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="VISION 高级视觉创意官网，沉浸式视频背景、极简美学设计">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>V</text></svg>">
+    <title>视频背景 终极全功能官网</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: "Microsoft Yahei", sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+            transition: all 0.5s ease;
+            --main-bg: rgba(0,0,0,0.75);
+            --text-color: #ffffff;
+            --text-active: #f0c878;
+            --btn-border: #ffffff60;
+            --card-bg: rgba(255,255,255,0.08);
+            --press-scale: 0.96;
+        }
+
+        body.light {
+            --main-bg: rgba(255,255,255,0.85);
+            --text-color: #222222;
+            --text-active: #d46b08;
+            --btn-border: #22222260;
+            --card-bg: rgba(0,0,0,0.05);
+            color: var(--text-color);
+        }
+
+        /* 顶部滚动进度条 */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            background: #ffffff;
+            z-index: 10001;
+            border-radius: 0 2px 2px 0;
+        }
+        body.light .progress-bar {
+            background: #222;
+        }
+
+        /* 自定义光标 */
+        .cursor {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease, width 0.2s, height 0.2s;
+            mix-blend-mode: difference;
+        }
+        .cursor.active {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 鼠标跟随光影 */
+        .mouse-light {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+            transform: translate(-50%, -50%);
+            transition: 0.1s ease;
+        }
+
+        /* 加载动画 */
+        .loader {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+        .loader.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .loader-circle {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: rotate 1s linear infinite;
+        }
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 点击波纹 */
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            pointer-events: none;
+            animation: ripple 0.8s ease-out forwards;
+            z-index: 9998;
+        }
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+
+        /* 粒子画布 + 天气特效 */
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 视频背景 + 滚动模糊 */
+        .video-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: -3;
+            overflow: hidden;
+            transition: filter 0.5s ease;
+        }
+        .video-bg video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-bg.blur {
+            filter: blur(8px) brightness(0.6);
+        }
+
+        /* 动态渐变遮罩 */
+        .mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(45deg, rgba(0,0,0,0.4), rgba(20,20,40,0.5), rgba(0,0,0,0.4));
+            background-size: 300% 300%;
+            animation: gradientMove 12s ease infinite;
+            z-index: -2;
+            transition: background 0.5s ease;
+        }
+        body.light .mask {
+            background: linear-gradient(45deg, rgba(255,255,255,0.3), rgba(220,220,240,0.4), rgba(255,255,255,0.3));
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 顶部导航 */
+        header {
+            width: 100%;
+            padding: 2rem 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 999;
+            transition: background 0.4s ease, padding 0.4s, color 0.4s;
+            animation: fadeDown 1s ease;
+        }
+        header.scrolled {
+            background: rgba(0,0,0,0.6);
+            padding: 1.2rem 4rem;
+            backdrop-filter: blur(8px);
+        }
+        body.light header.scrolled {
+            background: rgba(255,255,255,0.7);
+        }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            color: var(--text-color);
+            transition: color 0.4s;
+        }
+        .nav a {
+            color: var(--text-color);
+            text-decoration: none;
+            margin-left: 2.5rem;
+            font-size: 1rem;
+            opacity: 0.85;
+            transition: all 0.3s ease;
+        }
+        .nav a.active {
+            color: var(--text-active);
+            opacity: 1;
+        }
+        .nav a:hover {
+            opacity: 1;
+            letter-spacing: 1px;
+        }
+        .theme-btn, .sound-btn, .weather-btn {
+            background: transparent;
+            border: 1px solid var(--btn-border);
+            color: var(--text-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin-left: 1rem;
+            transition: all 0.2s;
+        }
+        .theme-btn:active, .sound-btn:active, .weather-btn:active {
+            transform: scale(var(--press-scale));
+        }
+
+        /* 汉堡菜单 */
+        .hamburger {
+            display: none;
+            width: 36px;
+            height: 36px;
+            position: relative;
+            background: transparent;
+            border: none;
+            z-index: 1001;
+        }
+        .hamburger span {
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: var(--text-color);
+            margin: 7px 0;
+            transition: 0.3s;
+        }
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(7px,7px);
+        }
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px,-7px);
+        }
+
+        /* 侧边抽屉导航 */
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 260px;
+            height: 100vh;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.4s ease;
+            padding: 80px 30px;
+        }
+        body.light .drawer {
+            background: rgba(255,255,255,0.9);
+        }
+        .drawer.open {
+            transform: translateX(0);
+        }
+        .drawer a {
+            display: block;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1.1rem;
+            margin: 25px 0;
+            transition: color 0.3s;
+        }
+        .drawer a.active {
+            color: var(--text-active);
+        }
+
+        /* 首屏视差容器 */
+        .parallax-wrap {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            transition: transform 0.1s ease;
+        }
+        .content h1 {
+            font-size: 3.5rem;
+            font-weight: 300;
+            letter-spacing: 10px;
+            margin-bottom: 24px;
+            text-shadow: 0 2px 15px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        .type-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1em;
+            background: var(--text-color);
+            margin-left: 4px;
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .content p {
+            font-size: 1.2rem;
+            font-weight: 200;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            line-height: 1.8;
+            max-width: 650px;
+            margin-bottom: 40px;
+        }
+
+        /* 按钮组 + 长按按压 */
+        .btn-group {
+            display: flex;
+            gap: 20px;
+        }
+        .btn {
+            padding: 14px 36px;
+            border: 1px solid var(--btn-border);
+            border-radius: 50px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1rem;
+            backdrop-filter: blur(6px);
+            transition: all 0.3s ease;
+        }
+        body.light .btn {
+            background: linear-gradient(135deg, rgba(0,0,0,0.08), rgba(0,0,0,0.03));
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .btn:active, .ctrl-btn:active, .back-top:active, .work-card:active {
+            transform: scale(var(--press-scale));
+        }
+
+        /* 视频控制按钮 */
+        .video-control {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            z-index: 998;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .ctrl-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(6px);
+            border: 1px solid var(--btn-border);
+            color: var(--text-color);
+            font-size: 18px;
+            transition: 0.3s;
+        }
+        body.light .ctrl-btn {
+            background: rgba(255,255,255,0.5);
+        }
+        .ctrl-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* 回到顶部按钮 */
+        .back-top {
+            position: fixed;
+            right: 30px;
+            bottom: 90px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(6px);
+            border: 1px solid var(--btn-border);
+            color: var(--text-color);
+            font-size: 18px;
+            z-index: 998;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.3s ease;
+        }
+        body.light .back-top {
+            background: rgba(255,255,255,0.5);
+        }
+        .back-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 实时时钟 */
+        .clock {
+            position: fixed;
+            left: 30px;
+            bottom: 30px;
+            font-size: 1rem;
+            color: var(--text-color);
+            opacity: 0.8;
+            z-index: 998;
+        }
+
+        /* 引导弹窗 & 通用弹窗 */
+        .guide-modal, .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1002;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .guide-modal.show, .modal.show {
+            display: flex;
+        }
+        .modal-box {
+            background: var(--main-bg);
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid var(--btn-border);
+        }
+        .modal-box h2 {
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            color: var(--text-color);
+        }
+        .form-item {
+            margin: 15px 0;
+        }
+        .form-item input, .form-item textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--btn-border);
+            border-radius: 8px;
+            color: var(--text-color);
+            outline: none;
+        }
+        .form-item textarea {
+            min-height: 100px;
+            resize: none;
+        }
+        .tip-text {
+            font-size: 0.85rem;
+            color: #ff7875;
+            margin-top: 5px;
+            display: none;
+        }
+        .close-modal {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        /* 内容板块 + 滚动渐入+文字模糊动画 */
+        .section {
+            min-height: 100vh;
+            background: var(--main-bg);
+            padding: 80px 2rem;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(60px);
+            filter: blur(8px);
+            transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+        }
+        .section.active {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+        }
+        .section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+            color: var(--text-color);
+        }
+        .section p {
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 2;
+            opacity: 0.85;
+            color: var(--text-color);
+        }
+
+        /* 数字计数模块 */
+        .count-wrap {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 60px 0;
+            flex-wrap: wrap;
+        }
+        .count-item {
+            font-size: 2.8rem;
+            font-weight: 300;
+            color: var(--text-active);
+        }
+        .count-item span {
+            font-size: 1rem;
+            display: block;
+            margin-top: 8px;
+            color: var(--text-color);
+        }
+
+        /* 作品轮播 */
+        .swiper {
+            max-width: 900px;
+            margin: 40px auto;
+            overflow: hidden;
+            border-radius: 12px;
+            position: relative;
+        }
+        .swiper-list {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+        .swiper-item {
+            min-width: 100%;
+            height: 320px;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            font-size: 1.5rem;
+        }
+        .swiper-dot {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+        }
+        .dot.active {
+            background: #fff;
+        }
+
+        /* 作品卡片画廊 + 图片懒加载 */
+        .card-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 50px;
+        }
+        .work-card {
+            width: 280px;
+            background: var(--card-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: 0.3s ease;
+            overflow: hidden;
+        }
+        .card-img {
+            width: 100%;
+            height: 160px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+        .work-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .work-card h3 {
+            margin: 15px 0 10px;
+            color: var(--text-color);
+        }
+
+        /* 底部版权栏 */
+        footer {
+            padding: 30px;
+            text-align: center;
+            background: var(--main-bg);
+            border-top: 1px solid var(--btn-border);
+            color: var(--text-color);
+        }
+        .social a {
+            color: var(--text-color);
+            margin: 0 10px;
+            text-decoration: none;
+        }
+
+        /* 动画 */
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            .hamburger { display: block; }
+            header { padding: 1.2rem 1rem; }
+            .content h1 { font-size: 2.2rem; letter-spacing: 4px; }
+            .btn-group { flex-direction: column; gap: 15px; }
+            .video-control { right: 15px; bottom: 15px; }
+            .back-top { right: 15px; bottom: 75px; }
+            .clock { left: 15px; bottom: 15px; }
+            .section h2 { font-size: 1.8rem; }
+            .swiper-item { height: 200px; }
+            .count-wrap { gap: 30px; }
+            .count-item { font-size: 2rem; }
+            * { cursor: auto; }
+            .cursor, .mouse-light { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部进度条 -->
+    <div class="progress-bar"></div>
+    <!-- 加载动画 -->
+    <div class="loader">
+        <div class="loader-circle"></div>
+    </div>
+    <!-- 自定义光标 -->
+    <div class="cursor"></div>
+    <!-- 鼠标跟随光影 -->
+    <div class="mouse-light"></div>
+    <!-- 粒子/天气特效画布 -->
+    <canvas id="particles"></canvas>
+    <!-- 视频背景 -->
+    <div class="video-bg">
+        <video id="bgVideo" autoplay muted loop playsinline
+             src="https://img.naixiai.cn/2026/06/07/video-28.mp4"
+             poster="https://img.naixiai.cn/2026/06/07/video-28.fr.jpeg">
+        </video>
+    </div>
+    <!-- 动态遮罩 -->
+    <div class="mask"></div>
+
+    <!-- 顶部导航 -->
+    <header id="header">
+        <div class="logo">VISION</div>
+        <nav class="nav">
+            <a href="#home" data-target="home">首页</a>
+            <a href="#about" data-target="about">关于</a>
+            <a href="#works" data-target="works">作品</a>
+            <a href="javascript:openModal()" data-target="contact">联系我们</a>
+            <button class="theme-btn" id="themeBtn">主题</button>
+            <button class="sound-btn" id="soundBtn">音效</button>
+            <button class="weather-btn" id="weatherBtn">特效</button>
+        </nav>
+        <button class="hamburger" id="hamburger">
+            <span></span><span></span><span></span>
+        </button>
+    </header>
+
+    <!-- 移动端抽屉菜单 -->
+    <div class="drawer" id="drawer">
+        <a href="#home" data-target="home">首页</a>
+        <a href="#about" data-target="about">关于</a>
+        <a href="#works" data-target="works">作品</a>
+        <a href="javascript:openModal()" data-target="contact">联系我们</a>
+        <button class="theme-btn" id="themeBtn2">切换主题</button>
+    </div>
+
+    <!-- 首屏内容 -->
+    <div class="parallax-wrap" id="home">
+        <div class="content">
+            <h1 id="typeTitle"></h1>
+            <p>沉浸视觉美学，感受极简高级的沉浸式体验</p>
+            <div class="btn-group">
+                <a href="#about" class="btn">立即探索</a>
+                <a href="javascript:openModal()" class="btn">了解更多</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频控制 -->
+    <div class="video-control">
+        <button class="ctrl-btn" id="playBtn">⏯</button>
+        <button class="ctrl-btn" id="volumeBtn">🔇</button>
+    </div>
+    <!-- 回到顶部 -->
+    <button class="back-top" id="backTop">↑</button>
+    <!-- 实时时钟 -->
+    <div class="clock" id="clock"></div>
+
+    <!-- 首次进入引导弹窗 -->
+    <div class="guide-modal" id="guideModal">
+        <div class="modal-box">
+            <h2>欢迎来到 VISION</h2>
+            <p>本站集成多种视觉特效与交互功能，祝您浏览愉快！</p>
+            <a href="javascript:closeGuide()" class="btn close-modal">开始体验</a>
+        </div>
+    </div>
+
+    <!-- 联系表单弹窗 -->
+    <div class="modal" id="modal">
+        <div class="modal-box">
+            <h2>联系我们</h2>
+            <div class="form-item">
+                <input type="text" id="nameInp" placeholder="请输入姓名">
+                <div class="tip-text" id="nameTip">姓名不能为空</div>
+            </div>
+            <div class="form-item">
+                <input type="email" id="emailInp" placeholder="请输入邮箱">
+                <div class="tip-text" id="emailTip">请输入正确邮箱格式</div>
+            </div>
+            <div class="form-item">
+                <textarea id="msgInp" placeholder="请输入留言内容"></textarea>
+                <div class="tip-text" id="msgTip">留言不能为空</div>
+            </div>
+            <a href="javascript:submitForm()" class="btn close-modal">提交并关闭</a>
+        </div>
+    </div>
+
+    <!-- 关于板块 -->
+    <div class="section" id="about">
+        <h2>关于我们</h2>
+        <p>专注视觉设计与创意视觉制作，用镜头捕捉光影，用设计诠释美学。秉持极简高级的设计理念，打造每一份专属视觉作品。</p>
+        <div class="count-wrap">
+            <div class="count-item" data-num="128">0<span>完成作品</span></div>
+            <div class="count-item" data-num="365">0<span>运营天数</span></div>
+            <div class="count-item" data-num="999">0<span>访问人次</span></div>
+        </div>
+    </div>
+
+    <!-- 作品板块 -->
+    <div class="section" id="works">
+        <h2>精选作品</h2>
+        <p>汇聚各类视觉案例，涵盖视频、平面、动态视觉等多领域创作，持续输出优质内容。</p>
+
+        <!-- 作品轮播 -->
+        <div class="swiper" id="swiper">
+            <div class="swiper-list">
+                <div class="swiper-item">创意视觉作品 01</div>
+                <div class="swiper-item">影视短片作品 02</div>
+                <div class="swiper-item">品牌包装作品 03</div>
+            </div>
+            <div class="swiper-dot">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- 作品卡片 -->
+        <div class="card-wrap">
+            <div class="work-card">
+                <img class="card-img" loading="lazy" src="" alt="作品图">
+                <h3>视觉作品 01</h3>
+                <p>创意动态视觉设计</p>
+            </div>
+            <div class="work-card">
+                <img class="card-img" loading="lazy" src="" alt="作品图">
+                <h3>视觉作品 02</h3>
+                <p>影视短片制作</p>
+            </div>
+            <div class="work-card">
+                <img class="card-img" loading="lazy" src="" alt="作品图">
+                <h3>视觉作品 03</h3>
+                <p>品牌视觉包装</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部版权 -->
+    <footer>
+        <div class="social">
+            <a href="#">微信</a>
+            <a href="#">微博</a>
+            <a href="#">GitHub</a>
+        </div>
+        <p style="margin-top:15px">© 2026 VISION 视觉工作室 版权所有</p>
+    </footer>
+
+<script>
+// ==================== 基础防调试、防F12、防右键 ====================
+document.oncontextmenu = function(){return false;};
+document.addEventListener('keydown',e=>{
+    if(e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key==='I'||e.key==='J'))) e.preventDefault();
+});
+
+// 全局变量
+let soundOn = true;
+let weatherMode = 0; // 0关闭 1星光 2细雨
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let scrollSpeed = 1;
+
+// 简易点击音效
+function playSound(){
+    if(!soundOn) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 600;
+    gain.gain.value = 0.05;
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.08);
+}
+
+// 标签页标题切换
+const originTitle = document.title;
+document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) document.title = '别走~ 😥';
+    else document.title = originTitle;
+});
+
+// 1. 首次进入引导弹窗
+window.addEventListener('load', () => {
+    if(!localStorage.getItem('guideShowed')){
+        document.getElementById('guideModal').classList.add('show');
+        localStorage.setItem('guideShowed','1');
+    }
+    document.querySelector('.loader').classList.add('hide');
+    typeWrite();
+    initParticles();
+    initSwiper();
+    // 视频容错
+    const video = document.getElementById('bgVideo');
+    video.addEventListener('error', ()=> video.style.display = 'none');
+});
+function closeGuide(){
+    document.getElementById('guideModal').classList.remove('show');
+    playSound();
+}
+
+// 2. 打字机效果
+function typeWrite(){
+    const txt = "光影秘境";
+    const el = document.getElementById('typeTitle');
+    let idx = 0;
+    el.innerHTML = "";
+    function add(){
+        if(idx < txt.length){
+            el.innerHTML += txt[idx];
+            idx++;
+            setTimeout(add, 180);
+        }else{
+            el.innerHTML += '<span class="type-cursor"></span>';
+        }
+    }
+    add();
+}
+
+// 3. 实时时钟
+function updateClock(){
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('clock').innerText = `${h}:${m}:${s}`;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// 4. 自定义光标 + 鼠标光影
+const cursor = document.querySelector('.cursor');
+const mouseLight = document.querySelector('.mouse-light');
+document.addEventListener('mousemove', (e) => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    mouseLight.style.left = e.clientX + 'px';
+    mouseLight.style.top = e.clientY + 'px';
+});
+document.querySelectorAll('a,button,.work-card,.dot').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('active'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+    el.addEventListener('click', playSound);
+});
+
+// 5. 点击波纹
+document.addEventListener('click', (e) => {
+    const ripple = document.createElement('div');
+    ripple.classList.add('ripple');
+    ripple.style.left = e.clientX + 'px';
+    ripple.style.top = e.clientY + 'px';
+    ripple.style.width = '20px';
+    ripple.style.height = '20px';
+    document.body.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 800);
+});
+
+// 6. 双击返回顶部
+let clickTime = 0;
+document.addEventListener('click',()=>{
+    const now = Date.now();
+    if(now - clickTime < 300){
+        window.scrollTo({top:0,behavior:'smooth'});
+    }
+    clickTime = now;
+});
+
+// 7. 分层鼠标视差
+const wrap = document.querySelector('.parallax-wrap');
+const mask = document.querySelector('.mask');
+const videoBg = document.querySelector('.video-bg');
+document.addEventListener('mousemove', (e) => {
+    const x = (window.innerWidth / 2 - e.clientX) / 40;
+    const y = (window.innerHeight / 2 - e.clientY) / 40;
+    wrap.style.transform = `translate(${x}px, ${y}px)`;
+    mask.style.transform = `translate(${x/2}px, ${y/2}px)`;
+    videoBg.style.transform = `translate(${x/4}px, ${y/4}px)`;
+});
+
+// 8. 滚动监听合集
+const header = document.getElementById('header');
+const backTop = document.getElementById('backTop');
+const progressBar = document.querySelector('.progress-bar');
+const sections = document.querySelectorAll('.section');
+const videoDom = document.getElementById('bgVideo');
+const navLinks = document.querySelectorAll('.nav a[data-target], .drawer a[data-target]');
+const countItems = document.querySelectorAll('.count-item');
+let countRun = false;
+
+window.addEventListener('scroll', () => {
+    let scrollTop = window.scrollY;
+    let docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    let scrollPercent = (scrollTop / docHeight) * 100;
+    progressBar.style.width = scrollPercent + '%';
+
+    // 导航样式 + 回到顶部 + 视频模糊
+    if(scrollTop > 50) {
+        header.classList.add('scrolled');
+        backTop.classList.add('show');
+        videoDom.parentElement.classList.add('blur');
+        scrollSpeed = 1.8;
+    } else {
+        header.classList.remove('scrolled');
+        backTop.classList.remove('show');
+        videoDom.parentElement.classList.remove('blur');
+        scrollSpeed = 1;
+    }
+
+    // 板块渐入 + 数字计数
+    sections.forEach(item => {
+        const itemTop = item.getBoundingClientRect().top;
+        const trigger = window.innerHeight * 0.85;
+        if(itemTop < trigger) item.classList.add('active');
+    });
+    const aboutTop = document.getElementById('about').getBoundingClientRect().top;
+    if(aboutTop < window.innerHeight * 0.7 && !countRun){
+        countRun = true;
+        countItems.forEach(el => startCount(el));
+    }
+
+    // 导航高亮
+    let curId = "home";
+    document.querySelectorAll('.section, #home').forEach(sec=>{
+        const t = sec.getBoundingClientRect().top;
+        if(t < window.innerHeight/2) curId = sec.id;
+    });
+    navLinks.forEach(link=>{
+        link.classList.toggle('active', link.dataset.target === curId);
+    });
+
+    // 粒子速度跟随滚动
+    changeParticleSpeed(scrollSpeed);
+});
+
+// 回到顶部
+backTop.addEventListener('click', () => {
+    window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+// 9. 视频控制
+const playBtn = document.getElementById('playBtn');
+const volumeBtn = document.getElementById('volumeBtn');
+let isPlay = true;
+playBtn.addEventListener('click', () => {
+    if(isPlay){ videoDom.pause(); playBtn.textContent = '▶'; }
+    else{ videoDom.play(); playBtn.textContent = '⏯'; }
+    isPlay = !isPlay;
+});
+volumeBtn.addEventListener('click', () => {
+    videoDom.muted = !videoDom.muted;
+    volumeBtn.textContent = videoDom.muted ? '🔇' : '🔊';
+});
+
+// 10. 弹窗控制 + 点击遮罩关闭
+const modal = document.getElementById('modal');
+function openModal(){ modal.classList.add('show'); playSound(); }
+function closeModal(){ modal.classList.remove('show'); }
+modal.addEventListener('click',e=>{
+    if(e.target === modal) closeModal();
+});
+
+// 11. 表单验证
+function submitForm(){
+    let ok = true;
+    const name = document.getElementById('nameInp').value.trim();
+    const email = document.getElementById('emailInp').value.trim();
+    const msg = document.getElementById('msgInp').value.trim();
+    const reg = /^\w+([.-]\w+)*@\w+([.-]\w+)*\.\w+([.-]\w+)*$/;
+
+    document.getElementById('nameTip').style.display = name ? 'none' : 'block';
+    document.getElementById('emailTip').style.display = reg.test(email) ? 'none' : 'block';
+    document.getElementById('msgTip').style.display = msg ? 'none' : 'block';
+
+    if(!name || !reg.test(email) || !msg) return;
+    closeModal();
+}
+
+// 12. 数字滚动动画
+function startCount(el){
+    const target = +el.dataset.num;
+    let now = 0;
+    const timer = setInterval(()=>{
+        now += Math.ceil(target / 60);
+        if(now >= target){
+            now = target;
+            clearInterval(timer);
+        }
+        el.innerText = now + '<span>'+el.querySelector('span').innerText+'</span>';
+    },30);
+}
+
+// 13. 作品轮播
+function initSwiper(){
+    const list = document.querySelector('.swiper-list');
+    const dots = document.querySelectorAll('.dot');
+    let idx = 0;
+    const len = dots.length;
+    function go(n){
+        idx = n;
+        list.style.transform = `translateX(-${idx * 100}%)`;
+        dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+    }
+    setInterval(()=>{
+        go((idx+1)%len);
+    },3000);
+    dots.forEach((d,i)=>d.onclick = ()=>go(i));
+}
+
+// 14. 双主题切换
+const themeBtn = document.getElementById('themeBtn');
+const themeBtn2 = document.getElementById('themeBtn2');
+function toggleTheme(){
+    document.body.classList.toggle('light');
+    playSound();
+}
+themeBtn.addEventListener('click', toggleTheme);
+themeBtn2 && themeBtn2.addEventListener('click', toggleTheme);
+
+// 15. 音效开关
+const soundBtn = document.getElementById('soundBtn');
+soundBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundBtn.innerText = soundOn ? "音效开" : "音效关";
+});
+
+// 16. 天气/特效切换
+const weatherBtn = document.getElementById('weatherBtn');
+weatherBtn.addEventListener('click',()=>{
+    weatherMode = (weatherMode + 1) % 3;
+    if(weatherMode === 0) weatherBtn.innerText = "特效关";
+    if(weatherMode === 1) weatherBtn.innerText = "星光";
+    if(weatherMode === 2) weatherBtn.innerText = "细雨";
+    playSound();
+});
+
+// 17. 移动端汉堡抽屉
+const hamburger = document.getElementById('hamburger');
+const drawer = document.getElementById('drawer');
+hamburger.addEventListener('click', ()=>{
+    hamburger.classList.toggle('active');
+    drawer.classList.toggle('open');
+    playSound();
+});
+drawer.querySelectorAll('a').forEach(a=>{
+    a.addEventListener('click', ()=>{
+        hamburger.classList.remove('active');
+        drawer.classList.remove('open');
+    });
+});
+
+// 18. 粒子/星光/细雨 + 速度控制
+let particles = [];
+let rainList = [];
+let particleSpeed = 1;
+function changeParticleSpeed(s){ particleSpeed = s; }
+
+function initParticles(){
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let w = canvas.width = window.innerWidth;
+    let h = canvas.height = window.innerHeight;
+    const particleCount = 60;
+    const rainCount = 80;
+
+    class Particle{
+        constructor(){
+            this.x = Math.random()*w;
+            this.y = Math.random()*h;
+            this.r = Math.random()*2 + 1;
+            this.sx = (Math.random()*0.5 - 0.25);
+            this.sy = (Math.random()*0.5 - 0.25);
+        }
+        draw(){
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            ctx.fill();
+        }
+        move(){
+            this.x += this.sx * particleSpeed;
+            this.y += this.sy * particleSpeed;
+            if(this.x<0||this.x>w) this.sx *= -1;
+            if(this.y<0||this.y>h) this.sy *= -1;
+            this.draw();
+        }
+    }
+    class Rain{
+        constructor(){
+            this.x = Math.random()*w;
+            this.y = Math.random()*h - h;
+            this.len = Math.random()*8 + 4;
+            this.speed = Math.random()*3 + 2;
+        }
+        draw(){
+            ctx.beginPath();
+            ctx.moveTo(this.x,this.y);
+            ctx.lineTo(this.x,this.y+this.len);
+            ctx.strokeStyle = "rgba(255,255,255,0.3)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        move(){
+            this.y += this.speed * particleSpeed;
+            if(this.y > h){
+                this.y = -this.len;
+                this.x = Math.random()*w;
+            }
+            this.draw();
+        }
+    }
+
+    for(let i=0;i<particleCount;i++) particles.push(new Particle());
+    for(let i=0;i<rainCount;i++) rainList.push(new Rain());
+
+    function animate(){
+        ctx.clearRect(0,0,w,h);
+        if(weatherMode === 0){
+            particles.forEach(p=>p.move());
+        }else if(weatherMode === 1){
+            particles.forEach(p=>p.move());
+        }else if(weatherMode === 2){
+            rainList.forEach(r=>r.move());
+        }
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize',()=>{
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+    });
+}
+</script>
+</body>
+</html>
