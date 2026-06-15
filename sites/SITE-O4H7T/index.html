@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>专业手机端设计工具</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --panel: #2a2a2a;
+            --accent: #4a90d9;
+            --text: #eee;
+            --subtext: #aaa;
+            --border: #3a3a3a;
+            --danger: #e05555;
+            --success: #5cb85c;
+            --font-size: 14px;
+            --panel-height: 130px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            touch-action: manipulation;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        #top-toolbar {
+            height: 48px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .tool-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .tool-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .tool-btn.active {
+            background: var(--accent);
+            color: #fff;
+        }
+        .tool-btn:active {
+            background: #444;
+        }
+        .tool-btn.small {
+            font-size: 13px;
+            font-weight: bold;
+        }
+        #canvas-container {
+            flex: 1;
+            background: #111;
+            overflow: hidden;
+            position: relative;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            touch-action: none;
+        }
+        /* 底部属性面板 */
+        #properties {
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            padding: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            z-index: 10;
+            max-height: var(--panel-height);
+            overflow-y: auto;
+            font-size: var(--font-size);
+            transition: max-height 0.2s;
+        }
+        #properties.collapsed {
+            max-height: 52px;
+            overflow: hidden;
+        }
+        #properties label {
+            color: var(--subtext);
+            font-size: 10px;
+            margin-right: 2px;
+        }
+        #properties input[type="color"] {
+            width: 30px;
+            height: 26px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+        }
+        #properties input[type="range"] {
+            width: 60px;
+            margin: 0 4px;
+        }
+        #properties .prop-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #222;
+            padding: 4px 8px;
+            border-radius: 6px;
+            flex-wrap: nowrap;
+        }
+        #properties button {
+            background: #3a3a3a;
+            border: none;
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #properties button:active {
+            background: #555;
+        }
+        .danger {
+            background: var(--danger) !important;
+            color: white;
+        }
+        .prop-hidden {
+            display: none !important;
+        }
+        #layer-count {
+            font-size: 11px;
+            color: var(--subtext);
+            margin-left: auto;
+        }
+        /* 图层面板（侧滑） */
+        #layers-panel {
+            position: fixed;
+            right: -280px;
+            top: 48px;
+            bottom: 0;
+            width: 260px;
+            background: #252525;
+            border-left: 1px solid var(--border);
+            z-index: 20;
+            transition: right 0.3s;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            overflow-y: auto;
+        }
+        #layers-panel.open {
+            right: 0;
+        }
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: #333;
+            margin: 4px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid transparent;
+        }
+        .layer-item.selected {
+            border-color: var(--accent);
+            background: #3a3a3a;
+        }
+        .layer-item span {
+            flex: 1;
+            margin-left: 8px;
+        }
+        .layer-item .vis-toggle,
+        .layer-item .lock-toggle {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: #555;
+            color: white;
+            border-radius: 4px;
+            margin-left: 4px;
+            font-size: 12px;
+        }
+        /* 长按菜单 */
+        #context-menu {
+            position: fixed;
+            background: #333;
+            border-radius: 8px;
+            padding: 6px 0;
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            min-width: 130px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        #context-menu button {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 14px;
+        }
+        #context-menu button:active {
+            background: #555;
+        }
+        /* 对齐工具栏 */
+        #align-tools {
+            display: none;
+            gap: 4px;
+        }
+        /* 通用隐藏 */
+        .hidden {
+            display: none !important;
+        }
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        @media (max-width: 400px) {
+            .tool-btn {
+                width: 34px;
+                height: 34px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="top-toolbar">
+        <div class="tool-group">
+            <button class="tool-btn active" data-tool="select">👆</button>
+            <button class="tool-btn" data-tool="rect">⬜</button>
+            <button class="tool-btn" data-tool="circle">⭕</button>
+            <button class="tool-btn" data-tool="line">📏</button>
+            <button class="tool-btn" data-tool="text">T</button>
+            <button class="tool-btn" id="layers-btn" title="图层">📑</button>
+        </div>
+        <div class="tool-group">
+            <button class="tool-btn small" id="undo-btn">↩️</button>
+            <button class="tool-btn small" id="redo-btn">↪️</button>
+            <button class="tool-btn small" id="export-btn">💾</button>
+            <button class="tool-btn small" id="import-img-btn">🖼️</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="main-canvas"></canvas>
+    </div>
+
+    <!-- 属性面板（含折叠切换） -->
+    <div id="properties">
+        <button id="toggle-props" style="font-size:12px; padding:4px 8px;">▲</button>
+        <div class="prop-row">
+            <label>填充</label>
+            <input type="color" id="fill-color" value="#4a90d9">
+        </div>
+        <div class="prop-row">
+            <label>边框</label>
+            <input type="color" id="stroke-color" value="#ffffff">
+            <input type="range" id="stroke-width" min="0" max="10" value="2" step="0.5">
+            <span id="sw-val">2</span>
+        </div>
+        <div class="prop-row">
+            <label>不透明</label>
+            <input type="range" id="opacity-slider" min="0" max="1" value="1" step="0.05">
+            <span id="op-val">100%</span>
+        </div>
+        <div class="prop-row" id="border-radius-row" style="display:none;">
+            <label>圆角</label>
+            <input type="range" id="border-radius-slider" min="0" max="50" value="0" step="1">
+            <span id="br-val">0</span>
+        </div>
+        <!-- 阴影设置 -->
+        <div class="prop-row" id="shadow-row" style="display:none;">
+            <label>阴影</label>
+            <input type="color" id="shadow-color" value="#000000">
+            <input type="range" id="shadow-x" min="-20" max="20" value="3" step="1">
+            <input type="range" id="shadow-y" min="-20" max="20" value="3" step="1">
+            <input type="range" id="shadow-blur" min="0" max="20" value="5" step="1">
+        </div>
+        <!-- 渐变模式切换 -->
+        <div class="prop-row">
+            <button id="gradient-mode-btn">渐变</button>
+        </div>
+        <div id="align-tools">
+            <button class="align-btn" data-align="left">⫷</button>
+            <button class="align-btn" data-align="center-h">⫿</button>
+            <button class="align-btn" data-align="right">⫸</button>
+            <button class="align-btn" data-align="top">⫯</button>
+            <button class="align-btn" data-align="center-v">⫾</button>
+            <button class="align-btn" data-align="bottom">⫰</button>
+            <button class="align-btn" data-align="dist-h">↔️</button>
+            <button class="align-btn" data-align="dist-v">↕️</button>
+        </div>
+        <button id="dup-btn">复制</button>
+        <button id="delete-btn" class="danger">删除</button>
+        <button id="group-btn">编组</button>
+        <button id="ungroup-btn">解组</button>
+        <span id="layer-count">图层:0</span>
+    </div>
+
+    <!-- 图层面板 -->
+    <div id="layers-panel"></div>
+    <!-- 长按菜单 -->
+    <div id="context-menu"></div>
+    <div class="toast" id="toast"></div>
+
+    <!-- 隐藏的文件导入input -->
+    <input type="file" id="image-file-input" accept="image/*" style="display:none;">
+
+    <script>
+    (function() {
+        // ========== 核心元素 ==========
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const toolButtons = document.querySelectorAll('.tool-btn[data-tool]');
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const importImgBtn = document.getElementById('import-img-btn');
+        const layersBtn = document.getElementById('layers-btn');
+        const layersPanel = document.getElementById('layers-panel');
+        const contextMenu = document.getElementById('context-menu');
+        const fillColorInput = document.getElementById('fill-color');
+        const strokeColorInput = document.getElementById('stroke-color');
+        const strokeWidthInput = document.getElementById('stroke-width');
+        const swValSpan = document.getElementById('sw-val');
+        const opacitySlider = document.getElementById('opacity-slider');
+        const opValSpan = document.getElementById('op-val');
+        const borderRadiusSlider = document.getElementById('border-radius-slider');
+        const brValSpan = document.getElementById('br-val');
+        const borderRadiusRow = document.getElementById('border-radius-row');
+        const shadowRow = document.getElementById('shadow-row');
+        const shadowColor = document.getElementById('shadow-color');
+        const shadowX = document.getElementById('shadow-x');
+        const shadowY = document.getElementById('shadow-y');
+        const shadowBlur = document.getElementById('shadow-blur');
+        const gradientModeBtn = document.getElementById('gradient-mode-btn');
+        const dupBtn = document.getElementById('dup-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const groupBtn = document.getElementById('group-btn');
+        const ungroupBtn = document.getElementById('ungroup-btn');
+        const alignTools = document.getElementById('align-tools');
+        const layerCountSpan = document.getElementById('layer-count');
+        const toast = document.getElementById('toast');
+        const togglePropsBtn = document.getElementById('toggle-props');
+        const imageFileInput = document.getElementById('image-file-input');
+
+        // ========== 状态管理 ==========
+        let objects = [];               // 所有对象
+        let selectedIds = new Set();    // 多选支持
+        let currentTool = 'select';
+        let isDrawing = false;
+        let drawStart = null;
+        let tempObject = null;
+        let nextId = 1;
+        let history = [];
+        let historyIndex = -1;
+        const MAX_HISTORY = 30;
+        let offsetX = 0, offsetY = 0, scale = 1;
+        let isPanning = false;
+        let lastPinchDist = 0, lastPinchMid = { x: 0, y: 0 };
+        let longPressTimer = null;
+        let contextTargetId = null;
+        let isMultiSelectMode = false;
+
+        // 组件库（简化版）
+        const componentLibrary = [];
+
+        // 智能参考线数据
+        let snapLines = [];
+
+        function getSelectedObjects() {
+            return objects.filter(o => selectedIds.has(o.id));
+        }
+        function getSingleSelected() {
+            const arr = getSelectedObjects();
+            return arr.length === 1 ? arr[0] : null;
+        }
+
+        // ========== 工具与选择 ==========
+        function setTool(tool) {
+            currentTool = tool;
+            toolButtons.forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tool-btn[data-tool="${tool}"]`)?.classList.add('active');
+            if (tool !== 'select') clearSelection();
+            render();
+        }
+        toolButtons.forEach(btn => btn.addEventListener('click', () => setTool(btn.dataset.tool)));
+
+        function clearSelection() {
+            selectedIds.clear();
+            isMultiSelectMode = false;
+            updateAlignToolsVisibility();
+            render();
+        }
+        function selectObject(id, addToMulti = false) {
+            if (addToMulti) {
+                if (selectedIds.has(id)) selectedIds.delete(id);
+                else selectedIds.add(id);
+                isMultiSelectMode = selectedIds.size > 1;
+            } else {
+                selectedIds.clear();
+                selectedIds.add(id);
+                isMultiSelectMode = false;
+            }
+            updateAlignToolsVisibility();
+            render();
+        }
+
+        // ========== 对象操作 ==========
+        function addObject(obj) {
+            objects.push(obj);
+            updateHistory();
+        }
+        function deleteSelected() {
+            objects = objects.filter(o => !selectedIds.has(o.id));
+            selectedIds.clear();
+            updateHistory();
+            render();
+        }
+        function duplicateSelected() {
+            const newIds = [];
+            getSelectedObjects().forEach(obj => {
+                const newObj = { ...obj, id: nextId++, x: obj.x + 25, y: obj.y + 25 };
+                if (obj.points) newObj.points = obj.points.map(p => ({ x: p.x, y: p.y }));
+                objects.push(newObj);
+                newIds.push(newObj.id);
+            });
+            selectedIds = new Set(newIds);
+            updateHistory();
+            render();
+        }
+        function groupSelected() {
+            const selected = getSelectedObjects();
+            if (selected.length < 2) return;
+            const group = {
+                id: nextId++,
+                type: 'group',
+                children: selected.map(o => o.id),
+                x: Math.min(...selected.map(o => o.x)),
+                y: Math.min(...selected.map(o => o.y)),
+                w: Math.max(...selected.map(o => o.x + o.w)) - Math.min(...selected.map(o => o.x)),
+                h: Math.max(...selected.map(o => o.y + o.h)) - Math.min(...selected.map(o => o.y)),
+                opacity: 1,
+            };
+            objects.push(group);
+            selectedIds.clear();
+            selectedIds.add(group.id);
+            updateHistory();
+            render();
+        }
+        function ungroupSelected() {
+            const group = getSingleSelected();
+            if (!group || group.type !== 'group') return;
+            objects = objects.filter(o => o.id !== group.id);
+            selectedIds.clear();
+            updateHistory();
+            render();
+        }
+
+        function moveObjectUp(id) {
+            const idx = objects.findIndex(o => o.id === id);
+            if (idx < objects.length - 1) {
+                [objects[idx], objects[idx + 1]] = [objects[idx + 1], objects[idx]];
+                updateHistory();
+                render();
+            }
+        }
+        function moveObjectDown(id) {
+            const idx = objects.findIndex(o => o.id === id);
+            if (idx > 0) {
+                [objects[idx], objects[idx - 1]] = [objects[idx - 1], objects[idx]];
+                updateHistory();
+                render();
+            }
+        }
+
+        // ========== 碰撞检测 ==========
+        function getObjectAt(x, y) {
+            for (let i = objects.length - 1; i >= 0; i--) {
+                if (isPointInObject(objects[i], x, y)) return objects[i];
+            }
+            return null;
+        }
+        function isPointInObject(obj, px, py) {
+            if (obj.type === 'group') {
+                return px >= obj.x && px <= obj.x + obj.w && py >= obj.y && py <= obj.y + obj.h;
+            }
+            if (obj.type === 'rect' || obj.type === 'text' || obj.type === 'image') {
+                return px >= obj.x && px <= obj.x + obj.w && py >= obj.y && py <= obj.y + obj.h;
+            } else if (obj.type === 'circle') {
+                const cx = obj.x + obj.w / 2, cy = obj.y + obj.h / 2;
+                return ((px - cx) ** 2 / (obj.w / 2) ** 2 + (py - cy) ** 2 / (obj.h / 2) ** 2) <= 1;
+            } else if (obj.type === 'line') {
+                return distanceToLineSegment(px, py, obj.x, obj.y, obj.x + obj.w, obj.y + obj.h) < 12;
+            }
+            return false;
+        }
+        function distanceToLineSegment(px, py, x1, y1, x2, y2) {
+            const vx = x2 - x1, vy = y2 - y1, wx = px - x1, wy = py - y1;
+            const c1 = vx * wx + vy * wy;
+            if (c1 <= 0) return Math.hypot(wx, wy);
+            const c2 = vx * vx + vy * vy;
+            if (c2 <= c1) return Math.hypot(px - x2, py - y2);
+            const b = c1 / c2;
+            return Math.hypot(px - (x1 + b * vx), py - (y1 + b * vy));
+        }
+
+        // ========== 历史记录 ==========
+        function updateHistory() {
+            history = history.slice(0, historyIndex + 1);
+            history.push(JSON.parse(JSON.stringify(objects)));
+            if (history.length > MAX_HISTORY) history.shift();
+            else historyIndex++;
+            updateLayerCount();
+        }
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                objects = JSON.parse(JSON.stringify(history[historyIndex]));
+                selectedIds.clear();
+                render();
+            }
+        }
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                objects = JSON.parse(JSON.stringify(history[historyIndex]));
+                selectedIds.clear();
+                render();
+            }
+        }
+        history.push(JSON.parse(JSON.stringify(objects)));
+        historyIndex = 0;
+        updateLayerCount();
+        undoBtn.addEventListener('click', undo);
+        redoBtn.addEventListener('click', redo);
+
+        // ========== 智能对齐参考线 ==========
+        function computeSnapLines(movingObj) {
+            const lines = [];
+            const threshold = 8 / scale;
+            const myLeft = movingObj.x, myRight = movingObj.x + movingObj.w;
+            const myTop = movingObj.y, myBottom = movingObj.y + movingObj.h;
+            const myCenterX = movingObj.x + movingObj.w / 2;
+            const myCenterY = movingObj.y + movingObj.h / 2;
+            objects.forEach(o => {
+                if (o.id === movingObj.id || o.type === 'group') return;
+                const oLeft = o.x, oRight = o.x + o.w, oTop = o.y, oBottom = o.y + o.h;
+                const oCenterX = o.x + o.w / 2, oCenterY = o.y + o.h / 2;
+                if (Math.abs(myLeft - oLeft) < threshold) lines.push({ pos: oLeft, type: 'left' });
+                if (Math.abs(myCenterX - oCenterX) < threshold) lines.push({ pos: oCenterX, type: 'centerX' });
+                if (Math.abs(myRight - oRight) < threshold) lines.push({ pos: oRight, type: 'right' });
+                if (Math.abs(myTop - oTop) < threshold) lines.push({ pos: oTop, type: 'top' });
+                if (Math.abs(myCenterY - oCenterY) < threshold) lines.push({ pos: oCenterY, type: 'centerY' });
+                if (Math.abs(myBottom - oBottom) < threshold) lines.push({ pos: oBottom, type: 'bottom' });
+            });
+            return lines;
+        }
+
+        // ========== 渲染引擎 ==========
+        function render() {
+            const w = container.clientWidth, h = container.clientHeight;
+            canvas.width = w; canvas.height = h;
+            ctx.clearRect(0, 0, w, h);
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            objects.forEach(obj => drawObject(obj));
+            if (tempObject && isDrawing) drawObject(tempObject);
+
+            // 绘制选中框
+            getSelectedObjects().forEach(obj => drawSelectionBox(obj));
+
+            // 绘制智能参考线
+            if (snapLines.length > 0) {
+                ctx.strokeStyle = '#ff4d4d';
+                ctx.lineWidth = 1 / scale;
+                snapLines.forEach(line => {
+                    ctx.beginPath();
+                    if (line.type === 'left' || line.type === 'right' || line.type === 'centerX') {
+                        ctx.moveTo(line.pos, -10000);
+                        ctx.lineTo(line.pos, 10000);
+                    } else {
+                        ctx.moveTo(-10000, line.pos);
+                        ctx.lineTo(10000, line.pos);
+                    }
+                    ctx.stroke();
+                });
+            }
+            ctx.restore();
+            updatePropertiesPanel();
+            renderLayersPanel();
+        }
+
+        function drawObject(obj) {
+            ctx.save();
+            ctx.globalAlpha = obj.opacity != null ? obj.opacity : 1;
+            if (obj.type === 'group') {
+                // 绘制组内子对象
+                obj.children.forEach(cid => {
+                    const child = objects.find(o => o.id === cid);
+                    if (child) drawObject(child);
+                });
+                ctx.restore();
+                return;
+            }
+            if (obj.locked) ctx.globalAlpha *= 0.6;
+
+            // 阴影绘制
+            if (obj.shadow) {
+                ctx.shadowColor = obj.shadow.color || '#000';
+                ctx.shadowOffsetX = obj.shadow.x || 0;
+                ctx.shadowOffsetY = obj.shadow.y || 0;
+                ctx.shadowBlur = obj.shadow.blur || 0;
+            }
+
+            if (obj.type === 'rect') {
+                const r = obj.borderRadius || 0;
+                if (obj.gradient) {
+                    const grad = ctx.createLinearGradient(obj.x, obj.y, obj.x + obj.w, obj.y + obj.h);
+                    grad.addColorStop(0, obj.gradient.from);
+                    grad.addColorStop(1, obj.gradient.to);
+                    ctx.fillStyle = grad;
+                } else {
+                    ctx.fillStyle = obj.fill || '#000';
+                }
+                ctx.strokeStyle = obj.stroke || '#fff';
+                ctx.lineWidth = obj.strokeWidth || 2;
+                if (r > 0) {
+                    ctx.beginPath();
+                    roundRect(ctx, obj.x, obj.y, obj.w, obj.h, r);
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+                    ctx.strokeRect(obj.x, obj.y, obj.w, obj.h);
+                }
+            } else if (obj.type === 'circle') {
+                ctx.beginPath();
+                ctx.ellipse(obj.x + obj.w / 2, obj.y + obj.h / 2, obj.w / 2, obj.h / 2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = obj.fill || '#000';
+                ctx.fill();
+                ctx.stroke();
+            } else if (obj.type === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(obj.x, obj.y);
+                ctx.lineTo(obj.x + obj.w, obj.y + obj.h);
+                ctx.strokeStyle = obj.stroke || '#fff';
+                ctx.lineWidth = obj.strokeWidth || 2;
+                ctx.stroke();
+            } else if (obj.type === 'text') {
+                ctx.font = `${obj.fontSize || 20}px sans-serif`;
+                ctx.fillStyle = obj.fill || '#fff';
+                ctx.fillText(obj.text || '文字', obj.x, obj.y + (obj.fontSize || 20));
+            } else if (obj.type === 'image' && obj.img) {
+                ctx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h);
+            }
+            ctx.restore();
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        function drawSelectionBox(obj) {
+            ctx.save();
+            ctx.strokeStyle = '#4a90d9';
+            ctx.lineWidth = 2 / scale;
+            ctx.setLineDash([6 / scale, 3 / scale]);
+            let x = obj.x, y = obj.y, w = obj.w, h = obj.h;
+            if (obj.type === 'line') {
+                x = Math.min(obj.x, obj.x + obj.w);
+                y = Math.min(obj.y, obj.y + obj.h);
+                w = Math.abs(obj.w);
+                h = Math.abs(obj.h);
+            }
+            const margin = 4 / scale;
+            ctx.strokeRect(x - margin, y - margin, w + margin * 2, h + margin * 2);
+            // 绘制手柄（简化为四个角点）
+            ctx.fillStyle = '#fff';
+            const size = 6 / scale;
+            [[x - margin, y - margin], [x + w + margin, y - margin], [x - margin, y + h + margin], [x + w + margin, y + h + margin]]
+                .forEach(([cx, cy]) => { ctx.fillRect(cx - size / 2, cy - size / 2, size, size); });
+            ctx.restore();
+        }
+
+        // ========== 属性面板 ==========
+        function updatePropertiesPanel() {
+            const obj = getSingleSelected();
+            if (obj && obj.type !== 'group') {
+                fillColorInput.value = obj.fill || '#000';
+                strokeColorInput.value = obj.stroke || '#fff';
+                strokeWidthInput.value = obj.strokeWidth || 0;
+                swValSpan.textContent = obj.strokeWidth || 0;
+                opacitySlider.value = obj.opacity != null ? obj.opacity : 1;
+                opValSpan.textContent = Math.round((obj.opacity || 1) * 100) + '%';
+                borderRadiusRow.style.display = obj.type === 'rect' ? 'flex' : 'none';
+                if (obj.type === 'rect') {
+                    borderRadiusSlider.value = obj.borderRadius || 0;
+                    brValSpan.textContent = obj.borderRadius || 0;
+                }
+                shadowRow.style.display = 'flex';
+                shadowColor.value = obj.shadow?.color || '#000';
+                shadowX.value = obj.shadow?.x || 0;
+                shadowY.value = obj.shadow?.y || 0;
+                shadowBlur.value = obj.shadow?.blur || 0;
+                gradientModeBtn.textContent = obj.gradient ? '纯色' : '渐变';
+            } else {
+                borderRadiusRow.style.display = 'none';
+                shadowRow.style.display = 'none';
+                gradientModeBtn.textContent = '渐变';
+            }
+        }
+
+        // 属性绑定
+        fillColorInput.oninput = e => { getSingleSelected() && (getSingleSelected().fill = e.target.value, updateHistory(), render()); };
+        strokeColorInput.oninput = e => { getSingleSelected() && (getSingleSelected().stroke = e.target.value, updateHistory(), render()); };
+        strokeWidthInput.oninput = e => {
+            const val = parseFloat(e.target.value);
+            swValSpan.textContent = val;
+            const obj = getSingleSelected();
+            if (obj) { obj.strokeWidth = val;
+                updateHistory();
+                render(); }
+        };
+        opacitySlider.oninput = e => {
+            const val = parseFloat(e.target.value);
+            opValSpan.textContent = Math.round(val * 100) + '%';
+            const obj = getSingleSelected();
+            if (obj) { obj.opacity = val;
+                updateHistory();
+                render(); }
+        };
+        borderRadiusSlider.oninput = e => {
+            const val = parseInt(e.target.value);
+            brValSpan.textContent = val;
+            const obj = getSingleSelected();
+            if (obj && obj.type === 'rect') { obj.borderRadius = val;
+                updateHistory();
+                render(); }
+        };
+        shadowColor.oninput = e => updateShadow('color', e.target.value);
+        shadowX.oninput = e => updateShadow('x', parseInt(e.target.value));
+        shadowY.oninput = e => updateShadow('y', parseInt(e.target.value));
+        shadowBlur.oninput = e => updateShadow('blur', parseInt(e.target.value));
+        function updateShadow(prop, value) {
+            const obj = getSingleSelected();
+            if (!obj) return;
+            if (!obj.shadow) obj.shadow = { color: '#000', x: 0, y: 0, blur: 0 };
+            obj.shadow[prop] = value;
+            updateHistory();
+            render();
+        }
+        gradientModeBtn.onclick = () => {
+            const obj = getSingleSelected();
+            if (!obj || obj.type !== 'rect') return;
+            if (obj.gradient) {
+                delete obj.gradient;
+            } else {
+                obj.gradient = { from: obj.fill || '#4a90d9', to: '#ffffff' };
+            }
+            updateHistory();
+            render();
+        };
+
+        // 对齐工具
+        function alignObjects(type) {
+            const selected = getSelectedObjects();
+            if (selected.length < 2) return;
+            const vals = { left: [], centerH: [], right: [], top: [], centerV: [], bottom: [] };
+            selected.forEach(o => {
+                vals.left.push(o.x);
+                vals.centerH.push(o.x + o.w / 2);
+                vals.right.push(o.x + o.w);
+                vals.top.push(o.y);
+                vals.centerV.push(o.y + o.h / 2);
+                vals.bottom.push(o.y + o.h);
+            });
+            const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+            const ref = {
+                left: Math.min(...vals.left),
+                centerH: avg(vals.centerH),
+                right: Math.max(...vals.right),
+                top: Math.min(...vals.top),
+                centerV: avg(vals.centerV),
+                bottom: Math.max(...vals.bottom),
+            };
+            selected.forEach(o => {
+                if (type === 'left') o.x = ref.left;
+                else if (type === 'center-h') o.x = ref.centerH - o.w / 2;
+                else if (type === 'right') o.x = ref.right - o.w;
+                else if (type === 'top') o.y = ref.top;
+                else if (type === 'center-v') o.y = ref.centerV - o.h / 2;
+                else if (type === 'bottom') o.y = ref.bottom - o.h;
+                else if (type === 'dist-h' && selected.length > 2) {
+                    const sorted = [...selected].sort((a, b) => a.x - b.x);
+                    const totalWidth = sorted[sorted.length - 1].x + sorted[sorted.length - 1].w - sorted[0].x;
+                    const sumW = sorted.reduce((s, o) => s + o.w, 0);
+                    const spacing = (totalWidth - sumW) / (sorted.length - 1);
+                    let curX = sorted[0].x;
+                    sorted.forEach(o => { o.x = curX;
+                        curX += o.w + spacing; });
+                } else if (type === 'dist-v' && selected.length > 2) {
+                    const sorted = [...selected].sort((a, b) => a.y - b.y);
+                    const totalHeight = sorted[sorted.length - 1].y + sorted[sorted.length - 1].h - sorted[0].y;
+                    const sumH = sorted.reduce((s, o) => s + o.h, 0);
+                    const spacing = (totalHeight - sumH) / (sorted.length - 1);
+                    let curY = sorted[0].y;
+                    sorted.forEach(o => { o.y = curY;
+                        curY += o.h + spacing; });
+                }
+            });
+            updateHistory();
+            render();
+        }
+        document.querySelectorAll('.align-btn').forEach(btn => {
+            btn.addEventListener('click', () => alignObjects(btn.dataset.align));
+        });
+
+        function updateAlignToolsVisibility() {
+            alignTools.style.display = selectedIds.size > 1 ? 'flex' : 'none';
+        }
+
+        // ========== 图层面板 ==========
+        function renderLayersPanel() {
+            layersPanel.innerHTML = '';
+            [...objects].reverse().forEach(obj => {
+                const div = document.createElement('div');
+                div.className = 'layer-item' + (selectedIds.has(obj.id) ? ' selected' : '');
+                div.innerHTML = `
+                    <span>${obj.type} ${obj.id}</span>
+                    <button class="vis-toggle">${obj.visible !== false ? '👁' : '👁‍🗨'}</button>
+                    <button class="lock-toggle">${obj.locked ? '🔒' : '🔓'}</button>
+                `;
+                div.onclick = (e) => {
+                    if (e.target.tagName === 'BUTTON') return;
+                    selectObject(obj.id, isMultiSelectMode);
+                    closeLayersPanel();
+                };
+                div.querySelector('.vis-toggle').onclick = (e) => {
+                    e.stopPropagation();
+                    obj.visible = !(obj.visible !== false);
+                    render();
+                };
+                div.querySelector('.lock-toggle').onclick = (e) => {
+                    e.stopPropagation();
+                    obj.locked = !obj.locked;
+                    render();
+                };
+                layersPanel.appendChild(div);
+            });
+        }
+        function openLayersPanel() { layersPanel.classList.add('open'); }
+        function closeLayersPanel() { layersPanel.classList.remove('open'); }
+        layersBtn.addEventListener('click', () => {
+            layersPanel.classList.contains('open') ? closeLayersPanel() : openLayersPanel();
+        });
+
+        // ========== 长按菜单 ==========
+        function showContextMenu(x, y, objId) {
+            contextTargetId = objId;
+            contextMenu.style.display = 'flex';
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+            contextMenu.innerHTML = `
+                <button id="ctx-copy">复制</button>
+                <button id="ctx-delete">删除</button>
+                <button id="ctx-up">上移一层</button>
+                <button id="ctx-down">下移一层</button>
+                <button id="ctx-lock">${objects.find(o=>o.id===objId)?.locked?'解锁':'锁定'}</button>
+                <button id="ctx-component">存为组件</button>
+            `;
+            document.getElementById('ctx-copy').onclick = () => { duplicateSelected();
+                hideContextMenu(); };
+            document.getElementById('ctx-delete').onclick = () => { deleteSelected();
+                hideContextMenu(); };
+            document.getElementById('ctx-up').onclick = () => { moveObjectUp(objId);
+                hideContextMenu(); };
+            document.getElementById('ctx-down').onclick = () => { moveObjectDown(objId);
+                hideContextMenu(); };
+            document.getElementById('ctx-lock').onclick = () => {
+                const obj = objects.find(o => o.id === objId);
+                if (obj) { obj.locked = !obj.locked;
+                    updateHistory();
+                    render(); }
+                hideContextMenu();
+            };
+            document.getElementById('ctx-component').onclick = () => {
+                const obj = objects.find(o => o.id === objId);
+                if (obj) { componentLibrary.push(JSON.parse(JSON.stringify(obj)));
+                    showToast('已保存为组件'); }
+                hideContextMenu();
+            };
+        }
+        function hideContextMenu() { contextMenu.style.display = 'none'; }
+
+        // ========== 触摸交互核心 ==========
+        function canvasCoords(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left - offsetX) / scale,
+                y: (clientY - rect.top - offsetY) / scale
+            };
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touches = e.touches;
+            if (touches.length === 1) {
+                const touch = touches[0];
+                const { x, y } = canvasCoords(touch.clientX, touch.clientY);
+                // 长按检测
+                clearTimeout(longPressTimer);
+                longPressTimer = setTimeout(() => {
+                    const obj = getObjectAt(x, y);
+                    if (obj && currentTool === 'select') {
+                        showContextMenu(touch.clientX, touch.clientY, obj.id);
+                    }
+                }, 600);
+
+                if (currentTool === 'select') {
+                    const hit = getObjectAt(x, y);
+                    if (hit && !hit.locked) {
+                        if (isMultiSelectMode || selectedIds.size > 1) {
+                            selectObject(hit.id, true);
+                        } else {
+                            selectObject(hit.id);
+                        }
+                        drawStart = { x, y, objX: hit.x, objY: hit.y, type: hit.type };
+                        isPanning = false;
+                    } else {
+                        clearSelection();
+                        isPanning = true;
+                        drawStart = { x: touch.clientX, y: touch.clientY, offsetX, offsetY };
+                    }
+                    render();
+                } else {
+                    clearSelection();
+                    isDrawing = true;
+                    drawStart = { x, y };
+                    tempObject = createTempObject(currentTool, x, y);
+                    render();
+                }
+            } else if (touches.length === 2) {
+                clearTimeout(longPressTimer);
+                isDrawing = false;
+                isPanning = false;
+                const t1 = touches[0], t2 = touches[1];
+                lastPinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                lastPinchMid = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+                drawStart = { scale, offsetX, offsetY, mid: lastPinchMid };
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touches = e.touches;
+            if (touches.length === 2 && drawStart?.mid) {
+                const t1 = touches[0], t2 = touches[1];
+                const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                const newMid = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+                const scaleFactor = newDist / lastPinchDist;
+                const newScale = Math.max(0.2, Math.min(5, drawStart.scale * scaleFactor));
+                const rect = canvas.getBoundingClientRect();
+                const midCanvasX = drawStart.mid.x - rect.left, midCanvasY = drawStart.mid.y - rect.top;
+                const worldX = (midCanvasX - drawStart.offsetX) / drawStart.scale;
+                const worldY = (midCanvasY - drawStart.offsetY) / drawStart.scale;
+                offsetX = midCanvasX - worldX * newScale;
+                offsetY = midCanvasY - worldY * newScale;
+                scale = newScale;
+                lastPinchDist = newDist;
+                lastPinchMid = newMid;
+                drawStart.mid = newMid;
+                drawStart.scale = scale;
+                drawStart.offsetX = offsetX;
+                drawStart.offsetY = offsetY;
+                render();
+                return;
+            }
+            if (touches.length === 1) {
+                const touch = touches[0];
+                if (isPanning && drawStart) {
+                    offsetX = drawStart.offsetX + (touch.clientX - drawStart.x);
+                    offsetY = drawStart.offsetY + (touch.clientY - drawStart.y);
+                    render();
+                } else if (isDrawing && drawStart && tempObject) {
+                    const { x, y } = canvasCoords(touch.clientX, touch.clientY);
+                    updateTempObject(tempObject, drawStart.x, drawStart.y, x, y);
+                    render();
+                } else if (selectedIds.size > 0 && drawStart && !isPanning) {
+                    const { x, y } = canvasCoords(touch.clientX, touch.clientY);
+                    const dx = x - drawStart.x, dy = y - drawStart.y;
+                    const selected = getSelectedObjects();
+                    selected.forEach(obj => {
+                        if (!obj.locked) {
+                            obj.x = (drawStart.objX || obj.x) + dx;
+                            obj.y = (drawStart.objY || obj.y) + dy;
+                        }
+                    });
+                    if (selected.length === 1 && !selected[0].locked) {
+                        snapLines = computeSnapLines(selected[0]);
+                    }
+                    render();
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            clearTimeout(longPressTimer);
+            if (isDrawing && tempObject) {
+                if (tempObject.w > 0 || tempObject.h > 0 || tempObject.type === 'line') {
+                    tempObject.id = nextId++;
+                    addObject(tempObject);
+                    selectObject(tempObject.id);
+                }
+                tempObject = null;
+            } else if (selectedIds.size > 0 && drawStart) {
+                updateHistory();
+            }
+            isDrawing = false;
+            isPanning = false;
+            drawStart = null;
+            snapLines = [];
+            render();
+        }
+
+        function createTempObject(tool, x, y) {
+            return {
+                type: tool,
+                x,
+                y,
+                w: 0,
+                h: 0,
+                fill: fillColorInput.value,
+                stroke: strokeColorInput.value,
+                strokeWidth: parseFloat(strokeWidthInput.value),
+                opacity: parseFloat(opacitySlider.value),
+                fontSize: 20,
+                text: '文字',
+                borderRadius: tool === 'rect' ? parseInt(borderRadiusSlider.value) : 0,
+            };
+        }
+        function updateTempObject(obj, startX, startY, curX, curY) {
+            obj.x = Math.min(startX, curX);
+            obj.y = Math.min(startY, curY);
+            obj.w = Math.abs(curX - startX);
+            obj.h = Math.abs(curY - startY);
+            if (obj.type === 'line') { obj.x = startX;
+                obj.y = startY;
+                obj.w = curX - startX;
+                obj.h = curY - startY; }
+        }
+
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd);
+        canvas.addEventListener('touchcancel', handleTouchEnd);
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target)) hideContextMenu();
+        });
+
+        // 双击编辑文本
+        canvas.addEventListener('dblclick', (e) => {
+            const touch = e.touches ? e.touches[0] : e;
+            const { x, y } = canvasCoords(touch.clientX, touch.clientY);
+            const obj = getObjectAt(x, y);
+            if (obj && obj.type === 'text') {
+                const newText = prompt('编辑文字:', obj.text);
+                if (newText !== null) {
+                    obj.text = newText;
+                    updateHistory();
+                    render();
+                }
+            }
+        });
+
+        // 导入图片
+        importImgBtn.addEventListener('click', () => imageFileInput.click());
+        imageFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const obj = {
+                        id: nextId++,
+                        type: 'image',
+                        x: 50,
+                        y: 50,
+                        w: img.width / 2,
+                        h: img.height / 2,
+                        img,
+                        opacity: 1
+                    };
+                    addObject(obj);
+                    render();
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 导出
+        exportBtn.addEventListener('click', () => {
+            const tempCanvas = document.createElement('canvas');
+            const padding = 40;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            objects.forEach(obj => {
+                if (obj.type === 'group') return;
+                const right = obj.x + obj.w, bottom = obj.y + obj.h;
+                minX = Math.min(minX, obj.x);
+                minY = Math.min(minY, obj.y);
+                maxX = Math.max(maxX, right);
+                maxY = Math.max(maxY, bottom);
+            });
+            if (!isFinite(minX)) return;
+            const w = maxX - minX + padding * 2, h = maxY - minY + padding * 2;
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            const tctx = tempCanvas.getContext('2d');
+            tctx.fillStyle = '#fff';
+            tctx.fillRect(0, 0, w, h);
+            tctx.translate(-minX + padding, -minY + padding);
+            objects.forEach(obj => { if (obj.type !== 'group') drawObjectOnContext(tctx, obj); });
+            const link = document.createElement('a');
+            link.download = 'design.png';
+            link.href = tempCanvas.toDataURL();
+            link.click();
+            showToast('导出成功');
+        });
+
+        function drawObjectOnContext(ctx, obj) {
+            if (obj.type === 'image' && obj.img) { ctx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h); return; }
+            ctx.save();
+            ctx.globalAlpha = obj.opacity || 1;
+            if (obj.shadow) {
+                ctx.shadowColor = obj.shadow.color;
+                ctx.shadowOffsetX = obj.shadow.x;
+                ctx.shadowOffsetY = obj.shadow.y;
+                ctx.shadowBlur = obj.shadow.blur;
+            }
+            if (obj.type === 'rect') {
+                const r = obj.borderRadius || 0;
+                ctx.fillStyle = obj.fill;
+                ctx.strokeStyle = obj.stroke;
+                ctx.lineWidth = obj.strokeWidth || 2;
+                if (r > 0) { roundRect(ctx, obj.x, obj.y, obj.w, obj.h, r);
+                    ctx.fill();
+                    ctx.stroke(); } else { ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+                    ctx.strokeRect(obj.x, obj.y, obj.w, obj.h); }
+            } else if (obj.type === 'circle') {
+                ctx.beginPath();
+                ctx.ellipse(obj.x + obj.w / 2, obj.y + obj.h / 2, obj.w / 2, obj.h / 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            } else if (obj.type === 'text') {
+                ctx.font = `${obj.fontSize || 20}px sans-serif`;
+                ctx.fillStyle = obj.fill;
+                ctx.fillText(obj.text, obj.x, obj.y + (obj.fontSize || 20));
+            }
+            ctx.restore();
+        }
+
+        function updateLayerCount() { layerCountSpan.textContent = `图层:${objects.length}`; }
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        // 属性面板折叠
+        togglePropsBtn.addEventListener('click', () => {
+            document.getElementById('properties').classList.toggle('collapsed');
+        });
+
+        // 按钮事件
+        dupBtn.onclick = () => selectedIds.size ? duplicateSelected() : showToast('请选择对象');
+        deleteBtn.onclick = () => selectedIds.size ? deleteSelected() : showToast('请选择对象');
+        groupBtn.onclick = groupSelected;
+        ungroupBtn.onclick = ungroupSelected;
+
+        // 初始化
+        render();
+    })();
+    </script>
+</body>
+</html>
