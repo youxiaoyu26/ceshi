@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>性别检测器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f2f2f7;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+        
+        /* iOS 导航栏 */
+        .nav-header {
+            background: rgba(249, 249, 249, 0.94);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.16);
+            padding: 44px 16px 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            text-align: center;
+        }
+        
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #000;
+            letter-spacing: -0.01em;
+        }
+        
+        /* iOS 分组标题 */
+        .section-header {
+            padding: 32px 16px 8px;
+            font-size: 13px;
+            font-weight: 400;
+            color: #6e6e73;
+            text-transform: uppercase;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+        
+        /* iOS 列表容器 */
+        .ios-list {
+            background: #fff;
+            margin: 0 16px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .ios-list + .ios-list {
+            margin-top: 0;
+        }
+        
+        /* iOS 列表项 */
+        .ios-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            min-height: 44px;
+            position: relative;
+        }
+        
+        .ios-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 16px;
+            right: 0;
+            bottom: 0;
+            height: 0.5px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .ios-item:active {
+            background: #d1d1d6;
+        }
+        
+        .ios-item-icon {
+            width: 29px;
+            height: 29px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .ios-item-icon.blue { background: #007aff; }
+        .ios-item-icon.pink { background: #ff2d55; }
+        .ios-item-icon.gray { background: #8e8e93; }
+        .ios-item-icon.purple { background: #af52de; }
+        .ios-item-icon.green { background: #34c759; }
+        .ios-item-icon.orange { background: #ff9500; }
+        
+        .ios-item-icon span {
+            color: white;
+            font-size: 16px;
+        }
+        
+        .ios-item-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .ios-item-title {
+            font-size: 17px;
+            color: #000;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+        }
+        
+        .ios-item-subtitle {
+            font-size: 13px;
+            color: #8e8e93;
+            margin-top: 2px;
+            letter-spacing: -0.021em;
+        }
+        
+        .ios-item-value {
+            font-size: 17px;
+            color: #8e8e93;
+            margin-right: 8px;
+            letter-spacing: -0.022em;
+        }
+        
+        .ios-item-arrow {
+            color: #c7c7cc;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        /* iOS 输入框 */
+        .ios-input {
+            border: none;
+            outline: none;
+            font-size: 17px;
+            color: #000;
+            width: 100%;
+            background: transparent;
+            font-family: inherit;
+            letter-spacing: -0.022em;
+            padding: 0;
+        }
+        
+        .ios-input::placeholder {
+            color: #c7c7cc;
+        }
+        
+        .ios-input.error {
+            color: #ff3b30;
+        }
+        
+        /* iOS 开关 */
+        .ios-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            background: #e9e9eb;
+            border-radius: 31px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .ios-switch.active {
+            background: #34c759;
+        }
+        
+        .ios-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 27px;
+            height: 27px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .ios-switch.active::after {
+            transform: translateX(20px);
+        }
+        
+        /* iOS 单选按钮 */
+        .ios-radio-group {
+            display: flex;
+            gap: 0;
+        }
+        
+        .ios-radio-item {
+            flex: 1;
+            position: relative;
+        }
+        
+        .ios-radio-item input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+        
+        .ios-radio-item label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 0;
+            cursor: pointer;
+            font-size: 15px;
+            color: #007aff;
+            border: 1px solid #007aff;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+        
+        .ios-radio-item:first-child label {
+            border-radius: 8px 0 0 8px;
+            border-right: none;
+        }
+        
+        .ios-radio-item:last-child label {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+        }
+        
+        .ios-radio-item input[type="radio"]:checked + label {
+            background: #007aff;
+            color: #fff;
+        }
+        
+        /* iOS 按钮 */
+        .ios-btn {
+            display: block;
+            width: calc(100% - 32px);
+            margin: 24px 16px 0;
+            padding: 12px;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            letter-spacing: -0.022em;
+            transition: opacity 0.2s ease;
+        }
+        
+        .ios-btn:active {
+            opacity: 0.7;
+        }
+        
+        .ios-btn.destructive {
+            background: #ff3b30;
+        }
+        
+        /* 结果卡片 */
+        .result-card {
+            background: #fff;
+            margin: 16px 16px 0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            display: none;
+            animation: iosFadeIn 0.4s ease;
+        }
+        
+        .result-card.show {
+            display: block;
+        }
+        
+        .result-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        .result-card.male .result-avatar { background: #e3f2fd; }
+        .result-card.female .result-avatar { background: #fce4ec; }
+        .result-card.unknown .result-avatar { background: #f5f5f5; }
+        
+        .result-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 4px;
+            letter-spacing: -0.021em;
+        }
+        
+        .result-gender {
+            font-size: 15px;
+            color: #8e8e93;
+            letter-spacing: -0.021em;
+        }
+        
+        .result-gender span {
+            font-weight: 600;
+        }
+        
+        .result-card.male .result-gender span { color: #007aff; }
+        .result-card.female .result-gender span { color: #ff2d55; }
+        .result-card.unknown .result-gender span { color: #8e8e93; }
+        
+        @keyframes iosFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 历史记录 */
+        .history-section {
+            margin-top: 24px;
+        }
+        
+        .history-section .section-header {
+            padding-top: 8px;
+        }
+        
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+        }
+        
+        .history-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 16px;
+            right: 0;
+            bottom: 0;
+            height: 0.5px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .history-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .history-avatar.male { background: #e3f2fd; }
+        .history-avatar.female { background: #fce4ec; }
+        .history-avatar.unknown { background: #f5f5f5; }
+        
+        .history-name {
+            flex: 1;
+            font-size: 17px;
+            color: #000;
+            letter-spacing: -0.022em;
+        }
+        
+        .history-gender {
+            font-size: 15px;
+            color: #8e8e93;
+            letter-spacing: -0.021em;
+        }
+        
+        /* 提示文字 */
+        .hint-text {
+            font-size: 12px;
+            color: #ff3b30;
+            margin-top: 4px;
+            padding: 0 16px;
+            display: none;
+        }
+        
+        .hint-text.show {
+            display: block;
+            animation: iosFadeIn 0.3s ease;
+        }
+        
+        /* iOS 提示框 */
+        .ios-toast-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .ios-toast-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .ios-toast-box {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 14px;
+            width: 270px;
+            text-align: center;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .ios-toast-overlay.show .ios-toast-box {
+            transform: scale(1);
+        }
+        
+        .ios-toast-content {
+            padding: 20px;
+        }
+        
+        .ios-toast-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 4px;
+            letter-spacing: -0.022em;
+        }
+        
+        .ios-toast-message {
+            font-size: 13px;
+            color: #6e6e73;
+            line-height: 1.4;
+            letter-spacing: -0.021em;
+        }
+        
+        .ios-toast-actions {
+            border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+        }
+        
+        .ios-toast-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            font-size: 17px;
+            color: #007aff;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            letter-spacing: -0.022em;
+            transition: background 0.2s ease;
+        }
+        
+        .ios-toast-btn:active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .ios-toast-btn.destructive {
+            color: #ff3b30;
+        }
+        
+        .ios-toast-btn:not(:last-child) {
+            border-right: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div class="nav-header">
+        <div class="nav-title">性别检测器</div>
+    </div>
+    
+    <!-- 输入区域 -->
+    <div class="section-header">输入信息</div>
+    <div class="ios-list">
+        <div class="ios-item">
+            <div class="ios-item-icon blue"><span>👤</span></div>
+            <div class="ios-item-content">
+                <div class="ios-item-title">姓名</div>
+            </div>
+            <input type="text" class="ios-input" id="nameInput" placeholder="请输入姓名" autocomplete="off">
+        </div>
+    </div>
+    <div class="hint-text" id="nameHint">请输入姓名</div>
+    
+    <!-- 性别选择 -->
+    <div class="section-header">选择性别</div>
+    <div class="ios-list">
+        <div class="ios-item" style="padding: 16px;">
+            <div class="ios-radio-group" style="width: 100%;">
+                <div class="ios-radio-item">
+                    <input type="radio" name="gender" id="male" value="male">
+                    <label for="male">男</label>
+                </div>
+                <div class="ios-radio-item">
+                    <input type="radio" name="gender" id="female" value="female">
+                    <label for="female">女</label>
+                </div>
+                <div class="ios-radio-item">
+                    <input type="radio" name="gender" id="unknown" value="unknown">
+                    <label for="unknown">保密</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hint-text" id="genderHint">请选择性别</div>
+    
+    <!-- 检测按钮 -->
+    <button class="ios-btn" onclick="detectGender()">开始检测</button>
+    
+    <!-- 结果卡片 -->
+    <div class="result-card" id="resultCard">
+        <div class="result-avatar" id="resultAvatar"></div>
+        <div class="result-name" id="resultName"></div>
+        <div class="result-gender" id="resultGender"></div>
+    </div>
+    
+    <!-- 历史记录 -->
+    <div class="history-section" id="historySection" style="display: none;">
+        <div class="section-header">检测历史</div>
+        <div class="ios-list" id="historyList"></div>
+        <button class="ios-btn destructive" onclick="clearHistory()" style="margin-top: 16px;">清空历史记录</button>
+    </div>
+    
+    <!-- iOS 提示框 -->
+    <div class="ios-toast-overlay" id="toastOverlay">
+        <div class="ios-toast-box">
+            <div class="ios-toast-content">
+                <div class="ios-toast-title" id="toastTitle">提示</div>
+                <div class="ios-toast-message" id="toastMessage">请输入姓名</div>
+            </div>
+            <div class="ios-toast-actions">
+                <button class="ios-toast-btn" id="toastBtn" onclick="hideToast()">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 从本地存储加载历史记录
+        let history = JSON.parse(localStorage.getItem('genderHistory')) || [];
+        
+        // 页面加载时显示历史记录
+        window.onload = function() {
+            if (history.length > 0) {
+                renderHistory();
+            }
+        };
+        
+        // 显示 iOS 风格提示框
+        function showToast(title, message, isError = false) {
+            const overlay = document.getElementById('toastOverlay');
+            const titleEl = document.getElementById('toastTitle');
+            const messageEl = document.getElementById('toastMessage');
+            const btn = document.getElementById('toastBtn');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            if (isError) {
+                btn.classList.add('destructive');
+            } else {
+                btn.classList.remove('destructive');
+            }
+            
+            overlay.classList.add('show');
+        }
+        
+        // 隐藏提示框
+        function hideToast() {
+            document.getElementById('toastOverlay').classList.remove('show');
+        }
+        
+        // 点击遮罩层关闭
+        document.getElementById('toastOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideToast();
+            }
+        });
+        
+        // 显示输入错误
+        function showInputError(hintId) {
+            document.getElementById(hintId).classList.add('show');
+        }
+        
+        // 清除输入错误
+        function clearInputError(hintId) {
+            document.getElementById(hintId).classList.remove('show');
+        }
+        
+        function detectGender() {
+            const nameInput = document.getElementById('nameInput');
+            const name = nameInput.value.trim();
+            const genderRadios = document.getElementsByName('gender');
+            let selectedGender = '';
+            let hasError = false;
+            
+            // 清除错误
+            clearInputError('nameHint');
+            clearInputError('genderHint');
+            
+            // 获取选中的性别
+            for (const radio of genderRadios) {
+                if (radio.checked) {
+                    selectedGender = radio.value;
+                    break;
+                }
+            }
+            
+            // 验证
+            if (!name) {
+                showInputError('nameHint');
+                showToast('无法检测', '请输入姓名后再进行检测', true);
+                hasError = true;
+            }
+            
+            if (!selectedGender) {
+                showInputError('genderHint');
+                if (!hasError) {
+                    showToast('无法检测', '请选择性别后再进行检测', true);
+                }
+                hasError = true;
+            }
+            
+            if (hasError) {
+                return;
+            }
+            
+            // 显示结果
+            showResult(name, selectedGender);
+            
+            // 添加到历史
+            addToHistory(name, selectedGender);
+            
+            // 清空输入
+            nameInput.value = '';
+            for (const radio of genderRadios) {
+                radio.checked = false;
+            }
+        }
+        
+        function showResult(name, gender) {
+            const resultCard = document.getElementById('resultCard');
+            const resultAvatar = document.getElementById('resultAvatar');
+            const resultName = document.getElementById('resultName');
+            const resultGender = document.getElementById('resultGender');
+            
+            resultCard.classList.remove('male', 'female', 'unknown', 'show');
+            
+            resultName.textContent = name;
+            
+            if (gender === 'male') {
+                resultCard.classList.add('male');
+                resultAvatar.textContent = '👨';
+                resultGender.innerHTML = '性别：<span>男</span>';
+            } else if (gender === 'female') {
+                resultCard.classList.add('female');
+                resultAvatar.textContent = '👩';
+                resultGender.innerHTML = '性别：<span>女</span>';
+            } else {
+                resultCard.classList.add('unknown');
+                resultAvatar.textContent = '🤔';
+                resultGender.innerHTML = '性别：<span>保密</span>';
+            }
+            
+            resultCard.classList.add('show');
+        }
+        
+        function addToHistory(name, gender) {
+            const item = {
+                name: name,
+                gender: gender,
+                time: new Date().toLocaleString('zh-CN')
+            };
+            
+            history.unshift(item);
+            if (history.length > 10) {
+                history = history.slice(0, 10);
+            }
+            
+            localStorage.setItem('genderHistory', JSON.stringify(history));
+            renderHistory();
+        }
+        
+        function renderHistory() {
+            const historySection = document.getElementById('historySection');
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+            
+            historySection.style.display = 'block';
+            historyList.innerHTML = '';
+            
+            history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'ios-item history-item';
+                div.style.position = 'relative';
+                
+                let genderText = '';
+                let genderClass = '';
+                let avatarEmoji = '';
+                if (item.gender === 'male') {
+                    genderText = '男';
+                    genderClass = 'male';
+                    avatarEmoji = '👨';
+                } else if (item.gender === 'female') {
+                    genderText = '女';
+                    genderClass = 'female';
+                    avatarEmoji = '👩';
+                } else {
+                    genderText = '保密';
+                    genderClass = 'unknown';
+                    avatarEmoji = '🤔';
+                }
+                
+                div.innerHTML = `
+                    <div class="history-avatar ${genderClass}">${avatarEmoji}</div>
+                    <div class="history-name">${item.name}</div>
+                    <div class="history-gender">${genderText}</div>
+                `;
+                
+                historyList.appendChild(div);
+            });
+        }
+        
+        function clearHistory() {
+            history = [];
+            localStorage.removeItem('genderHistory');
+            document.getElementById('historySection').style.display = 'none';
+        }
+        
+        // 回车提交
+        document.getElementById('nameInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                detectGender();
+            }
+        });
+        
+        // 输入时清除错误
+        document.getElementById('nameInput').addEventListener('input', function() {
+            clearInputError('nameHint');
+        });
+        
+        // 选择性别时清除错误
+        document.querySelectorAll('input[name="gender"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                clearInputError('genderHint');
+            });
+        });
+    </script>
+</body>
+</html>
