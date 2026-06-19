@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HTML 全栈学习工具 · 手机版优化</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --sidebar-bg: #1e1e2e;
+      --sidebar-text: #cdd6f4;
+      --sidebar-hover: #313244;
+      --sidebar-active: #45475a;
+      --accent: #6c8cff;
+      --accent-light: #89b4fa;
+      --editor-bg: #1a1a2e;
+      --editor-text: #e0e0e0;
+      --preview-bg: #fff;
+      --border: #e0e0e0;
+      --card-bg: #fff;
+      --text: #333;
+      --text-light: #666;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --radius: 10px;
+      --transition: 0.2s ease;
+      --header-bg: #fff;
+      --resize-handle: #d0d0d0;
+      --badge-bg: #e8ecff;
+      --badge-text: #4a5fc1;
+      --scrollbar-thumb: #c0c0c0;
+      --scrollbar-track: transparent;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh; width: 100vw; overflow: hidden;
+      display: flex; flex-direction: column;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 头部 */
+    .header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px; height: 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; z-index: 10;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .header .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 700; font-size: 1rem; color: #333; white-space: nowrap;
+    }
+    .header .logo .icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, #e8743d, #e65100);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 900; font-size: 1rem;
+    }
+    .header .logo span { color: #e65100; }
+    .header-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+    .btn {
+      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+      cursor: pointer; font-size: 0.8rem; font-weight: 500;
+      transition: all var(--transition); background: #fff; color: #333;
+      white-space: nowrap; display: flex; align-items: center; gap: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover { background: #f5f5f5; }
+    .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+    .btn.run-btn { background: #22c55e; color: #fff; border-color: #22c55e; font-weight: 600; padding: 6px 14px; }
+    .btn.reset-btn { background: #f9fafb; color: #666; }
+    .btn.icon-btn { width: 32px; height: 32px; padding: 0; border-radius: 50%; justify-content: center; font-size: 1rem; }
+    .badge {
+      display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem;
+      font-weight: 600; background: var(--badge-bg); color: var(--badge-text); white-space: nowrap;
+    }
+    .mobile-only { display: none; }
+
+    /* 主布局 */
+    .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+    /* 侧边栏 */
+    .sidebar {
+      width: 260px; min-width: 260px;
+      background: var(--sidebar-bg); color: var(--sidebar-text);
+      overflow-y: auto; overflow-x: hidden; flex-shrink: 0;
+      display: flex; flex-direction: column; transition: margin-left 0.3s ease;
+      z-index: 20; box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    }
+    .sidebar-header {
+      padding: 14px 16px 8px; font-weight: 700; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 0.05em; color: #a0a8c0;
+      border-bottom: 1px solid #2a2a3c; flex-shrink: 0;
+    }
+    .sidebar-nav { flex:1; overflow-y:auto; padding: 4px 0; }
+    .sidebar-nav .category {
+      padding: 8px 16px 4px; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em; color: #7a8299; margin-top: 2px;
+    }
+    .sidebar-nav .lesson-item {
+      padding: 8px 16px 8px 26px; cursor: pointer; font-size: 0.85rem;
+      transition: all var(--transition); border-left: 3px solid transparent;
+      color: #c5cdd9; position: relative; line-height: 1.3;
+    }
+    .sidebar-nav .lesson-item:hover { background: var(--sidebar-hover); color: #fff; }
+    .sidebar-nav .lesson-item.active {
+      background: var(--sidebar-active); border-left-color: var(--accent-light);
+      color: #fff; font-weight: 600;
+    }
+    .sidebar-nav .lesson-item .dot {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent-light); margin-right: 6px; opacity: 0;
+      transition: opacity var(--transition); flex-shrink: 0;
+    }
+    .sidebar-nav .lesson-item.active .dot { opacity: 1; }
+    .sidebar-nav .lesson-item.completed .dot { opacity: 0.6; background: #22c55e; }
+
+    /* 右侧内容区 */
+    .content-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+    .tutorial-bar {
+      background: #fffbeb; border-bottom: 1px solid #fde68a;
+      padding: 8px 14px; font-size: 0.8rem; color: #92400e;
+      flex-shrink: 0; display: flex; align-items: flex-start; gap: 6px;
+      line-height: 1.5; max-height: 70px; overflow-y: auto;
+    }
+    .tutorial-bar .icon { flex-shrink: 0; font-size: 1rem; }
+
+    .editor-preview-container { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; min-height:0; }
+    .editor-panel { flex:1; min-height:80px; overflow:hidden; position:relative; display:flex; background:var(--editor-bg); border-bottom:1px solid #2a2a3c; }
+    .preview-panel { flex:1; min-height:80px; overflow:hidden; position:relative; background:#e8e8e8; }
+    .resize-handle {
+      height: 8px; background: #2a2a3c; cursor: row-resize; flex-shrink: 0;
+      position: relative; z-index: 2; transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: none; /* 移动端触摸拖动优化 */
+    }
+    .resize-handle:hover, .resize-handle:active { background: #4a4a5c; }
+    .resize-handle::after {
+      content: ''; display: block; width: 30px; height: 3px;
+      border-radius: 2px; background: #666; transition: background 0.15s;
+    }
+
+    .line-numbers {
+      width: 38px; flex-shrink: 0; background: #16162a; color: #555;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.78rem; line-height: 1.65; padding: 10px 0;
+      text-align: right; padding-right: 6px; overflow: hidden;
+      user-select: none; pointer-events: none; border-right:1px solid #2a2a3c;
+    }
+    .code-editor-wrapper { flex:1; position:relative; overflow:hidden; }
+    .code-editor {
+      width:100%; height:100%; border:none; outline:none; resize:none;
+      padding:10px 12px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size:0.82rem; line-height:1.65; background:var(--editor-bg); color:var(--editor-text);
+      tab-size:2; white-space:pre; overflow:auto; -webkit-text-size-adjust:100%;
+    }
+    .preview-iframe { width:100%; height:100%; border:none; background:#fff; }
+    .preview-label {
+      position: absolute; top: 6px; right: 10px;
+      background: rgba(0,0,0,0.6); color:#fff; padding: 3px 8px;
+      border-radius: 10px; font-size:0.65rem; pointer-events:none; z-index:3;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: #333; color:#fff; padding: 8px 18px; border-radius: 20px;
+      font-size:0.8rem; z-index:999; transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* 移动端专用按钮 */
+    .mobile-preview-toggle {
+      display: none;
+      background: #6c8cff; color:#fff; border:none; border-radius:6px;
+      padding: 6px 12px; font-size:0.8rem; cursor:pointer;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .header { padding: 0 8px; height: 44px; }
+      .header .logo { font-size: 0.9rem; gap: 4px; }
+      .btn { padding: 5px 8px; font-size: 0.7rem; }
+      .btn.icon-btn { width: 28px; height: 28px; }
+      .badge { font-size: 0.65rem; padding: 2px 6px; }
+      .mobile-menu-btn { display: flex !important; }
+      .mobile-only { display: inline-flex !important; }
+      .desktop-only { display: none !important; }
+      .sidebar {
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 260px; min-width: 260px; margin-left: -260px;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+      }
+      .sidebar.open { margin-left: 0; }
+      .mobile-overlay {
+        display: none; position: fixed; inset:0; background:rgba(0,0,0,0.4);
+        z-index:15;
+      }
+      .mobile-overlay.show { display: block; }
+      .tutorial-bar { font-size:0.72rem; padding:6px 10px; max-height:55px; }
+      .line-numbers { width: 28px; font-size:0.65rem; padding-right:4px; }
+      .code-editor { font-size:0.72rem; padding:8px 8px; }
+      .resize-handle { height: 10px; }
+      .resize-handle::after { width: 24px; height: 3px; }
+      .preview-label { font-size:0.6rem; top:4px; right:6px; padding:2px 6px; }
+      /* 移动端全屏切换按钮 */
+      .mobile-preview-toggle {
+        display: inline-flex; align-items: center; gap:4px;
+      }
+      .editor-panel.fullscreen { flex: none; height: 100% !important; }
+      .preview-panel.fullscreen { flex: none; height: 100% !important; }
+      .resize-handle.hidden { display: none; }
+    }
+    @media (min-width: 769px) {
+      .mobile-menu-btn { display: none !important; }
+      .mobile-overlay { display: none !important; }
+      .mobile-preview-toggle { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">
+      <button class="btn icon-btn mobile-menu-btn" id="menuBtn" title="菜单">☰</button>
+      <div class="icon">&lt;/&gt;</div>
+      <span>HTML</span> 全栈学习
+    </div>
+    <div class="header-actions">
+      <span id="currentLessonBadge" class="badge desktop-only">📖 选择知识点</span>
+      <button class="btn reset-btn" onclick="resetCode()">↺</button>
+      <button class="btn" onclick="formatCode()">🔧</button>
+      <button class="btn run-btn" onclick="runCode()">▶ 运行</button>
+      <button class="mobile-preview-toggle" id="mobileToggleBtn" onclick="toggleFullscreenPreview()" title="全屏预览">🖥️</button>
+    </div>
+  </header>
+
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <div class="main-container">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">📚 知识目录</div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+    </aside>
+    <div class="content-area">
+      <div class="tutorial-bar">
+        <span class="icon">💡</span>
+        <span id="tutorialText">欢迎！从左侧选知识点，代码即加载到编辑器，点击 <strong>▶ 运行</strong> 查看效果。</span>
+      </div>
+      <div class="editor-preview-container" id="editorPreviewContainer">
+        <div class="editor-panel" id="editorPanel">
+          <div class="line-numbers" id="lineNumbers"><div>1</div></div>
+          <div class="code-editor-wrapper">
+            <textarea class="code-editor" id="codeEditor" placeholder="编写HTML代码..." spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="resize-handle" id="resizeHandle" title="拖动调整大小"></div>
+        <div class="preview-panel" id="previewPanel">
+          <iframe class="preview-iframe" id="previewFrame" title="预览"></iframe>
+          <span class="preview-label">预览</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function() {
+      // DOM元素
+      const codeEditor = document.getElementById('codeEditor');
+      const previewFrame = document.getElementById('previewFrame');
+      const lineNumbers = document.getElementById('lineNumbers');
+      const tutorialText = document.getElementById('tutorialText');
+      const currentLessonBadge = document.getElementById('currentLessonBadge');
+      const sidebarNav = document.getElementById('sidebarNav');
+      const sidebar = document.getElementById('sidebar');
+      const mobileOverlay = document.getElementById('mobileOverlay');
+      const menuBtn = document.getElementById('menuBtn');
+      const resizeHandle = document.getElementById('resizeHandle');
+      const editorPanel = document.getElementById('editorPanel');
+      const previewPanel = document.getElementById('previewPanel');
+      const toast = document.getElementById('toast');
+      const mobileToggleBtn = document.getElementById('mobileToggleBtn');
+
+      let currentLessonId = null;
+      let completedLessons = new Set();
+      let autoRunTimer = null;
+      let isDragging = false;
+      let isFullscreenPreview = false; // 移动端全屏预览状态
+
+      try {
+        const saved = localStorage.getItem('html_learning_completed');
+        if (saved) completedLessons = new Set(JSON.parse(saved));
+      } catch(e) {}
+
+      function saveCompleted() {
+        try { localStorage.setItem('html_learning_completed', JSON.stringify([...completedLessons])); } catch(e) {}
+      }
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => toast.classList.remove('show'), 1800);
+      }
+
+      // 移动端菜单
+      function openSidebar() {
+        sidebar.classList.add('open');
+        mobileOverlay.classList.add('show');
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        mobileOverlay.classList.remove('show');
+      }
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sidebar.classList.contains('open')) closeSidebar();
+        else openSidebar();
+      });
+      mobileOverlay.addEventListener('click', closeSidebar);
+
+      // 知识点数据 (完整保留)
+      const lessonsData = [
+        { id:'doc-structure', category:'📐 HTML基础', title:'HTML文档结构', description:'<strong>HTML文档结构</strong>：<code>&lt;!DOCTYPE&gt;</code>、<code>&lt;html&gt;</code>、<code>&lt;head&gt;</code>、<code>&lt;body&gt;</code>。', code:'<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n  <meta charset="UTF-8">\n  <title>我的网页</title>\n</head>\n<body>\n  <h1>你好，HTML！</h1>\n  <p>这是一个标准结构。</p>\n</body>\n</html>' },
+        { id:'headings', category:'📐 HTML基础', title:'标题 h1~h6', description:'<strong>标题标签</strong>从<code>&lt;h1&gt;</code>到<code>&lt;h6&gt;</code>，定义层级。', code:'<!DOCTYPE html>\n<html lang="zh-CN">\n<head><meta charset="UTF-8"><title>标题</title></head>\n<body>\n  <h1>一级标题</h1>\n  <h2>二级标题</h2>\n  <h3>三级标题</h3>\n  <h4>四级</h4><h5>五级</h5><h6>六级</h6>\n</body>\n</html>' },
+        { id:'text-paragraph', category:'📐 HTML基础', title:'段落与换行', description:'<code>&lt;p&gt;</code>段落、<code>&lt;br&gt;</code>换行、<code>&lt;hr&gt;</code>水平线。', code:'<!DOCTYPE html>\n<html lang="zh-CN">\n<head><meta charset="UTF-8"><title>段落</title></head>\n<body>\n  <p>第一段</p>\n  <p>第二段<br>换行了</p>\n  <hr>\n  <p>水平线下面</p>\n</body>\n</html>' },
+        { id:'text-formatting', category:'📐 HTML基础', title:'文本格式化', description:'<strong>加粗</strong>、<em>斜体</em>、<u>下划线</u>、<mark>高亮</mark>等。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>格式化</title></head>\n<body>\n  <p><strong>重要加粗</strong></p>\n  <p><em>强调斜体</em></p>\n  <p><b>普通加粗</b> | <i>普通斜体</i></p>\n  <p><u>下划线</u> | <mark>高亮</mark></p>\n  <p><del>删除线</del> | <ins>插入线</ins></p>\n  <p>H<sub>2</sub>O | x<sup>2</sup></p>\n</body>\n</html>' },
+        { id:'comments', category:'📐 HTML基础', title:'注释', description:'<code>&lt;!-- 注释 --&gt;</code> 不会被显示。', code:'<!DOCTYPE html>\n<html>\n<head><meta charset="UTF-8"><title>注释</title></head>\n<body>\n  <!-- 这是注释，不会显示 -->\n  <h1>可见内容</h1>\n  <!-- <p>被注释掉的段落</p> -->\n</body>\n</html>' },
+        { id:'links', category:'🔗 链接与图片', title:'超链接 a', description:'<code>&lt;a href="url"&gt;</code>创建链接，<code>target="_blank"</code>新窗口。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>链接</title></head>\n<body>\n  <p><a href="https://example.com">普通链接</a></p>\n  <p><a href="https://example.com" target="_blank">新窗口打开</a></p>\n  <p><a href="mailto:me@mail.com">发邮件</a></p>\n</body>\n</html>' },
+        { id:'images', category:'🔗 链接与图片', title:'图片 img', description:'<code>&lt;img src="..." alt="描述"&gt;</code> 单标签。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>图片</title></head>\n<body>\n  <img src="https://picsum.photos/300/200" alt="示例图片" width="300">\n  <p>上面是一张图片</p>\n</body>\n</html>' },
+        { id:'unordered-list', category:'📋 列表', title:'无序列表 ul', description:'<code>&lt;ul&gt;&lt;li&gt;</code> 项目符号列表。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>无序列表</title></head>\n<body>\n  <h3>购物清单</h3>\n  <ul>\n    <li>苹果</li>\n    <li>香蕉</li>\n    <li>牛奶</li>\n  </ul>\n</body>\n</html>' },
+        { id:'ordered-list', category:'📋 列表', title:'有序列表 ol', description:'<code>&lt;ol&gt;&lt;li&gt;</code> 数字编号列表。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>有序列表</title></head>\n<body>\n  <h3>步骤</h3>\n  <ol>\n    <li>打开电脑</li>\n    <li>打开浏览器</li>\n    <li>输入网址</li>\n  </ol>\n</body>\n</html>' },
+        { id:'definition-list', category:'📋 列表', title:'定义列表 dl', description:'<code>&lt;dl&gt;&lt;dt&gt;&lt;dd&gt;</code> 术语解释。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>定义列表</title></head>\n<body>\n  <dl>\n    <dt>HTML</dt>\n    <dd>超文本标记语言</dd>\n    <dt>CSS</dt>\n    <dd>层叠样式表</dd>\n  </dl>\n</body>\n</html>' },
+        { id:'basic-table', category:'📊 表格', title:'基本表格', description:'<code>&lt;table&gt;&lt;tr&gt;&lt;td&gt;</code> 表格。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>表格</title></head>\n<body>\n  <table border="1">\n    <tr><th>姓名</th><th>年龄</th></tr>\n    <tr><td>张三</td><td>25</td></tr>\n  </table>\n</body>\n</html>' },
+        { id:'table-advanced', category:'📊 表格', title:'表格结构与合并', description:'<code>thead/tbody/tfoot</code> 和 <code>colspan/rowspan</code>。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>高级表格</title></head>\n<body>\n  <table border="1">\n    <caption>销售数据</caption>\n    <thead><tr><th>产品</th><th>Q1</th><th>Q2</th></tr></thead>\n    <tbody>\n      <tr><td>A</td><td>100</td><td>120</td></tr>\n      <tr><td>B</td><td colspan="2">合并两列</td></tr>\n    </tbody>\n  </table>\n</body>\n</html>' },
+        { id:'basic-form', category:'📝 表单', title:'基本表单', description:'<code>&lt;form&gt;</code>、<code>&lt;input&gt;</code>、<code>&lt;label&gt;</code>。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>表单</title></head>\n<body>\n  <form>\n    <label for="name">姓名：</label>\n    <input type="text" id="name" placeholder="输入姓名">\n    <button type="submit">提交</button>\n  </form>\n</body>\n</html>' },
+        { id:'form-inputs', category:'📝 表单', title:'各种输入类型', description:'<code>type="text/password/email/number/date/color"</code> 等。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>输入类型</title></head>\n<body>\n  <input type="text" placeholder="文本"><br>\n  <input type="password" value="123456"><br>\n  <input type="email" placeholder="邮箱"><br>\n  <input type="number" min="1" max="10"><br>\n  <input type="date"><br>\n  <input type="color">\n</body>\n</html>' },
+        { id:'form-select', category:'📝 表单', title:'下拉与文本域', description:'<code>&lt;select&gt;</code>、<code>&lt;textarea&gt;</code>。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>选择</title></head>\n<body>\n  <select>\n    <option>选项1</option>\n    <option>选项2</option>\n  </select>\n  <br>\n  <textarea rows="4" cols="30">多行文本</textarea>\n</body>\n</html>' },
+        { id:'div-span', category:'🏗️ 布局与容器', title:'div 与 span', description:'<code>&lt;div&gt;</code>块级容器，<code>&lt;span&gt;</code>行内容器。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>div与span</title></head>\n<body>\n  <div style="background:#f0f0f0; padding:10px;">\n    <h3>块级div</h3>\n    <p>这是一段文字，其中<span style="color:red;">这部分是span</span>。</p>\n  </div>\n</body>\n</html>' },
+        { id:'semantic-tags', category:'🏗️ 布局与容器', title:'语义化标签', description:'<code>&lt;header&gt;</code>、<code>&lt;nav&gt;</code>、<code>&lt;main&gt;</code>、<code>&lt;footer&gt;</code> 等。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>语义化</title><style>header{background:#333;color:#fff;padding:10px;}footer{background:#333;color:#fff;padding:8px;text-align:center;}</style></head>\n<body>\n  <header>页头</header>\n  <main>主要内容</main>\n  <footer>页脚</footer>\n</body>\n</html>' },
+        { id:'audio', category:'🎬 多媒体', title:'音频 audio', description:'<code>&lt;audio controls&gt;</code> 播放音频。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>音频</title></head>\n<body>\n  <audio controls>\n    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">\n  </audio>\n</body>\n</html>' },
+        { id:'video', category:'🎬 多媒体', title:'视频 video', description:'<code>&lt;video controls&gt;</code> 播放视频。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>视频</title></head>\n<body>\n  <video controls width="320">\n    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">\n  </video>\n</body>\n</html>' },
+        { id:'iframe', category:'🎬 多媒体', title:'iframe 嵌入', description:'<code>&lt;iframe src="..."&gt;</code> 嵌入外部页面。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>iframe</title></head>\n<body>\n  <iframe src="https://example.com" width="100%" height="200"></iframe>\n</body>\n</html>' },
+        { id:'entities', category:'🚀 进阶知识', title:'实体字符', description:'&amp;lt; &amp;gt; &amp;amp; 等。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>实体</title></head>\n<body>\n  <p>小于号：&lt; 大于号：&gt; 与符号：&amp;</p>\n</body>\n</html>' },
+        { id:'global-attrs', category:'🚀 进阶知识', title:'全局属性', description:'<code>class</code>、<code>id</code>、<code>title</code>、<code>contenteditable</code> 等。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>全局属性</title></head>\n<body>\n  <p class="highlight" title="提示文字" contenteditable="true">可编辑段落，悬停看title</p>\n</body>\n</html>' },
+        { id:'data-attrs', category:'🚀 进阶知识', title:'data-* 属性', description:'自定义数据属性，JS通过<code>dataset</code>访问。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>data属性</title></head>\n<body>\n  <div data-id="123" data-name="示例" onclick="alert(this.dataset.name)">点击我</div>\n</body>\n</html>' },
+        { id:'meta-seo', category:'🚀 进阶知识', title:'meta与SEO', description:'<code>&lt;meta name="description"&gt;</code> 等。', code:'<!DOCTYPE html>\n<html lang="zh">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <meta name="description" content="页面描述">\n  <title>SEO示例</title>\n</head>\n<body><p>查看源代码中的meta标签</p></body>\n</html>' },
+        { id:'details-summary', category:'🚀 进阶知识', title:'折叠面板 details', description:'<code>&lt;details&gt;&lt;summary&gt;</code> 可折叠内容。', code:'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>折叠</title></head>\n<body>\n  <details>\n    <summary>点击展开</summary>\n    <p>隐藏的内容在这里。</p>\n  </details>\n</body>\n</html>' },
+        { id:'free-practice', category:'🎯 练习', title:'🆓 自由练习', description:'自由编写HTML，发挥创意！', code:'<!DOCTYPE html>\n<html lang="zh">\n<head><meta charset="UTF-8"><title>我的作品</title><style>body{font-family:sans-serif;padding:20px;}</style></head>\n<body>\n  <h1>🎨 开始创作</h1>\n</body>\n</html>' }
+      ];
+
+      const allLessons = lessonsData;
+
+      function buildSidebar() {
+        sidebarNav.innerHTML = '';
+        const categories = {};
+        allLessons.forEach(l => {
+          if (!categories[l.category]) categories[l.category] = [];
+          categories[l.category].push(l);
+        });
+        Object.keys(categories).forEach(cat => {
+          const catDiv = document.createElement('div');
+          catDiv.className = 'category';
+          catDiv.textContent = cat;
+          sidebarNav.appendChild(catDiv);
+          categories[cat].forEach(lesson => {
+            const item = document.createElement('div');
+            item.className = 'lesson-item';
+            if (completedLessons.has(lesson.id)) item.classList.add('completed');
+            item.setAttribute('data-id', lesson.id);
+            item.innerHTML = `<span class="dot"></span>${lesson.title}`;
+            item.addEventListener('click', () => {
+              loadLesson(lesson.id);
+              if (window.innerWidth <= 768) closeSidebar();
+            });
+            sidebarNav.appendChild(item);
+          });
+        });
+      }
+
+      function loadLesson(lessonId) {
+        const lesson = allLessons.find(l => l.id === lessonId);
+        if (!lesson) return;
+        currentLessonId = lessonId;
+        codeEditor.value = lesson.code;
+        tutorialText.innerHTML = lesson.description;
+        currentLessonBadge.textContent = '📖 ' + lesson.title;
+        document.querySelectorAll('.lesson-item').forEach(item => {
+          item.classList.remove('active');
+          if (item.getAttribute('data-id') === lessonId) item.classList.add('active');
+        });
+        if (!completedLessons.has(lessonId)) {
+          completedLessons.add(lessonId);
+          saveCompleted();
+          const item = document.querySelector(`.lesson-item[data-id="${lessonId}"]`);
+          if (item) item.classList.add('completed');
+        }
+        updateLineNumbers();
+        runCode();
+        // 移动端重置全屏状态
+        if (window.innerWidth <= 768 && isFullscreenPreview) {
+          toggleFullscreenPreview(false);
+        }
+      }
+
+      function runCode() {
+        previewFrame.srcdoc = codeEditor.value;
+      }
+      window.runCode = runCode;
+
+      function resetCode() {
+        if (!currentLessonId) { showToast('⚠️ 请先选择知识点'); return; }
+        const lesson = allLessons.find(l => l.id === currentLessonId);
+        if (lesson) {
+          codeEditor.value = lesson.code;
+          updateLineNumbers();
+          runCode();
+          showToast('✅ 已重置');
+        }
+      }
+      window.resetCode = resetCode;
+
+      function formatCode() {
+        let code = codeEditor.value;
+        let formatted = '';
+        const lines = code.split('\n');
+        let indent = 0;
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) { formatted += '\n'; return; }
+          if (trimmed.startsWith('</') || trimmed.startsWith('-->') || trimmed === '}' || trimmed === '})') {
+            indent = Math.max(0, indent - 1);
+          }
+          formatted += '  '.repeat(indent) + trimmed + '\n';
+          if (trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.startsWith('<!') && !trimmed.endsWith('/>') && !trimmed.match(/<(input|img|br|hr|meta|link|source|area|col|embed|track|wbr)\b/)) {
+            indent++;
+          }
+        });
+        codeEditor.value = formatted.trim();
+        updateLineNumbers();
+        runCode();
+        showToast('✅ 已格式化');
+      }
+      window.formatCode = formatCode;
+
+      function updateLineNumbers() {
+        const lines = codeEditor.value.split('\n');
+        const count = Math.max(lines.length, 1);
+        let html = '';
+        for (let i = 1; i <= count; i++) html += `<div>${i}</div>`;
+        lineNumbers.innerHTML = html;
+        lineNumbers.scrollTop = codeEditor.scrollTop;
+      }
+
+      codeEditor.addEventListener('input', () => {
+        updateLineNumbers();
+        clearTimeout(autoRunTimer);
+        autoRunTimer = setTimeout(runCode, 500);
+      });
+      codeEditor.addEventListener('scroll', () => { lineNumbers.scrollTop = codeEditor.scrollTop; });
+      codeEditor.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault(); runCode(); showToast('▶ 运行了');
+        }
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = codeEditor.selectionStart;
+          const end = codeEditor.selectionEnd;
+          codeEditor.value = codeEditor.value.substring(0, start) + '  ' + codeEditor.value.substring(end);
+          codeEditor.selectionStart = codeEditor.selectionEnd = start + 2;
+          updateLineNumbers();
+        }
+      });
+
+      // 移动端全屏预览切换
+      window.toggleFullscreenPreview = function(force) {
+        if (window.innerWidth > 768) return;
+        const setFullscreen = (typeof force === 'boolean') ? force : !isFullscreenPreview;
+        if (setFullscreen) {
+          // 进入全屏预览
+          editorPanel.style.display = 'none';
+          previewPanel.style.flex = 'none';
+          previewPanel.style.height = '100%';
+          resizeHandle.classList.add('hidden');
+          mobileToggleBtn.innerHTML = '✏️';
+          mobileToggleBtn.title = '返回编辑器';
+          isFullscreenPreview = true;
+        } else {
+          // 退出全屏，恢复默认比例 (移动端40%编辑,60%预览)
+          editorPanel.style.display = '';
+          previewPanel.style.flex = '';
+          previewPanel.style.height = '';
+          resizeHandle.classList.remove('hidden');
+          applyMobileDefaultRatio();
+          mobileToggleBtn.innerHTML = '🖥️';
+          mobileToggleBtn.title = '全屏预览';
+          isFullscreenPreview = false;
+        }
+      };
+
+      function applyMobileDefaultRatio() {
+        if (window.innerWidth <= 768) {
+          const container = document.getElementById('editorPreviewContainer');
+          const totalHeight = container.clientHeight;
+          const handleH = resizeHandle.offsetHeight;
+          const editorH = Math.floor(totalHeight * 0.4);
+          const previewH = totalHeight - handleH - editorH;
+          editorPanel.style.flex = 'none';
+          editorPanel.style.height = editorH + 'px';
+          previewPanel.style.flex = 'none';
+          previewPanel.style.height = previewH + 'px';
+        } else {
+          // 桌面端恢复默认flex比例
+          editorPanel.style.flex = '';
+          editorPanel.style.height = '';
+          previewPanel.style.flex = '';
+          previewPanel.style.height = '';
+        }
+      }
+
+      // 拖动调整大小 (支持移动端触摸)
+      function initDrag(e) {
+        if (isFullscreenPreview) return;
+        isDragging = true;
+        document.body.style.cursor = 'row-resize';
+        resizeHandle.style.background = '#5a5a6c';
+        e.preventDefault();
+      }
+      resizeHandle.addEventListener('mousedown', initDrag);
+      resizeHandle.addEventListener('touchstart', initDrag, { passive: false });
+
+      function onDragMove(e) {
+        if (!isDragging) return;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const container = document.getElementById('editorPreviewContainer');
+        const rect = container.getBoundingClientRect();
+        const totalHeight = rect.height;
+        const handleHeight = resizeHandle.offsetHeight;
+        const mouseY = clientY - rect.top;
+        const minEditor = 60;
+        const minPreview = 60;
+        const maxEditor = totalHeight - handleHeight - minPreview;
+        const editorHeight = Math.max(minEditor, Math.min(maxEditor, mouseY));
+        const previewHeight = totalHeight - handleHeight - editorHeight;
+        editorPanel.style.flex = 'none';
+        editorPanel.style.height = editorHeight + 'px';
+        previewPanel.style.flex = 'none';
+        previewPanel.style.height = previewHeight + 'px';
+        // 同步移动端全屏状态关闭
+        if (isFullscreenPreview) toggleFullscreenPreview(false);
+      }
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+
+      function stopDrag() {
+        if (isDragging) {
+          isDragging = false;
+          document.body.style.cursor = '';
+          resizeHandle.style.background = '';
+        }
+      }
+      document.addEventListener('mouseup', stopDrag);
+      document.addEventListener('touchend', stopDrag);
+
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+          closeSidebar();
+          // 桌面端清除移动端全屏状态和高度固定
+          if (isFullscreenPreview) toggleFullscreenPreview(false);
+          editorPanel.style.flex = '';
+          editorPanel.style.height = '';
+          editorPanel.style.display = '';
+          previewPanel.style.flex = '';
+          previewPanel.style.height = '';
+          resizeHandle.classList.remove('hidden');
+        } else {
+          if (!isFullscreenPreview) {
+            applyMobileDefaultRatio();
+          }
+        }
+        updateLineNumbers();
+      });
+
+      function init() {
+        buildSidebar();
+        const firstLesson = allLessons[0];
+        codeEditor.value = firstLesson.code;
+        tutorialText.innerHTML = firstLesson.description;
+        currentLessonBadge.textContent = '📖 ' + firstLesson.title;
+        currentLessonId = firstLesson.id;
+        updateLineNumbers();
+        runCode();
+        const firstItem = document.querySelector(`.lesson-item[data-id="${firstLesson.id}"]`);
+        if (firstItem) firstItem.classList.add('active');
+        if (!completedLessons.has(firstLesson.id)) {
+          completedLessons.add(firstLesson.id);
+          saveCompleted();
+          if (firstItem) firstItem.classList.add('completed');
+        }
+        // 移动端初始比例
+        if (window.innerWidth <= 768) {
+          applyMobileDefaultRatio();
+        }
+      }
+      init();
+    })();
+  </script>
+</body>
+</html>
