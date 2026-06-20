@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎观看</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a1a;
+            --bg-light: #f5f0eb;
+            --accent-1: #6c5ce7;
+            --accent-2: #00cec9;
+            --accent-3: #fd79a8;
+            --text: #f0f0f0;
+            --text-dark: #2d2d3a;
+            --surface-dark: rgba(20, 20, 40, 0.7);
+            --surface-light: rgba(255, 255, 255, 0.75);
+            --shadow-color: rgba(108, 92, 231, 0.45);
+            --glow-opacity: 0.45;
+            --particle-brightness: 1;
+            --btn-outline-border: rgba(255, 255, 255, 0.4);
+            --btn-outline-hover-bg: rgba(255, 255, 255, 0.08);
+            --toast-bg: rgba(30, 30, 50, 0.9);
+            --divider-glow: 1;
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --countdown-num-bg: rgba(255, 255, 255, 0.06);
+            --quote-color: rgba(255, 255, 255, 0.7);
+        }
+
+        body[data-theme="light"] {
+            --bg-dark: #f5f0eb;
+            --text: #2d2d3a;
+            --text-dark: #1a1a25;
+            --surface-dark: rgba(255, 255, 255, 0.75);
+            --shadow-color: rgba(108, 92, 231, 0.2);
+            --glow-opacity: 0.3;
+            --particle-brightness: 0.7;
+            --btn-outline-border: rgba(60, 60, 80, 0.4);
+            --btn-outline-hover-bg: rgba(60, 60, 80, 0.06);
+            --toast-bg: rgba(255, 255, 255, 0.92);
+            --divider-glow: 0.6;
+            --card-bg: rgba(0, 0, 0, 0.03);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --countdown-num-bg: rgba(0, 0, 0, 0.04);
+            --quote-color: rgba(45, 45, 58, 0.7);
+        }
+
+        body[data-theme="light"] .welcome-title {
+            text-shadow: 0 0 40px rgba(108, 92, 231, 0.3), 0 0 80px rgba(0, 206, 201, 0.2);
+        }
+        body[data-theme="light"] .btn-outline {
+            color: #3a3a4a;
+        }
+        body[data-theme="light"] .btn-outline:hover {
+            color: #1a1a2a;
+            border-color: #4a4a5a;
+        }
+        body[data-theme="light"] .custom-toast {
+            color: #2d2d3a !important;
+        }
+        body[data-theme="light"] .subtitle {
+            color: rgba(60, 60, 80, 0.75) !important;
+        }
+        body[data-theme="light"] .toolbar-btn {
+            color: #4a4a5a !important;
+            background: rgba(200, 200, 210, 0.3) !important;
+        }
+        body[data-theme="light"] .toolbar-btn:hover {
+            background: rgba(180, 180, 200, 0.5) !important;
+        }
+        body[data-theme="light"] .clock-widget {
+            color: #3a3a4a !important;
+            background: rgba(255, 255, 255, 0.55) !important;
+        }
+        body[data-theme="light"] .settings-panel {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #2d2d3a !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body[data-theme="light"] .settings-panel label {
+            color: #3a3a4a !important;
+        }
+        body[data-theme="light"] .settings-panel input[type="range"] {
+            background: #d0d0da !important;
+        }
+        body[data-theme="light"] .settings-panel .setting-row {
+            border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+        }
+        body[data-theme="light"] .btn-sm {
+            background: #e8e8f0 !important;
+            color: #3a3a4a !important;
+        }
+        body[data-theme="light"] .btn-sm:hover {
+            background: #d8d8e4 !important;
+        }
+        body[data-theme="light"] .countdown-block .countdown-num {
+            background: rgba(0, 0, 0, 0.04) !important;
+            color: #2d2d3a !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        body[data-theme="light"] .countdown-label {
+            color: rgba(45, 45, 58, 0.6) !important;
+        }
+        body[data-theme="light"] .quote-text {
+            color: rgba(45, 45, 58, 0.7) !important;
+        }
+        body[data-theme="light"] .quote-author {
+            color: rgba(45, 45, 58, 0.5) !important;
+        }
+        body[data-theme="light"] .quote-refresh {
+            background: rgba(0, 0, 0, 0.04) !important;
+            color: #4a4a5a !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        body[data-theme="light"] .quote-refresh:hover {
+            background: rgba(0, 0, 0, 0.08) !important;
+            border-color: rgba(0, 0, 0, 0.2) !important;
+        }
+        body[data-theme="light"] .countdown-separator {
+            color: rgba(45, 45, 58, 0.5) !important;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            cursor: default;
+            -webkit-user-select: none;
+            user-select: none;
+            transition: background 0.7s ease, color 0.7s ease;
+        }
+
+        .bg-glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: var(--glow-opacity);
+            pointer-events: none;
+            z-index: 0;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            transition: opacity 0.7s ease;
+        }
+        .bg-glow.g1 { width: 500px; height: 500px; background: var(--accent-1); top: -15%; left: -10%; animation: floatGlow1 10s infinite alternate; }
+        .bg-glow.g2 { width: 400px; height: 400px; background: var(--accent-2); bottom: -12%; right: -8%; animation: floatGlow2 12s infinite alternate; }
+        .bg-glow.g3 { width: 350px; height: 350px; background: var(--accent-3); top: 55%; left: 50%; transform: translate(-50%, -50%); animation: floatGlow3 8s infinite alternate; }
+
+        @keyframes floatGlow1 { 0% { transform: translate(0, 0) scale(1); } 33% { transform: translate(80px, 60px) scale(1.25); } 66% { transform: translate(-30px, -40px) scale(0.9); } 100% { transform: translate(50px, -30px) scale(1.15); } }
+        @keyframes floatGlow2 { 0% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-70px, -50px) scale(1.3); } 66% { transform: translate(40px, 30px) scale(0.85); } 100% { transform: translate(-50px, 40px) scale(1.1); } }
+        @keyframes floatGlow3 { 0% { transform: translate(-50%, -50%) scale(0.8); } 50% { transform: translate(-50%, -50%) scale(1.35); } 100% { transform: translate(-50%, -50%) scale(0.9); } }
+
+        #particlesCanvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+        }
+
+        .toolbar {
+            position: fixed; top: 1.2rem; right: 1.2rem; z-index: 100; display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end;
+        }
+        .toolbar-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            color: #e0e0e0; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.22,0.61,0.36,1); position: relative; outline: none;
+            -webkit-tap-highlight-color: transparent; overflow: hidden;
+        }
+        .toolbar-btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.5); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .toolbar-btn:active { transform: scale(0.92); transition: transform 0.1s ease; }
+        .toolbar-btn .tooltip {
+            position: absolute; top: 110%; right: 0; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.7rem;
+            padding: 0.35rem 0.7rem; border-radius: 20px; white-space: nowrap; pointer-events: none; opacity: 0;
+            transform: translateY(6px); transition: all 0.25s ease; letter-spacing: 0.03em;
+        }
+        .toolbar-btn:hover .tooltip { opacity: 1; transform: translateY(0); }
+        .toolbar-btn .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.35); transform: scale(0); animation: rippleAnim 0.7s ease-out forwards; pointer-events: none; }
+        @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+
+        .clock-widget {
+            position: fixed; bottom: 2.5rem; left: 2rem; z-index: 50; color: rgba(255,255,255,0.75);
+            font-variant-numeric: tabular-nums; font-family: 'SF Mono','Cascadia Code','Consolas','PingFang SC',monospace;
+            background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 0.7rem 1.2rem; border-radius: 30px; border: 1px solid rgba(255,255,255,0.12);
+            transition: all 0.5s ease; letter-spacing: 0.04em;
+        }
+        .clock-time { font-size: 1.3rem; font-weight: 500; letter-spacing: 0.06em; }
+        .clock-date { font-size: 0.7rem; opacity: 0.6; margin-top: 0.15rem; letter-spacing: 0.05em; }
+        .clock-widget .visitor-count { font-size: 0.65rem; opacity: 0.5; margin-top: 0.2rem; letter-spacing: 0.04em; }
+        .clock-hidden { opacity: 0 !important; transform: translateY(20px); pointer-events: none; }
+
+        .settings-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 0.35s ease; }
+        .settings-overlay.active { opacity: 1; pointer-events: auto; }
+        .settings-panel {
+            position: fixed; top: 0; right: -420px; width: min(400px, 88vw); height: 100vh; z-index: 201;
+            background: rgba(22,22,42,0.94); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-left: 1px solid rgba(255,255,255,0.1); padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 0.6rem;
+            transition: right 0.45s cubic-bezier(0.22,0.61,0.36,1); color: #e0e0e0; overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+        }
+        .settings-panel.open { right: 0; }
+        .settings-panel h3 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        .settings-panel .close-btn {
+            position: absolute; top: 1rem; right: 1rem; width: 34px; height: 34px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.06); color: #ccc; cursor: pointer;
+            font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.25s ease;
+        }
+        .settings-panel .close-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; gap: 0.4rem; }
+        .setting-row label { font-size: 0.9rem; letter-spacing: 0.03em; opacity: 0.85; }
+        .setting-row input[type="range"] { width: 110px; accent-color: var(--accent-1); cursor: pointer; }
+        .setting-row input[type="date"] {
+            padding: 0.4rem 0.7rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.06); color: inherit; font-family: inherit; font-size: 0.85rem;
+            cursor: pointer; outline: none; transition: all 0.25s ease; letter-spacing: 0.03em;
+            -webkit-appearance: none; appearance: none;
+        }
+        .setting-row input[type="date"]:focus { border-color: var(--accent-2); box-shadow: 0 0 16px rgba(0,206,201,0.25); }
+        .setting-row input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+        body[data-theme="light"] .setting-row input[type="date"] { border-color: rgba(0,0,0,0.15); background: rgba(0,0,0,0.03); color: #2d2d3a; }
+        body[data-theme="light"] .setting-row input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.3); }
+        .toggle-switch { position: relative; width: 48px; height: 26px; cursor: pointer; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.2); border-radius: 26px; transition: 0.35s; }
+        .toggle-slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.35s; }
+        .toggle-switch input:checked+.toggle-slider { background: var(--accent-1); }
+        .toggle-switch input:checked+.toggle-slider::before { transform: translateX(22px); }
+        .btn-sm { padding: 0.4rem 1rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #ccc; cursor: pointer; font-size: 0.78rem; letter-spacing: 0.04em; transition: all 0.25s ease; white-space: nowrap; }
+        .btn-sm:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.4); }
+        .btn-sm.danger { border-color: rgba(253,121,168,0.4); color: #fd79a8; }
+        .btn-sm.danger:hover { background: rgba(253,121,168,0.15); border-color: rgba(253,121,168,0.7); }
+        .btn-sm.surprise { border-color: rgba(0,206,201,0.5); color: #00cec9; font-weight: 600; }
+        .btn-sm.surprise:hover { background: rgba(0,206,201,0.15); border-color: rgba(0,206,201,0.8); box-shadow: 0 0 20px rgba(0,206,201,0.3); }
+
+        .main-container {
+            position: relative; z-index: 10; text-align: center; padding: 2rem;
+            display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+        }
+        .welcome-title {
+            font-size: clamp(2.8rem, 8vw, 6rem); font-weight: 900; letter-spacing: 0.05em;
+            color: #ffffff; position: relative; display: inline-block;
+            animation: titleEntrance 1s cubic-bezier(0.22,0.61,0.36,1) forwards;
+            text-shadow: 0 0 60px rgba(108,92,231,0.6), 0 0 120px rgba(0,206,201,0.4);
+            margin-bottom: 0.3rem; transition: text-shadow 0.7s ease;
+        }
+        .welcome-title .char {
+            display: inline-block; animation: charBounce 0.7s cubic-bezier(0.22,0.61,0.36,1) forwards;
+            opacity: 0; transform: translateY(60px) rotateX(-90deg);
+        }
+        .welcome-title .char:nth-child(1) { animation-delay: 0.05s; }
+        .welcome-title .char:nth-child(2) { animation-delay: 0.1s; }
+        .welcome-title .char:nth-child(3) { animation-delay: 0.15s; }
+        .welcome-title .char:nth-child(4) { animation-delay: 0.2s; }
+        .welcome-title .char:nth-child(5) { animation-delay: 0.25s; }
+        .welcome-title .char:nth-child(6) { animation-delay: 0.3s; }
+        .welcome-title .char:nth-child(7) { animation-delay: 0.35s; }
+        .welcome-title .char:nth-child(8) { animation-delay: 0.4s; }
+        @keyframes charBounce {
+            0% { opacity: 0; transform: translateY(60px) rotateX(-90deg); }
+            60% { opacity: 1; transform: translateY(-12px) rotateX(15deg); }
+            75% { transform: translateY(4px) rotateX(-5deg); }
+            90% { transform: translateY(-2px) rotateX(2deg); }
+            100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
+        }
+        @keyframes titleEntrance { 0% { filter: blur(10px); opacity: 0; } 100% { filter: blur(0); opacity: 1; } }
+        .subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.5rem); color: rgba(255,255,255,0.8); font-weight: 300;
+            letter-spacing: 0.25em; animation: subtitleFadeIn 1s 0.6s cubic-bezier(0.22,0.61,0.36,1) forwards;
+            opacity: 0; transform: translateY(20px); transition: color 0.7s ease;
+        }
+        @keyframes subtitleFadeIn { to { opacity: 1; transform: translateY(0); } }
+        .divider {
+            width: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent-2), var(--accent-3), var(--accent-2), transparent);
+            margin: 0.6rem auto; border-radius: 1px; animation: dividerExpand 0.8s 0.9s cubic-bezier(0.22,0.61,0.36,1) forwards;
+            max-width: 380px; opacity: var(--divider-glow); transition: opacity 0.7s ease;
+        }
+        @keyframes dividerExpand { to { width: 70%; } }
+
+        .countdown-section {
+            animation: subtitleFadeIn 1s 1.1s cubic-bezier(0.22,0.61,0.36,1) forwards; opacity: 0; transform: translateY(20px);
+            display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-top: 0.4rem;
+        }
+        .countdown-title { font-size: 0.85rem; letter-spacing: 0.12em; color: rgba(255,255,255,0.55); font-weight: 400; transition: color 0.7s ease; }
+        .countdown-container { display: flex; gap: clamp(0.5rem, 2vw, 1.2rem); align-items: center; justify-content: center; flex-wrap: wrap; }
+        .countdown-block { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; min-width: 55px; }
+        .countdown-num {
+            font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; font-variant-numeric: tabular-nums;
+            font-family: 'SF Mono','Cascadia Code','Consolas','PingFang SC',monospace;
+            letter-spacing: 0.04em; color: #ffffff; background: var(--countdown-num-bg);
+            border: 1px solid var(--card-border); border-radius: 16px; padding: 0.5rem 0.9rem;
+            min-width: 70px; text-align: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            transition: all 0.35s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: relative; overflow: hidden;
+        }
+        .countdown-num:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(108,92,231,0.3); border-color: rgba(255,255,255,0.3); }
+        .countdown-num.flash { animation: numFlash 0.4s ease-out; }
+        @keyframes numFlash {
+            0% { transform: scale(1.12); border-color: var(--accent-2); box-shadow: 0 0 30px rgba(0,206,201,0.5); }
+            100% { transform: scale(1); border-color: var(--card-border); box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+        }
+        .countdown-label { font-size: 0.7rem; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); font-weight: 400; transition: color 0.7s ease; }
+        .countdown-separator { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 300; color: rgba(255,255,255,0.4); align-self: flex-start; margin-top: 0.6rem; transition: color 0.7s ease; }
+        .countdown-expired { font-size: 1.4rem; font-weight: 600; letter-spacing: 0.06em; color: var(--accent-3); animation: pulseGlow 2s ease-in-out infinite; }
+        @keyframes pulseGlow { 0%,100% { text-shadow: 0 0 10px rgba(253,121,168,0.4); } 50% { text-shadow: 0 0 30px rgba(253,121,168,0.8); } }
+
+        .quote-section {
+            animation: subtitleFadeIn 1s 1.3s cubic-bezier(0.22,0.61,0.36,1) forwards; opacity: 0; transform: translateY(20px);
+            display: flex; flex-direction: column; align-items: center; gap: 0.6rem; margin-top: 1rem; max-width: 550px; width: 100%;
+        }
+        .quote-card {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px;
+            padding: 1.2rem 1.6rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            transition: all 0.4s ease; cursor: pointer; position: relative; overflow: hidden; width: 100%;
+        }
+        .quote-card:hover { border-color: rgba(255,255,255,0.25); box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: translateY(-2px); }
+        .quote-card:active { transform: none; }
+        .quote-icon { font-size: 2rem; opacity: 0.35; position: absolute; top: 0.5rem; left: 1rem; pointer-events: none; transition: opacity 0.3s ease; }
+        .quote-card:hover .quote-icon { opacity: 0.6; }
+        .quote-text {
+            font-size: clamp(0.95rem, 1.8vw, 1.15rem); font-weight: 400; letter-spacing: 0.04em;
+            line-height: 1.7; color: var(--quote-color); font-style: italic; padding-left: 0.5rem;
+            transition: all 0.35s ease; position: relative; z-index: 1;
+        }
+        .quote-author { font-size: 0.8rem; letter-spacing: 0.06em; color: rgba(255,255,255,0.45); font-style: normal; margin-top: 0.4rem; transition: color 0.7s ease; position: relative; z-index: 1; }
+        .quote-refresh {
+            display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem;
+            border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.75rem; letter-spacing: 0.05em;
+            transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); -webkit-tap-highlight-color: transparent;
+            position: relative; overflow: hidden; transform: none;
+        }
+        .quote-refresh:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        .quote-refresh:active { transform: none; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.35); }
+        .quote-refresh .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.35); transform: scale(0); animation: rippleAnimSmall 0.7s ease-out forwards; pointer-events: none; }
+        @keyframes rippleAnimSmall { to { transform: scale(2.5); opacity: 0; } }
+        .quote-fade { animation: quoteFade 0.45s ease-out; }
+        @keyframes quoteFade { 0% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: translateY(0); } }
+
+        .custom-toast {
+            position: fixed; top: 2.5rem; left: 50%; transform: translateX(-50%) translateY(-20px); z-index: 999;
+            background: var(--toast-bg); color: #fff; padding: 0.9rem 2rem; border-radius: 50px;
+            font-size: 0.95rem; letter-spacing: 0.04em; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            animation: toastIn 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards, toastOut 0.5s 2.2s cubic-bezier(0.22,0.61,0.36,1) forwards;
+            pointer-events: none; white-space: nowrap; transition: background 0.7s ease, color 0.7s ease;
+        }
+        @keyframes toastIn { to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+        @keyframes toastOut { to { transform: translateX(-50%) translateY(-30px); opacity: 0; } }
+
+        @media (max-width: 600px) {
+            .main-container { padding: 1.2rem; gap: 0.4rem; }
+            .bg-glow.g1 { width: 300px; height: 300px; top: -20%; left: -25%; }
+            .bg-glow.g2 { width: 260px; height: 260px; bottom: -18%; right: -20%; }
+            .bg-glow.g3 { width: 220px; height: 220px; }
+            .toolbar { top: 0.7rem; right: 0.5rem; gap: 0.35rem; }
+            .toolbar-btn { width: 34px; height: 34px; font-size: 0.95rem; }
+            .toolbar-btn .tooltip { display: none; }
+            .clock-widget { bottom: 1.2rem; left: 0.8rem; padding: 0.5rem 0.9rem; font-size: 0.75rem; }
+            .clock-time { font-size: 1rem !important; }
+            .settings-panel { width: 90vw; right: -100vw; padding: 1.5rem 1rem; }
+            .countdown-num { font-size: 1.6rem !important; min-width: 50px !important; padding: 0.4rem 0.6rem !important; border-radius: 12px !important; }
+            .countdown-separator { font-size: 1.4rem !important; margin-top: 0.4rem !important; }
+            .countdown-label { font-size: 0.62rem !important; }
+            .countdown-block { min-width: 40px !important; gap: 0.2rem !important; }
+            .quote-card { padding: 1rem 1.2rem !important; border-radius: 16px !important; }
+            .quote-text { font-size: 0.85rem !important; }
+            .quote-section { max-width: 95vw !important; }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div class="bg-glow g1"></div>
+    <div class="bg-glow g2"></div>
+    <div class="bg-glow g3"></div>
+    <canvas id="particlesCanvas"></canvas>
+
+    <div class="toolbar" id="toolbar">
+        <button class="toolbar-btn" id="btnTheme" aria-label="切换主题">🌓<span class="tooltip">切换主题</span></button>
+        <button class="toolbar-btn" id="btnSound" aria-label="音效开关">🔊<span class="tooltip">音效开关</span></button>
+        <button class="toolbar-btn" id="btnSettings" aria-label="设置面板">⚙️<span class="tooltip">设置面板</span></button>
+    </div>
+
+    <div class="clock-widget" id="clockWidget">
+        <div class="clock-time" id="clockTime">00:00:00</div>
+        <div class="clock-date" id="clockDate">2026年6月20日 周六</div>
+        <div class="visitor-count" id="visitorCount">👁️ 您是第 1 位访客</div>
+    </div>
+
+    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+        <button class="close-btn" id="btnCloseSettings">✕</button>
+        <h3>⚙️ 页面设置</h3>
+        <div class="setting-row">
+            <label for="particleDensity">粒子密度</label>
+            <input type="range" id="particleDensity" min="20" max="150" value="70" step="5">
+        </div>
+        <div class="setting-row">
+            <label for="countdownTarget">倒计时目标日</label>
+            <input type="date" id="countdownTarget">
+        </div>
+        <div class="setting-row">
+            <label>显示时钟</label>
+            <label class="toggle-switch"><input type="checkbox" id="toggleClock" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+            <label>鼠标粒子交互</label>
+            <label class="toggle-switch"><input type="checkbox" id="toggleMouseInteraction" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+            <span>访客计数</span>
+            <span style="font-size:0.78rem;opacity:0.7;" id="panelVisitorCount">1</span>
+        </div>
+        <div class="setting-row">
+            <button class="btn-sm danger" id="btnResetVisitor">🔄 重置计数</button>
+        </div>
+        <div class="setting-row" style="justify-content:center;border-bottom:none;padding-top:0.5rem;">
+            <button class="btn-sm surprise" id="btnSurprise">✨ 惊喜模式</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <h1 class="welcome-title" id="welcomeTitle"></h1>
+        <p class="subtitle">✦ 您已成功进入页面 ✦</p>
+        <div class="divider"></div>
+
+        <div class="countdown-section" id="countdownSection">
+            <span class="countdown-title" id="countdownTitle">⏳ 距离目标日期还有</span>
+            <div class="countdown-container" id="countdownContainer">
+                <div class="countdown-block"><span class="countdown-num" id="cd-days">00</span><span class="countdown-label">天</span></div>
+                <span class="countdown-separator">:</span>
+                <div class="countdown-block"><span class="countdown-num" id="cd-hours">00</span><span class="countdown-label">时</span></div>
+                <span class="countdown-separator">:</span>
+                <div class="countdown-block"><span class="countdown-num" id="cd-minutes">00</span><span class="countdown-label">分</span></div>
+                <span class="countdown-separator">:</span>
+                <div class="countdown-block"><span class="countdown-num" id="cd-seconds">00</span><span class="countdown-label">秒</span></div>
+            </div>
+            <span class="countdown-expired" id="countdownExpired" style="display:none;">🎉 目标日期已到达！</span>
+        </div>
+
+        <div class="quote-section" id="quoteSection">
+            <div class="quote-card" id="quoteCard" title="点击刷新名言">
+                <span class="quote-icon">❝</span>
+                <p class="quote-text" id="quoteText">生活不止眼前的苟且，还有诗和远方。</p>
+                <p class="quote-author" id="quoteAuthor">—— 高晓松</p>
+            </div>
+            <button class="quote-refresh" id="btnRefreshQuote">🔄 换一条名言</button>
+        </div>
+    </div>
+
+    <script>
+        const SoundSystem = (() => {
+            let audioCtx = null, enabled = true;
+            function getCtx() {
+                if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { enabled = false; return null; } }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                return audioCtx;
+            }
+            function playTone(freq, duration, type='sine', vol=0.08) {
+                if (!enabled) return;
+                const ctx = getCtx(); if (!ctx) return;
+                const osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(vol, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(ctx.currentTime); osc.stop(ctx.currentTime + duration);
+            }
+            return {
+                click: ()=>playTone(800,0.12,'sine',0.06),
+                toggle: ()=>playTone(600,0.15,'triangle',0.05),
+                pop: ()=>playTone(1000,0.1,'sine',0.07),
+                surprise: ()=>{ playTone(523,0.08,'sine',0.06); setTimeout(()=>playTone(659,0.08,'sine',0.06),80); setTimeout(()=>playTone(784,0.12,'sine',0.07),160); },
+                tick: ()=>playTone(1200,0.05,'sine',0.03),
+                setEnabled: (val)=>{ enabled = val; },
+                isEnabled: ()=> enabled
+            };
+        })();
+
+        (function(){
+            const titleEl = document.getElementById('welcomeTitle');
+            titleEl.innerHTML = '';
+            [...'欢迎观看'].forEach(char => {
+                const span = document.createElement('span'); span.className = 'char'; span.textContent = char;
+                titleEl.appendChild(span);
+            });
+        })();
+
+        const VisitorCounter = (() => {
+            const KEY = 'welcome_page_visitor_count', VISITED_KEY = 'welcome_page_visited';
+            function getCount() {
+                let count = parseInt(localStorage.getItem(KEY) || '0', 10);
+                if (!localStorage.getItem(VISITED_KEY)) { count++; localStorage.setItem(KEY, count.toString()); localStorage.setItem(VISITED_KEY, '1'); }
+                return Math.max(count, 1);
+            }
+            function resetCount() {
+                localStorage.removeItem(KEY); localStorage.removeItem(VISITED_KEY);
+                localStorage.setItem(KEY, '1'); localStorage.setItem(VISITED_KEY, '1');
+                return 1;
+            }
+            return { getCount, resetCount };
+        })();
+
+        const QuoteLibrary = [
+            { text: '生活不止眼前的苟且，还有诗和远方。', author: '高晓松' },
+            { text: '你日渐平庸，甘于平庸，将继续平庸。', author: '佚名' },
+            { text: '种一棵树最好的时间是十年前，其次是现在。', author: '非洲谚语' },
+            { text: '星光不问赶路人，时光不负有心人。', author: '佚名' },
+            { text: '愿你出走半生，归来仍是少年。', author: '孙衍' },
+            { text: '世界上只有一种真正的英雄主义，那就是在认清生活真相后依然热爱生活。', author: '罗曼·罗兰' },
+            { text: '人生如逆旅，我亦是行人。', author: '苏轼' },
+            { text: '但凡不能杀死你的，最终都会使你更强大。', author: '尼采' },
+            { text: '既然选择了远方，便只顾风雨兼程。', author: '汪国真' },
+            { text: '你若爱，生活哪里都可爱。', author: '丰子恺' },
+            { text: '没有一个冬天不可逾越，没有一个春天不会来临。', author: '佚名' },
+            { text: '做你自己，因为别人都有人做了。', author: '奥斯卡·王尔德' },
+            { text: '天空没有翅膀的痕迹，但鸟儿已经飞过。', author: '泰戈尔' },
+            { text: '心有猛虎，细嗅蔷薇。', author: '西格里夫·萨松' },
+            { text: '念念不忘，必有回响。', author: '王家卫' },
+            { text: 'The best way to predict the future is to create it.', author: 'Peter Drucker' },
+            { text: 'Stay hungry, stay foolish.', author: 'Steve Jobs' },
+            { text: 'In the middle of difficulty lies opportunity.', author: 'Albert Einstein' },
+            { text: 'Do what you can, with what you have, where you are.', author: 'Theodore Roosevelt' },
+            { text: 'It always seems impossible until it\'s done.', author: 'Nelson Mandela' }
+        ];
+        function getRandomQuote() { return QuoteLibrary[Math.floor(Math.random() * QuoteLibrary.length)]; }
+
+        const SettingsManager = (() => {
+            const defaults = { particleDensity:70, showClock:true, mouseInteraction:true, soundEnabled:true, countdownTarget:'2027-01-01' };
+            function load() { try { const saved = localStorage.getItem('welcome_page_settings'); if(saved) return {...defaults, ...JSON.parse(saved)}; } catch(e){} return {...defaults}; }
+            function save(settings) { try { localStorage.setItem('welcome_page_settings', JSON.stringify(settings)); } catch(e){} }
+            return { load, save, defaults };
+        })();
+
+        (function(){
+            const canvas = document.getElementById('particlesCanvas'), ctx = canvas.getContext('2d');
+            let particles = [], animationId, mouseX=-1000, mouseY=-1000, targetParticleCount=70, mouseInteractionEnabled=true;
+            function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+            resize(); window.addEventListener('resize', ()=>{ resize(); adjustParticleCount(); });
+            class Particle {
+                constructor(){ this.reset(true); }
+                reset(initialRandom=false){
+                    if(initialRandom){ this.x=Math.random()*canvas.width; this.y=Math.random()*canvas.height; }
+                    else { this.x=Math.random()*canvas.width; this.y=canvas.height+Math.random()*200; }
+                    this.baseX=this.x; this.baseY=this.y; this.size=Math.random()*2.5+1;
+                    this.speedY=-(Math.random()*0.7+0.25); this.speedX=(Math.random()-0.5)*0.5;
+                    this.opacity=Math.random()*0.7+0.2; this.opacitySpeed=(Math.random()-0.5)*0.008;
+                    this.hue=Math.random()<0.33?255:Math.random()<0.5?175:340;
+                    this.offsetX=0; this.offsetY=0; this.velocityX=0; this.velocityY=0;
+                }
+                update(){
+                    this.baseY+=this.speedY; this.baseX+=this.speedX;
+                    this.opacity+=this.opacitySpeed; if(this.opacity>0.8)this.opacitySpeed=-Math.abs(this.opacitySpeed); if(this.opacity<0.15)this.opacitySpeed=Math.abs(this.opacitySpeed);
+                    if(this.baseY<-20||this.baseX<-20||this.baseX>canvas.width+20){ this.reset(false); this.baseY=canvas.height+Math.random()*150; this.offsetX=0; this.offsetY=0; this.velocityX=0; this.velocityY=0; }
+                    if(mouseInteractionEnabled){
+                        const dx=this.baseX-mouseX, dy=this.baseY-mouseY, dist=Math.sqrt(dx*dx+dy*dy);
+                        if(dist<160 && dist>0.1){ const force=(1-dist/160)*4.5, nx=dx/dist, ny=dy/dist; this.velocityX+=nx*force*0.3; this.velocityY+=ny*force*0.3; }
+                    }
+                    this.velocityX+=(0-this.offsetX)*0.04; this.velocityY+=(0-this.offsetY)*0.04;
+                    this.velocityX*=0.88; this.velocityY*=0.88;
+                    this.offsetX+=this.velocityX; this.offsetY+=this.velocityY;
+                    this.offsetX=Math.max(-70,Math.min(70,this.offsetX)); this.offsetY=Math.max(-70,Math.min(70,this.offsetY));
+                    this.x=this.baseX+this.offsetX; this.y=this.baseY+this.offsetY;
+                }
+                draw(){
+                    const brightness=document.body.dataset.theme==='light'?0.55:1, alpha=this.opacity*brightness;
+                    ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+                    ctx.fillStyle=`hsla(${this.hue},80%,${document.body.dataset.theme==='light'?50:70}%,${alpha})`; ctx.fill();
+                    ctx.beginPath(); ctx.arc(this.x,this.y,this.size*3,0,Math.PI*2);
+                    ctx.fillStyle=`hsla(${this.hue},80%,${document.body.dataset.theme==='light'?50:70}%,${alpha*0.12})`; ctx.fill();
+                }
+            }
+            function adjustParticleCount(){
+                const area=canvas.width*canvas.height, densityFactor=targetParticleCount/70;
+                const desired=Math.floor(Math.min(150,Math.floor(area/15000))*densityFactor);
+                const clamped=Math.max(15,Math.min(150,desired));
+                while(particles.length<clamped) particles.push(new Particle());
+                while(particles.length>clamped) particles.pop();
+            }
+            function initParticles(){ particles=[]; adjustParticleCount(); }
+            function animate(){
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                for(let i=0;i<particles.length;i++){
+                    for(let j=i+1;j<particles.length;j++){
+                        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y, dist=Math.sqrt(dx*dx+dy*dy);
+                        if(dist<130){
+                            const alpha=(1-dist/130)*0.18;
+                            ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
+                            ctx.strokeStyle=document.body.dataset.theme==='light'?`rgba(100,100,140,${alpha})`:`rgba(180,180,220,${alpha})`;
+                            ctx.lineWidth=0.6; ctx.stroke();
+                        }
+                    }
+                }
+                particles.forEach(p=>{ p.update(); p.draw(); });
+                animationId=requestAnimationFrame(animate);
+            }
+            window.particleAPI = {
+                setDensity: (val)=>{ targetParticleCount=val; adjustParticleCount(); },
+                setMouseInteraction: (val)=>{ mouseInteractionEnabled=val; },
+                triggerBurst: (bx,by)=>{
+                    for(let i=0;i<35;i++){
+                        const angle=Math.random()*Math.PI*2, speed=Math.random()*6+2;
+                        const p=new Particle(); p.baseX=bx; p.baseY=by; p.x=bx; p.y=by;
+                        p.speedX=Math.cos(angle)*speed; p.speedY=Math.sin(angle)*speed;
+                        p.size=Math.random()*3+1.5; p.opacity=0.9; p.hue=Math.random()*360;
+                        p.offsetX=0; p.offsetY=0; p.velocityX=Math.cos(angle)*speed*1.5; p.velocityY=Math.sin(angle)*speed*1.5;
+                        p.life=0; p.maxLife=60+Math.random()*40;
+                        const origUpdate=p.update.bind(p);
+                        p.update=function(){
+                            this.life++; if(this.life>this.maxLife){ this.opacity=0; return; }
+                            this.baseX+=this.speedX*0.7; this.baseY+=this.speedY*0.7;
+                            this.x=this.baseX+this.offsetX; this.y=this.baseY+this.offsetY;
+                            this.opacity*=0.97; this.size*=0.995;
+                            this.velocityX*=0.94; this.velocityY*=0.94;
+                            this.offsetX+=this.velocityX; this.offsetY+=this.velocityY;
+                        };
+                        particles.push(p);
+                    }
+                    setTimeout(()=>{ particles=particles.filter(p=>!p.life||p.life<(p.maxLife||200)); },3000);
+                }
+            };
+            document.addEventListener('mousemove', e=>{ mouseX=e.clientX; mouseY=e.clientY; });
+            document.addEventListener('touchmove', e=>{ if(e.touches.length>0){ mouseX=e.touches[0].clientX; mouseY=e.touches[0].clientY; } }, {passive:true});
+            document.addEventListener('mouseleave', ()=>{ mouseX=-1000; mouseY=-1000; });
+            initParticles(); animate();
+            document.addEventListener('visibilitychange', ()=>{ if(document.hidden) cancelAnimationFrame(animationId); else animate(); });
+        })();
+
+        function updateClock(){
+            const now=new Date();
+            document.getElementById('clockTime').textContent=now.toLocaleTimeString('zh-CN',{hour12:false});
+            const weekdays=['周日','周一','周二','周三','周四','周五','周六'];
+            document.getElementById('clockDate').textContent=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${weekdays[now.getDay()]}`;
+        }
+        updateClock(); setInterval(updateClock,1000);
+        function updateVisitorDisplay(){
+            const count=VisitorCounter.getCount();
+            document.getElementById('visitorCount').textContent=`👁️ 您是第 ${count} 位访客`;
+            document.getElementById('panelVisitorCount').textContent=count;
+        }
+        updateVisitorDisplay();
+
+        const countdownAPI=(()=>{
+            let targetDate=null, intervalId=null, prevSeconds=-1;
+            const elDays=document.getElementById('cd-days'), elHours=document.getElementById('cd-hours'), elMinutes=document.getElementById('cd-minutes'), elSeconds=document.getElementById('cd-seconds');
+            const elContainer=document.getElementById('countdownContainer'), elExpired=document.getElementById('countdownExpired'), elTitle=document.getElementById('countdownTitle');
+            function setTarget(dateStr){
+                targetDate=new Date(dateStr+'T00:00:00'); if(isNaN(targetDate.getTime())) targetDate=new Date('2027-01-01T00:00:00');
+                prevSeconds=-1; update(); if(intervalId)clearInterval(intervalId); intervalId=setInterval(update,1000);
+            }
+            function pad(n){ return n.toString().padStart(2,'0'); }
+            function update(){
+                if(!targetDate)return;
+                const now=new Date(), diff=targetDate.getTime()-now.getTime();
+                if(diff<=0){
+                    elContainer.style.display='none'; elExpired.style.display='block'; elTitle.textContent='🎊 目标日期已到达';
+                    if(prevSeconds!==-2){ prevSeconds=-2; if(window.particleAPI){ const cx=innerWidth/2,cy=innerHeight/2; window.particleAPI.triggerBurst(cx,cy); setTimeout(()=>window.particleAPI.triggerBurst(cx-120,cy-60),300); setTimeout(()=>window.particleAPI.triggerBurst(cx+120,cy+50),600); } }
+                    return;
+                }
+                elContainer.style.display='flex'; elExpired.style.display='none'; elTitle.textContent='⏳ 距离目标日期还有';
+                const totalSeconds=Math.floor(diff/1000);
+                const days=Math.floor(totalSeconds/86400), hours=Math.floor((totalSeconds%86400)/3600), minutes=Math.floor((totalSeconds%3600)/60), seconds=totalSeconds%60;
+                elDays.textContent=pad(days); elHours.textContent=pad(hours); elMinutes.textContent=pad(minutes); elSeconds.textContent=pad(seconds);
+                if(prevSeconds!==-1 && seconds!==prevSeconds){
+                    elSeconds.classList.remove('flash'); void elSeconds.offsetWidth; elSeconds.classList.add('flash');
+                    if(SoundSystem.isEnabled() && prevSeconds!==-1) SoundSystem.tick();
+                }
+                prevSeconds=seconds;
+            }
+            return { setTarget, update };
+        })();
+
+        function displayRandomQuote(){
+            const quote=getRandomQuote();
+            const elText=document.getElementById('quoteText'), elAuthor=document.getElementById('quoteAuthor');
+            elText.classList.remove('quote-fade'); elAuthor.classList.remove('quote-fade');
+            void elText.offsetWidth; elText.classList.add('quote-fade'); elAuthor.classList.add('quote-fade');
+            elText.textContent=quote.text; elAuthor.textContent='—— '+quote.author;
+        }
+
+        const settingsPanel=document.getElementById('settingsPanel'), settingsOverlay=document.getElementById('settingsOverlay');
+        const btnSettings=document.getElementById('btnSettings'), btnCloseSettings=document.getElementById('btnCloseSettings');
+        const particleDensitySlider=document.getElementById('particleDensity'), toggleClockCheckbox=document.getElementById('toggleClock');
+        const toggleMouseInteraction=document.getElementById('toggleMouseInteraction'), countdownTargetInput=document.getElementById('countdownTarget');
+        const clockWidget=document.getElementById('clockWidget'), btnResetVisitor=document.getElementById('btnResetVisitor'), btnSurprise=document.getElementById('btnSurprise');
+
+        function openSettings(){ settingsPanel.classList.add('open'); settingsOverlay.classList.add('active'); SoundSystem.pop(); }
+        function closeSettings(){ settingsPanel.classList.remove('open'); settingsOverlay.classList.remove('active'); SoundSystem.pop(); }
+        btnSettings.addEventListener('click',e=>{ addRipple(e,btnSettings); openSettings(); });
+        btnCloseSettings.addEventListener('click',closeSettings);
+        settingsOverlay.addEventListener('click',closeSettings);
+        document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&settingsPanel.classList.contains('open')) closeSettings(); });
+
+        const settings=SettingsManager.load();
+        particleDensitySlider.value=settings.particleDensity; toggleClockCheckbox.checked=settings.showClock;
+        toggleMouseInteraction.checked=settings.mouseInteraction; SoundSystem.setEnabled(settings.soundEnabled);
+        countdownTargetInput.value=settings.countdownTarget;
+        window.particleAPI.setDensity(settings.particleDensity); window.particleAPI.setMouseInteraction(settings.mouseInteraction);
+        countdownAPI.setTarget(settings.countdownTarget);
+        if(!settings.showClock) clockWidget.classList.add('clock-hidden');
+        if(!settings.soundEnabled) document.getElementById('btnSound').textContent='🔇';
+
+        particleDensitySlider.addEventListener('input',()=>{ const val=parseInt(particleDensitySlider.value); window.particleAPI.setDensity(val); settings.particleDensity=val; SettingsManager.save(settings); });
+        countdownTargetInput.addEventListener('change',()=>{ const val=countdownTargetInput.value; if(val){ countdownAPI.setTarget(val); settings.countdownTarget=val; SettingsManager.save(settings); showToast('📅 倒计时目标已更新'); SoundSystem.toggle(); } });
+        toggleClockCheckbox.addEventListener('change',()=>{ const show=toggleClockCheckbox.checked; if(show) clockWidget.classList.remove('clock-hidden'); else clockWidget.classList.add('clock-hidden'); settings.showClock=show; SettingsManager.save(settings); });
+        toggleMouseInteraction.addEventListener('change',()=>{ const val=toggleMouseInteraction.checked; window.particleAPI.setMouseInteraction(val); settings.mouseInteraction=val; SettingsManager.save(settings); });
+        btnResetVisitor.addEventListener('click',()=>{ const newCount=VisitorCounter.resetCount(); updateVisitorDisplay(); showToast('🔄 访客计数已重置为 '+newCount); SoundSystem.toggle(); });
+        btnSurprise.addEventListener('click',()=>{
+            SoundSystem.surprise(); const cx=innerWidth/2,cy=innerHeight/2;
+            window.particleAPI.triggerBurst(cx,cy); setTimeout(()=>window.particleAPI.triggerBurst(cx-150,cy-80),200); setTimeout(()=>window.particleAPI.triggerBurst(cx+150,cy+60),400);
+            showToast('✨ 惊喜粒子爆发！'); const title=document.getElementById('welcomeTitle'); const orig=title.style.textShadow;
+            title.style.textShadow='0 0 60px rgba(255,100,100,0.8), 0 0 120px rgba(100,255,100,0.6), 0 0 180px rgba(100,100,255,0.6)';
+            setTimeout(()=>{ title.style.textShadow=orig||''; },1500);
+        });
+
+        function addRipple(e, el){
+            const ripple=document.createElement('span'); ripple.className='ripple';
+            const rect=el.getBoundingClientRect(), size=Math.max(rect.width,rect.height);
+            ripple.style.width=ripple.style.height=size+'px';
+            ripple.style.left=(e.clientX-rect.left-size/2)+'px';
+            ripple.style.top=(e.clientY-rect.top-size/2)+'px';
+            el.appendChild(ripple);
+            ripple.addEventListener('animationend',()=>ripple.remove());
+        }
+        document.querySelectorAll('.toolbar-btn').forEach(btn=>{ btn.addEventListener('click',function(e){ addRipple(e,this); }); });
+
+        const btnTheme=document.getElementById('btnTheme');
+        btnTheme.addEventListener('click',()=>{
+            const body=document.body, newTheme=body.dataset.theme==='dark'?'light':'dark';
+            body.dataset.theme=newTheme; btnTheme.textContent=newTheme==='dark'?'🌓':'☀️';
+            SoundSystem.toggle(); showToast(newTheme==='dark'?'🌙 已切换至暗色模式':'☀️ 已切换至亮色模式');
+            localStorage.setItem('welcome_page_theme',newTheme);
+        });
+        (()=>{ if(localStorage.getItem('welcome_page_theme')==='light'){ document.body.dataset.theme='light'; btnTheme.textContent='☀️'; } })();
+
+        const btnSound=document.getElementById('btnSound');
+        btnSound.addEventListener('click',()=>{
+            const enabled=SoundSystem.isEnabled(); SoundSystem.setEnabled(!enabled);
+            btnSound.textContent=enabled?'🔇':'🔊'; settings.soundEnabled=!enabled; SettingsManager.save(settings);
+            if(!enabled) SoundSystem.click(); showToast(enabled?'🔇 音效已关闭':'🔊 音效已开启');
+        });
+
+        function showToast(msg){
+            const old=document.querySelector('.custom-toast'); if(old) old.remove();
+            const toast=document.createElement('div'); toast.className='custom-toast'; toast.textContent=msg;
+            document.body.appendChild(toast);
+            toast.addEventListener('animationend',e=>{ if(e.animationName==='toastOut') toast.remove(); });
+        }
+
+        document.getElementById('btnRefreshQuote').addEventListener('click',function(e){ addRipple(e,this); displayRandomQuote(); SoundSystem.pop(); });
+        document.getElementById('quoteCard').addEventListener('click',()=>{ displayRandomQuote(); SoundSystem.pop(); });
+        displayRandomQuote();
+
+        document.addEventListener('dblclick',function(e){
+            if(e.target.closest('.settings-panel')||e.target.closest('.toolbar')||e.target.closest('input')||e.target.closest('button')||e.target.closest('.quote-card')||e.target.closest('.quote-refresh')) return;
+            window.particleAPI.triggerBurst(e.clientX,e.clientY); SoundSystem.surprise(); showToast('💫 双击粒子爆发！');
+        });
+
+        document.addEventListener('keydown',function(e){
+            if(e.key==='r' && !e.ctrlKey && !e.metaKey && !e.altKey && document.activeElement===document.body){ e.preventDefault(); displayRandomQuote(); SoundSystem.pop(); showToast('📜 已刷新名言'); }
+            if(e.key==='t' && e.ctrlKey){ e.preventDefault(); btnTheme.click(); }
+            if(e.key==='s' && e.ctrlKey && !e.metaKey){ e.preventDefault(); settingsPanel.classList.contains('open')?closeSettings():openSettings(); }
+        });
+
+        console.log('%c✨ 欢迎观看本页面 %c| %c感谢您的到来！','font-size:1.3em;font-weight:bold;color:#a29bfe;','','color:#00cec9;');
+    </script>
+</body>
+</html>
