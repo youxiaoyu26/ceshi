@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 人生完成清单 - 110项</title>
+    <style>
+        :root {
+            --bg: #f5f0eb;
+            --card-bg: #ffffff;
+            --text: #2c2416;
+            --text-secondary: #6b5e4a;
+            --accent: #c8956c;
+            --accent-dark: #a0724a;
+            --progress-bg: #e8ddd0;
+            --progress-fill: #c8956c;
+            --border: #e0d5c5;
+            --tag-travel: #e8b4a2;
+            --tag-learn: #a2c4c9;
+            --tag-health: #b5c9a2;
+            --tag-relation: #d4a8c8;
+            --tag-career: #a2b5c9;
+            --tag-adventure: #e8c97a;
+            --tag-skill: #c9b5a2;
+            --tag-creative: #c4a2c9;
+            --tag-wealth: #a2c9b5;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
+            --radius-sm: 8px;
+            --radius: 14px;
+            --radius-lg: 20px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            background-image:
+                radial-gradient(ellipse at 20% 10%, rgba(200, 149, 108, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 90%, rgba(180, 160, 140, 0.05) 0%, transparent 60%);
+        }
+
+        /* ============ HEADER ============ */
+        .header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 18px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.92);
+        }
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #3d2e1c;
+        }
+        .header-title .icon {
+            font-size: 1.8rem;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-8px);
+            }
+            50% {
+                transform: translateY(0);
+            }
+            70% {
+                transform: translateY(-4px);
+            }
+        }
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            min-width: 50px;
+        }
+        .stat-number {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--accent-dark);
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 2px;
+        }
+        .progress-wrap {
+            flex: 1;
+            min-width: 120px;
+            max-width: 200px;
+        }
+        .progress-bar-outer {
+            background: var(--progress-bg);
+            border-radius: 20px;
+            height: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #d4a87c, #c8956c, #b88050);
+            border-radius: 20px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .progress-bar-inner::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            top: 2px;
+            bottom: 2px;
+            width: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            filter: blur(2px);
+        }
+        .progress-text {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 3px;
+            font-weight: 500;
+        }
+
+        /* ============ MAIN CONTAINER ============ */
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 16px 20px 40px;
+        }
+
+        /* ============ FILTER BAR ============ */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            padding: 4px 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: var(--transition);
+            color: var(--text-secondary);
+            letter-spacing: 0.01em;
+            flex-shrink: 0;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent-dark);
+            background: #fdf8f4;
+        }
+        .filter-btn.active {
+            background: #3d2e1c;
+            color: #fff;
+            border-color: #3d2e1c;
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+        .filter-btn .count {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-left: 2px;
+        }
+
+        /* ============ LIST ============ */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1.5px solid transparent;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            animation: fadeInUp 0.35s ease forwards;
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .list-item:hover {
+            border-color: #d5c8b8;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+        .list-item:active {
+            transform: scale(0.985);
+            transition: 0.1s;
+        }
+        .list-item.completed {
+            background: #faf7f2;
+            border-color: #e8ddd0;
+        }
+        .list-item.completed .item-text {
+            text-decoration: line-through;
+            color: #b5a590;
+            text-decoration-thickness: 1.5px;
+            text-decoration-color: #d4c8b8;
+        }
+        .list-item.completed .item-number {
+            background: #e0d5c3;
+            color: #fff;
+        }
+        /* checkbox custom */
+        .checkbox-custom {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #d5c8b8;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            background: #fff;
+            position: relative;
+        }
+        .list-item.completed .checkbox-custom {
+            background: var(--accent);
+            border-color: var(--accent);
+            animation: popCheck 0.4s ease;
+        }
+        @keyframes popCheck {
+            0% {
+                transform: scale(0.6);
+            }
+            60% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .checkbox-custom svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0;
+            transform: scale(0);
+            transition: var(--transition);
+            color: #fff;
+        }
+        .list-item.completed .checkbox-custom svg {
+            opacity: 1;
+            transform: scale(1);
+            transition-delay: 0.05s;
+        }
+        .item-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f5f0eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            letter-spacing: -0.02em;
+            transition: var(--transition);
+        }
+        .item-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .item-text {
+            font-size: 0.92rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: var(--transition);
+            word-break: break-word;
+        }
+        .item-emoji {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .item-tag {
+            font-size: 0.65rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .tag-travel {
+            background: #fef0ea;
+            color: #c0764a;
+        }
+        .tag-learn {
+            background: #eaf4f6;
+            color: #4a7c84;
+        }
+        .tag-health {
+            background: #eef6e8;
+            color: #5a7a42;
+        }
+        .tag-relation {
+            background: #f8eef5;
+            color: #8a5a7c;
+        }
+        .tag-career {
+            background: #eaf0f6;
+            color: #4a6484;
+        }
+        .tag-adventure {
+            background: #fdf6e2;
+            color: #8a6d2b;
+        }
+        .tag-skill {
+            background: #f6f0e8;
+            color: #7a6248;
+        }
+        .tag-creative {
+            background: #f5eef8;
+            color: #6a4a7c;
+        }
+        .tag-wealth {
+            background: #eaf6f0;
+            color: #3d6b52;
+        }
+        .item-detail-arrow {
+            color: #c5b8a5;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+        .list-item:hover .item-detail-arrow {
+            color: var(--accent);
+            transform: translateX(3px);
+        }
+
+        /* ============ EMPTY STATE ============ */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        .empty-state .icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* ============ MODAL OVERLAY ============ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(30, 20, 12, 0.55);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.25s ease;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal-overlay.closing {
+            animation: fadeOut 0.2s ease forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .modal-dialog {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-width: 480px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px) scale(0.94);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        .modal-dialog.closing-dialog {
+            animation: slideDown 0.2s ease forwards;
+        }
+        @keyframes slideDown {
+            from {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(20px) scale(0.94);
+                opacity: 0;
+            }
+        }
+        .modal-header {
+            padding: 20px 24px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #f0ebe0;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            z-index: 1;
+        }
+        .modal-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-close-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #f5f0eb;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            color: #8a7a65;
+            flex-shrink: 0;
+        }
+        .modal-close-btn:hover {
+            background: #e8ddd0;
+            color: #3d2e1c;
+        }
+        .modal-body {
+            padding: 20px 24px;
+        }
+        .modal-body .detail-emoji {
+            font-size: 3rem;
+            text-align: center;
+            display: block;
+            margin-bottom: 12px;
+        }
+        .modal-body .detail-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+        }
+        .modal-body .detail-category {
+            text-align: center;
+            margin-bottom: 14px;
+        }
+        .modal-body .detail-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+        .modal-body .detail-status {
+            text-align: center;
+            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            width: 100%;
+            letter-spacing: 0.02em;
+        }
+        .status-done {
+            background: #eaf6e8;
+            color: #4a7a3d;
+        }
+        .status-pending {
+            background: #fdf6e8;
+            color: #8a6d2b;
+        }
+        .modal-footer {
+            padding: 0 24px 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.88rem;
+            letter-spacing: 0.02em;
+            transition: var(--transition);
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+        }
+        .btn-primary {
+            background: #3d2e1c;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #5a4530;
+            box-shadow: var(--shadow-md);
+        }
+        .btn-outline {
+            background: #fff;
+            color: #3d2e1c;
+            border: 2px solid #d5c8b8;
+        }
+        .btn-outline:hover {
+            border-color: #3d2e1c;
+            background: #fdf8f4;
+        }
+        .btn-danger {
+            background: #fff;
+            color: #c0392b;
+            border: 2px solid #e8c8c4;
+        }
+        .btn-danger:hover {
+            background: #fef5f4;
+            border-color: #c0392b;
+        }
+        .btn-celebrate {
+            background: linear-gradient(135deg, #f9d56e, #f0a550);
+            color: #3d2000;
+            font-size: 1rem;
+            padding: 14px 28px;
+            border-radius: 30px;
+            animation: glowPulse 2s infinite;
+            border: none;
+            font-weight: 700;
+        }
+        @keyframes glowPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(240, 165, 80, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 18px rgba(240, 165, 80, 0);
+            }
+        }
+
+        /* ============ TOAST ============ */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #3d2e1c;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            letter-spacing: 0.02em;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ============ CONFETTI ============ */
+        .confetti-piece {
+            position: fixed;
+            z-index: 10001;
+            pointer-events: none;
+            animation: confettiFall linear forwards;
+            font-size: 1.5rem;
+        }
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-60px) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(105vh) rotate(720deg) scale(0.3);
+                opacity: 0;
+            }
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 600px) {
+            .header-inner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .header-title {
+                font-size: 1.25rem;
+            }
+            .stats-row {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .progress-wrap {
+                max-width: 100%;
+            }
+            .list-item {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+            .item-text {
+                font-size: 0.82rem;
+            }
+            .item-number {
+                width: 26px;
+                height: 26px;
+                font-size: 0.7rem;
+            }
+            .checkbox-custom {
+                width: 22px;
+                height: 22px;
+            }
+            .checkbox-custom svg {
+                width: 11px;
+                height: 11px;
+            }
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 0.72rem;
+            }
+            .modal-dialog {
+                max-width: 95vw;
+                border-radius: var(--radius);
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+            .item-tag {
+                font-size: 0.6rem;
+                padding: 2px 7px;
+            }
+        }
+        @media (max-width: 380px) {
+            .item-content {
+                gap: 4px;
+            }
+            .item-text {
+                font-size: 0.76rem;
+            }
+            .item-detail-arrow {
+                display: none;
+            }
+            .stats-row {
+                gap: 8px;
+            }
+            .stat-number {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-title">
+                <span class="icon">🌍</span> 人生完成清单
+            </div>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-number" id="completedCount">0</div>
+                    <div class="stat-label">已完成</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalCount">110</div>
+                    <div class="stat-label">总计</div>
+                </div>
+                <div class="progress-wrap">
+                    <div class="progress-bar-outer">
+                        <div class="progress-bar-inner" id="progressBar" style="width: 0%;"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN ==================== -->
+    <div class="main-container">
+        <!-- Filter Bar -->
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-btn active" data-category="all">全部<span class="count">(110)</span></button>
+            <button class="filter-btn" data-category="travel">🌍 旅行探索<span class="count">(15)</span></button>
+            <button class="filter-btn" data-category="learn">📚 学习成长<span class="count">(13)</span></button>
+            <button class="filter-btn" data-category="health">💪 健康运动<span class="count">(12)</span></button>
+            <button class="filter-btn" data-category="relation">💞 人际关系<span class="count">(12)</span></button>
+            <button class="filter-btn" data-category="career">💼 职业成就<span class="count">(12)</span></button>
+            <button class="filter-btn" data-category="adventure">🔥 冒险体验<span class="count">(14)</span></button>
+            <button class="filter-btn" data-category="skill">🛠 生活技能<span class="count">(12)</span></button>
+            <button class="filter-btn" data-category="creative">🎨 创意表达<span class="count">(10)</span></button>
+            <button class="filter-btn" data-category="wealth">💰 精神与财务<span class="count">(10)</span></button>
+        </div>
+
+        <!-- List -->
+        <div class="list-container" id="listContainer"></div>
+        <div class="empty-state" id="emptyState" style="display:none;">
+            <span class="icon">🔍</span>
+            <p>该分类下暂无项目</p>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: 详情弹窗 ==================== -->
+    <div class="modal-overlay" id="detailModal" style="display:none;">
+        <div class="modal-dialog" id="detailDialog">
+            <div class="modal-header">
+                <span class="modal-title" id="detailModalTitle">📋 项目详情</span>
+                <button class="modal-close-btn" id="detailModalClose">✕</button>
+            </div>
+            <div class="modal-body" id="detailModalBody"></div>
+            <div class="modal-footer" id="detailModalFooter"></div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: 确认弹窗 ==================== -->
+    <div class="modal-overlay" id="confirmModal" style="display:none;">
+        <div class="modal-dialog" id="confirmDialog" style="max-width:380px;">
+            <div class="modal-header">
+                <span class="modal-title">⚠️ 确认操作</span>
+                <button class="modal-close-btn" id="confirmModalClose">✕</button>
+            </div>
+            <div class="modal-body" id="confirmModalBody" style="text-align:center;font-size:0.95rem;"></div>
+            <div class="modal-footer" id="confirmModalFooter"></div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: 庆祝弹窗 ==================== -->
+    <div class="modal-overlay" id="celebrateModal" style="display:none;">
+        <div class="modal-dialog" id="celebrateDialog" style="max-width:400px;text-align:center;">
+            <div class="modal-header" style="border-bottom:none;justify-content:center;">
+                <span class="modal-title" style="font-size:1.3rem;">🎉 太棒了！</span>
+            </div>
+            <div class="modal-body" id="celebrateModalBody"></div>
+            <div class="modal-footer" style="justify-content:center;">
+                <button class="btn btn-celebrate" id="celebrateModalCloseBtn">继续加油 💪</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST ==================== -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            // ============ DATA: 110项人生清单 ============
+            const allItems = [
+                // 旅行探索 (1-15) - category: travel
+                { id: 1, text: '看一次极光', emoji: '🌌', category: 'travel', tag: '旅行探索',
+                    desc: '在北极圈的夜空下，目睹绿色与紫色的光带在星空中舞动，这是大自然最震撼的灯光秀。' },
+                { id: 2, text: '在撒哈拉沙漠看星星', emoji: '🏜️', category: 'travel', tag: '旅行探索',
+                    desc: '躺在世界最大沙漠的沙丘上，仰望没有任何光污染的银河，感受宇宙的浩瀚与自身的渺小。' },
+                { id: 3, text: '去马尔代夫浮潜', emoji: '🐠', category: 'travel', tag: '旅行探索',
+                    desc: '在晶莹剔透的印度洋海水中，与五彩斑斓的热带鱼和珊瑚礁共舞，体验水下天堂。' },
+                { id: 4, text: '攀登一座5000米以上的雪山', emoji: '🏔️', category: 'travel', tag: '旅行探索',
+                    desc: '挑战身体极限，在稀薄空气中一步步向上，站在雪山之巅俯瞰云海的成就感无可比拟。' },
+                { id: 5, text: '在巴黎埃菲尔铁塔下欣赏夜景', emoji: '🗼', category: 'travel', tag: '旅行探索',
+                    desc: '当整点灯光闪烁时，这座钢铁巨人化为金色星光，浪漫至极的时刻值得与爱的人分享。' },
+                { id: 6, text: '去冰岛泡温泉', emoji: '♨️', category: 'travel', tag: '旅行探索',
+                    desc: '在冰与火之地，浸泡在乳蓝色的地热温泉中，周围是雪山与苔原，宛如置身异星。' },
+                { id: 7, text: '走过中国的长城', emoji: '🧱', category: 'travel', tag: '旅行探索',
+                    desc: '踏上千年历史的砖石，感受古代文明的雄伟壮丽，每一步都走在时光之中。' },
+                { id: 8, text: '在纽约时代广场跨年', emoji: '🎆', category: 'travel', tag: '旅行探索',
+                    desc: '与来自世界各地的人们一起倒数，在水晶球落下的瞬间拥抱欢呼，迎接崭新的一年。' },
+                { id: 9, text: '去日本看樱花', emoji: '🌸', category: 'travel', tag: '旅行探索',
+                    desc: '在粉白色的樱花隧道下漫步，感受物哀之美，体会生命中稍纵即逝的绚烂。' },
+                { id: 10, text: '在威尼斯坐贡多拉', emoji: '🚣', category: 'travel', tag: '旅行探索',
+                    desc: '穿行在水城的蜿蜒河道中，听船夫唱着意大利歌谣，两岸是古老的文艺复兴建筑。' },
+                { id: 11, text: '去非洲看动物大迁徙', emoji: '🦁', category: 'travel', tag: '旅行探索',
+                    desc: '在塞伦盖蒂草原上，见证百万角马奔腾渡河的壮观场面，感受野性非洲的心跳。' },
+                { id: 12, text: '在希腊圣托里尼看日落', emoji: '🌅', category: 'travel', tag: '旅行探索',
+                    desc: '蓝白小镇的悬崖上，看太阳缓缓沉入爱琴海，天空被染成金橙与粉紫的渐变色。' },
+                { id: 13, text: '去亚马逊雨林探险', emoji: '🌿', category: 'travel', tag: '旅行探索',
+                    desc: '深入地球之肺，探索世界上最丰富的生态系统，遇见奇异的野生动植物。' },
+                { id: 14, text: '在澳大利亚抱考拉', emoji: '🐨', category: 'travel', tag: '旅行探索',
+                    desc: '贴近这可爱又慵懒的有袋动物，感受它柔软的皮毛和淡淡的桉树味。' },
+                { id: 15, text: '去西藏朝圣', emoji: '🕉️', category: 'travel', tag: '旅行探索',
+                    desc: '在高原净土上，仰望布达拉宫，转动经筒，感受信仰的力量与心灵的宁静。' },
+
+                // 学习成长 (16-28) - category: learn
+                { id: 16, text: '读完100本书', emoji: '📖', category: 'learn', tag: '学习成长',
+                    desc: '每一本书都是一扇新世界的窗户，100本书将极大地拓宽你的视野与思维深度。' },
+                { id: 17, text: '学会一门外语并流利交流', emoji: '🗣️', category: 'learn', tag: '学习成长',
+                    desc: '用另一种语言思考与表达，打开通往另一个文化世界的大门。' },
+                { id: 18, text: '拿到硕士或更高学位', emoji: '🎓', category: 'learn', tag: '学习成长',
+                    desc: '在学术道路上深耕，获得更高层次的知识体系与专业认可。' },
+                { id: 19, text: '学习编程并做出一个项目', emoji: '💻', category: 'learn', tag: '学习成长',
+                    desc: '掌握与机器对话的语言，创造出能解决实际问题的软件作品。' },
+                { id: 20, text: '考取一个专业证书', emoji: '📜', category: 'learn', tag: '学习成长',
+                    desc: '获得行业认可的资质证明，为职业发展增添一份有力的背书。' },
+                { id: 21, text: '学会弹钢琴', emoji: '🎹', category: 'learn', tag: '学习成长',
+                    desc: '让指尖在黑白键上流淌出旋律，用音乐表达言语无法传达的情感。' },
+                { id: 22, text: '学习烹饪并做出拿手好菜', emoji: '🍳', category: 'learn', tag: '学习成长',
+                    desc: '从厨房小白到能独立完成一桌美食，用味道温暖自己和身边的人。' },
+                { id: 23, text: '学会游泳', emoji: '🏊', category: 'learn', tag: '学习成长',
+                    desc: '征服对水的恐惧，在水中自如畅游，这是一项受益终身的生存技能。' },
+                { id: 24, text: '学习摄影并拍出满意作品', emoji: '📷', category: 'learn', tag: '学习成长',
+                    desc: '用镜头捕捉光影与瞬间，将稍纵即逝的美好凝固为永恒的画面。' },
+                { id: 25, text: '学习书法', emoji: '✍️', category: 'learn', tag: '学习成长',
+                    desc: '在笔墨纸砚间静心凝神，感受汉字的结构之美与传统文化的深厚底蕴。' },
+                { id: 26, text: '学会跳一支完整的舞', emoji: '💃', category: 'learn', tag: '学习成长',
+                    desc: '用身体律动表达节奏与情感，在音乐中释放自我，享受纯粹的快乐。' },
+                { id: 27, text: '学习急救知识', emoji: '🩹', category: 'learn', tag: '学习成长',
+                    desc: '掌握心肺复苏等关键急救技能，在危急时刻可能挽救一条宝贵的生命。' },
+                { id: 28, text: '背诵100首古诗', emoji: '📝', category: 'learn', tag: '学习成长',
+                    desc: '将中华文化的瑰宝内化于心，在某个情境下脱口而出一句应景的诗句。' },
+
+                // 健康运动 (29-40) - category: health
+                { id: 29, text: '跑一次全程马拉松', emoji: '🏃', category: 'health', tag: '健康运动',
+                    desc: '挑战42.195公里的极限距离，在汗水中超越自我，抵达终点的那一刻永生难忘。' },
+                { id: 30, text: '练出六块腹肌', emoji: '💪', category: 'health', tag: '健康运动',
+                    desc: '通过自律的训练与饮食控制，雕刻出清晰的腹部线条，收获健康与自信。' },
+                { id: 31, text: '坚持早起100天', emoji: '🌅', category: 'health', tag: '健康运动',
+                    desc: '战胜被窝的引力，在清晨的宁静中拥有更多属于自己的高效时间。' },
+                { id: 32, text: '完成一次铁人三项', emoji: '🏅', category: 'health', tag: '健康运动',
+                    desc: '连续完成游泳、骑行、跑步三项耐力运动，这是对体能和意志的双重考验。' },
+                { id: 33, text: '学会瑜伽倒立', emoji: '🧘', category: 'health', tag: '健康运动',
+                    desc: '克服对颠倒的恐惧，用核心力量稳稳支撑身体，换个角度看世界。' },
+                { id: 34, text: '连续一个月不吃垃圾食品', emoji: '🥗', category: 'health', tag: '健康运动',
+                    desc: '告别高油高糖的加工食品，感受清洁饮食给身体带来的轻盈与活力。' },
+                { id: 35, text: '体重达到理想标准', emoji: '⚖️', category: 'health', tag: '健康运动',
+                    desc: '通过科学的方式管理身材，达到健康的体重范围，穿上心仪的衣服。' },
+                { id: 36, text: '每天走10000步坚持一个月', emoji: '🚶', category: 'health', tag: '健康运动',
+                    desc: '用脚步丈量日常，养成持续运动的小习惯，积少成多带来大改变。' },
+                { id: 37, text: '完成一次100公里骑行', emoji: '🚴', category: 'health', tag: '健康运动',
+                    desc: '在车轮上穿越风景，挑战长途骑行的耐力极限，享受风与自由。' },
+                { id: 38, text: '学会冲浪', emoji: '🏄', category: 'health', tag: '健康运动',
+                    desc: '在海浪中寻找平衡，感受被自然力量推动的快感，与大海融为一体。' },
+                { id: 39, text: '参加一次Color Run', emoji: '🌈', category: 'health', tag: '健康运动',
+                    desc: '在五彩粉末的狂欢中奔跑，不在乎速度，只享受纯粹的快乐与色彩。' },
+                { id: 40, text: '戒掉一个坏习惯', emoji: '🚫', category: 'health', tag: '健康运动',
+                    desc: '识别并告别一个影响生活质量的习惯，用自律换来更自由的人生。' },
+
+                // 人际关系 (41-52) - category: relation
+                { id: 41, text: '和父母一起去旅行', emoji: '👨‍👩‍👧', category: 'relation', tag: '人际关系',
+                    desc: '在旅途中创造与父母共度的珍贵回忆，用陪伴表达最深的感恩与爱。' },
+                { id: 42, text: '给父母写一封感谢信', emoji: '💌', category: 'relation', tag: '人际关系',
+                    desc: '把平时羞于说出口的感谢用文字表达，让父母感受到你真挚的心意。' },
+                { id: 43, text: '拥有三个知心好友', emoji: '👯', category: 'relation', tag: '人际关系',
+                    desc: '在这个世界上找到几个可以无话不谈、互相扶持的真心朋友，是莫大的财富。' },
+                { id: 44, text: '和爱的人一起看日出', emoji: '🌄', category: 'relation', tag: '人际关系',
+                    desc: '在黎明前的微光中并肩等待，当第一缕阳光照亮脸庞时，共享那份温暖与希望。' },
+                { id: 45, text: '为朋友策划一场惊喜派对', emoji: '🎂', category: 'relation', tag: '人际关系',
+                    desc: '用心筹备每一个细节，看到朋友脸上惊喜与感动的表情，一切付出都值得。' },
+                { id: 46, text: '和好一位曾经闹翻的朋友', emoji: '🤝', category: 'relation', tag: '人际关系',
+                    desc: '放下过去的芥蒂，勇敢迈出和解的第一步，重新拾起那份珍贵的友谊。' },
+                { id: 47, text: '参加一次同学聚会', emoji: '🏫', category: 'relation', tag: '人际关系',
+                    desc: '与久别重逢的老同学畅谈往事与近况，在笑声中重温青春岁月。' },
+                { id: 48, text: '给陌生人一次真诚的帮助', emoji: '🫶', category: 'relation', tag: '人际关系',
+                    desc: '不求回报地帮助一个素不相识的人，传递善意让世界变得更温暖。' },
+                { id: 49, text: '和爱人一起做一顿饭', emoji: '🍝', category: 'relation', tag: '人际关系',
+                    desc: '在厨房里分工协作，享受烹饪的乐趣，然后一起品尝劳动的成果。' },
+                { id: 50, text: '对爱的人说100次"我爱你"', emoji: '❤️', category: 'relation', tag: '人际关系',
+                    desc: '不吝啬表达爱意，让爱的语言成为日常，温暖彼此的心灵。' },
+                { id: 51, text: '养一只宠物', emoji: '🐕', category: 'relation', tag: '人际关系',
+                    desc: '体验被一个小生命无条件信任与依赖的感觉，学会责任与陪伴。' },
+                { id: 52, text: '做一次志愿者', emoji: '🤲', category: 'relation', tag: '人际关系',
+                    desc: '投入时间与精力服务社区或弱势群体，在付出中收获内心的丰盈。' },
+
+                // 职业成就 (53-64) - category: career
+                { id: 53, text: '年薪达到理想目标', emoji: '💸', category: 'career', tag: '职业成就',
+                    desc: '通过职业发展实现收入目标，给自己和家人更好的生活保障。' },
+                { id: 54, text: '创立自己的公司或品牌', emoji: '🚀', category: 'career', tag: '职业成就',
+                    desc: '将想法付诸实践，从零开始打造属于自己的事业，享受创业的激情与挑战。' },
+                { id: 55, text: '写一本书并出版', emoji: '📚', category: 'career', tag: '职业成就',
+                    desc: '将自己的思想、故事或专业知识凝结成书，留下可以被传阅的印记。' },
+                { id: 56, text: '做一次公开演讲', emoji: '🎤', category: 'career', tag: '职业成就',
+                    desc: '站在台上面对众多听众，自信地分享观点，用语言影响和启发他人。' },
+                { id: 57, text: '获得行业奖项或认可', emoji: '🏆', category: 'career', tag: '职业成就',
+                    desc: '在自己的专业领域获得同行或行业的肯定，这是努力与才华的证明。' },
+                { id: 58, text: '带领一个团队完成目标', emoji: '👥', category: 'career', tag: '职业成就',
+                    desc: '成为团队的领导者，协调不同的人才朝着共同目标前进，实现1+1>2的效果。' },
+                { id: 59, text: '作品被100万人看到', emoji: '👁️', category: 'career', tag: '职业成就',
+                    desc: '创作出有影响力的内容或产品，触达百万级的受众，留下自己的印记。' },
+                { id: 60, text: '做一次公益讲座或分享', emoji: '🎙️', category: 'career', tag: '职业成就',
+                    desc: '将自己的知识或经验无偿分享给需要的人，回馈社会帮助他人成长。' },
+                { id: 61, text: '完成一个百万级项目', emoji: '📊', category: 'career', tag: '职业成就',
+                    desc: '主导或深度参与一个规模宏大的项目，见证它从蓝图变为现实。' },
+                { id: 62, text: '被媒体报道一次', emoji: '📰', category: 'career', tag: '职业成就',
+                    desc: '因为某方面的成就或故事被媒体关注报道，让更多人认识你。' },
+                { id: 63, text: '拥有自己的个人品牌', emoji: '✨', category: 'career', tag: '职业成就',
+                    desc: '在某个领域建立起个人影响力，让人们因为你的名字而信任与追随。' },
+                { id: 64, text: '成为某个领域的专家', emoji: '🎯', category: 'career', tag: '职业成就',
+                    desc: '在特定领域深耕多年，积累深厚的知识与经验，成为他人信赖的权威。' },
+
+                // 冒险体验 (65-78) - category: adventure
+                { id: 65, text: '跳伞', emoji: '🪂', category: 'adventure', tag: '冒险体验',
+                    desc: '从万米高空一跃而下，在自由落体中感受极致的肾上腺素飙升与无与伦比的自由。' },
+                { id: 66, text: '蹦极', emoji: '🦘', category: 'adventure', tag: '冒险体验',
+                    desc: '站在高台边缘，克服恐惧纵身一跃，在弹跳中体验失重与重生的感觉。' },
+                { id: 67, text: '深海水肺潜水', emoji: '🤿', category: 'adventure', tag: '冒险体验',
+                    desc: '潜入深海，探索沉船、洞穴与珊瑚礁，进入一个完全不同的蓝色世界。' },
+                { id: 68, text: '坐热气球', emoji: '🎈', category: 'adventure', tag: '冒险体验',
+                    desc: '在黎明时分缓缓升空，漂浮在云端之上俯瞰大地，享受宁静而浪漫的飞翔。' },
+                { id: 69, text: '滑雪', emoji: '⛷️', category: 'adventure', tag: '冒险体验',
+                    desc: '在白雪皑皑的山坡上疾驰而下，感受速度与控制的完美平衡。' },
+                { id: 70, text: '开一次赛车', emoji: '🏎️', category: 'adventure', tag: '冒险体验',
+                    desc: '在专业赛道上驾驶高性能赛车，体验极速狂飙的刺激与快感。' },
+                { id: 71, text: '坐直升机', emoji: '🚁', category: 'adventure', tag: '冒险体验',
+                    desc: '从空中俯瞰城市或自然奇观，享受与众不同的视角与飞行体验。' },
+                { id: 72, text: '在死海漂浮', emoji: '🫧', category: 'adventure', tag: '冒险体验',
+                    desc: '在世界上盐度最高的湖泊中轻松漂浮，感受被水温柔托起的奇妙感觉。' },
+                { id: 73, text: '看一次火山喷发', emoji: '🌋', category: 'adventure', tag: '冒险体验',
+                    desc: '在安全距离外亲眼目睹地球内部力量的释放，感受大自然的震撼与威力。' },
+                { id: 74, text: '参加一次大型音乐节', emoji: '🎵', category: 'adventure', tag: '冒险体验',
+                    desc: '与成千上万的乐迷一起沉浸在音乐海洋中，在声光交织中尽情释放。' },
+                { id: 75, text: '在野外露营', emoji: '⛺', category: 'adventure', tag: '冒险体验',
+                    desc: '远离城市灯火，在星空下搭帐篷入睡，聆听虫鸣与风声，回归自然。' },
+                { id: 76, text: '攀岩', emoji: '🧗', category: 'adventure', tag: '冒险体验',
+                    desc: '在岩壁上寻找支点，用力量与智慧向上攀爬，征服垂直的高度。' },
+                { id: 77, text: '在无边泳池俯瞰城市', emoji: '🏙️', category: 'adventure', tag: '冒险体验',
+                    desc: '在摩天大楼顶层的泳池边，俯瞰城市天际线，享受现代与奢华的交融。' },
+                { id: 78, text: '看一次流星雨', emoji: '☄️', category: 'adventure', tag: '冒险体验',
+                    desc: '在远离光污染的地方，数着一颗颗划过天际的流星，许下心中最真挚的愿望。' },
+
+                // 生活技能 (79-90) - category: skill
+                { id: 79, text: '学会开车并拿到驾照', emoji: '🚗', category: 'skill', tag: '生活技能',
+                    desc: '掌握驾驶技能，获得自由出行的能力，想去哪里就去哪里。' },
+                { id: 80, text: '学会做一桌完整的饭菜', emoji: '🍽️', category: 'skill', tag: '生活技能',
+                    desc: '从采购食材到烹饪摆盘，独立完成一桌色香味俱全的饭菜招待亲友。' },
+                { id: 81, text: '学会理财并建立投资组合', emoji: '📈', category: 'skill', tag: '生活技能',
+                    desc: '掌握基本的财务知识，合理规划收入与支出，让钱为你工作。' },
+                { id: 82, text: '学会基本的缝纫', emoji: '🧵', category: 'skill', tag: '生活技能',
+                    desc: '能够自己缝补衣物、钉纽扣，甚至改造旧衣，实用又环保。' },
+                { id: 83, text: '学会种菜', emoji: '🌱', category: 'skill', tag: '生活技能',
+                    desc: '在阳台或小院中亲手种植蔬菜，从种子到收获，品尝自己劳动的果实。' },
+                { id: 84, text: '学会修理自行车', emoji: '🔧', category: 'skill', tag: '生活技能',
+                    desc: '掌握补胎、调刹车等基本维修技能，骑行路上更加从容自信。' },
+                { id: 85, text: '学会基本的木工', emoji: '🪚', category: 'skill', tag: '生活技能',
+                    desc: '用木头制作简单的家具或小物件，享受手工劳动的成就感和创造的乐趣。' },
+                { id: 86, text: '学会画一幅画', emoji: '🎨', category: 'skill', tag: '生活技能',
+                    desc: '用画笔在画布上表达色彩与情感，完成一幅属于自己的艺术作品。' },
+                { id: 87, text: '学会做咖啡', emoji: '☕', category: 'skill', tag: '生活技能',
+                    desc: '从研磨豆子到拉花，制作一杯专业级别的咖啡，享受慢生活的仪式感。' },
+                { id: 88, text: '学会插花', emoji: '💐', category: 'skill', tag: '生活技能',
+                    desc: '将不同的花材搭配组合，创造出赏心悦目的花艺作品，装点生活空间。' },
+                { id: 89, text: '学会简单的电工', emoji: '💡', category: 'skill', tag: '生活技能',
+                    desc: '能够安全地更换灯泡、修理开关插座等，解决家庭常见电路小问题。' },
+                { id: 90, text: '学会写一手好字', emoji: '🖊️', category: 'skill', tag: '生活技能',
+                    desc: '练就一手漂亮的手写字，在数字时代保留书写的温度与个性。' },
+
+                // 创意表达 (91-100) - category: creative
+                { id: 91, text: '写一首诗', emoji: '✒️', category: 'creative', tag: '创意表达',
+                    desc: '用精炼的文字捕捉一个瞬间、一种情绪或一个想法，留下属于自己的诗句。' },
+                { id: 92, text: '画一幅自画像', emoji: '🖼️', category: 'creative', tag: '创意表达',
+                    desc: '通过画笔审视自己，无论是写实还是抽象，都是独特的自我表达。' },
+                { id: 93, text: '录制一首歌', emoji: '🎶', category: 'creative', tag: '创意表达',
+                    desc: '走进录音棚或在家录制一首自己演唱的歌，用声音记录此刻的自己。' },
+                { id: 94, text: '拍一部短片', emoji: '🎬', category: 'creative', tag: '创意表达',
+                    desc: '从构思剧本到拍摄剪辑，完成一部属于自己的微电影，讲述想讲的故事。' },
+                { id: 95, text: '设计一个纹身图案', emoji: '🐉', category: 'creative', tag: '创意表达',
+                    desc: '创作一个有个人意义的纹身设计，将信念或记忆永久镌刻在身上。' },
+                { id: 96, text: '制作一件手工家具', emoji: '🪑', category: 'creative', tag: '创意表达',
+                    desc: '从设计图纸到打磨组装，亲手做出一件可以日常使用的家具。' },
+                { id: 97, text: '写一个博客或公众号', emoji: '📝', category: 'creative', tag: '创意表达',
+                    desc: '持续在网络空间输出内容，分享知识、见解或生活，连接志同道合的人。' },
+                { id: 98, text: '创作一个漫画或插画故事', emoji: '📗', category: 'creative', tag: '创意表达',
+                    desc: '用连续的画格讲述一个有趣的故事，释放你的想象力和幽默感。' },
+                { id: 99, text: '做一件陶艺', emoji: '🏺', category: 'creative', tag: '创意表达',
+                    desc: '在拉坯机上感受泥土的温度与质感，亲手塑造一件独一无二的器皿。' },
+                { id: 100, text: '写一封信给未来的自己', emoji: '✉️', category: 'creative', tag: '创意表达',
+                    desc: '将此刻的想法、梦想与期许封存，在未来的某一天打开，与过去的自己对话。' },
+
+                // 精神与财务 (101-110) - category: wealth
+                { id: 101, text: '坚持冥想100天', emoji: '🧘‍♂️', category: 'wealth', tag: '精神与财务',
+                    desc: '每天花时间静坐内观，训练专注力与觉察力，收获内心的平静与清晰。' },
+                { id: 102, text: '存到人生第一个100万', emoji: '🏦', category: 'wealth', tag: '精神与财务',
+                    desc: '通过持续储蓄与投资，达成第一个百万里程碑，建立财务安全感。' },
+                { id: 103, text: '成功做一次投资并获得回报', emoji: '💹', category: 'wealth', tag: '精神与财务',
+                    desc: '学习投资知识并实践，让资金在市场中增值，体验智慧变现的快乐。' },
+                { id: 104, text: '拥有一套自己的房子', emoji: '🏡', category: 'wealth', tag: '精神与财务',
+                    desc: '拥有一个属于自己的温馨空间，可以随心布置，是安全感的来源。' },
+                { id: 105, text: '还清所有债务', emoji: '🎉', category: 'wealth', tag: '精神与财务',
+                    desc: '摆脱负债的负担，实现财务清零，享受无债一身轻的自由。' },
+                { id: 106, text: '建立被动收入来源', emoji: '💤', category: 'wealth', tag: '精神与财务',
+                    desc: '打造一个不需要持续投入大量时间也能产生收入的系统，实现财务自由。' },
+                { id: 107, text: '做一次有意义的慈善捐款', emoji: '🤲', category: 'wealth', tag: '精神与财务',
+                    desc: '在有能力时回馈社会，用金钱支持你关心的公益事业，帮助需要的人。' },
+                { id: 108, text: '写一份遗嘱或人生规划', emoji: '📄', category: 'wealth', tag: '精神与财务',
+                    desc: '认真思考生命的意义与安排，为未来做好准备，也是对家人的负责。' },
+                { id: 109, text: '在乡下有一间小屋', emoji: '🏚️', category: 'wealth', tag: '精神与财务',
+                    desc: '在远离喧嚣的乡村拥有一个休憩之所，种花养草，过慢节奏的生活。' },
+                { id: 110, text: '找到人生真正的热爱', emoji: '🔥', category: 'wealth', tag: '精神与财务',
+                    desc: '在不断探索中发现自己真正热爱并愿意为之奋斗一生的事业或兴趣。' },
+            ];
+
+            // ============ STATE ============
+            const STORAGE_KEY = 'life_checklist_110_completed';
+            let completedSet = new Set();
+            let currentFilter = 'all';
+            let celebrationMilestones = new Set([10, 25, 50, 75, 100, 110]); // 庆祝节点
+
+            // ============ DOM REFS ============
+            const listContainer = document.getElementById('listContainer');
+            const emptyState = document.getElementById('emptyState');
+            const completedCountEl = document.getElementById('completedCount');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const filterBar = document.getElementById('filterBar');
+            const toast = document.getElementById('toast');
+
+            // Modal refs
+            const detailModal = document.getElementById('detailModal');
+            const detailDialog = document.getElementById('detailDialog');
+            const detailModalTitle = document.getElementById('detailModalTitle');
+            const detailModalBody = document.getElementById('detailModalBody');
+            const detailModalFooter = document.getElementById('detailModalFooter');
+            const detailModalClose = document.getElementById('detailModalClose');
+
+            const confirmModal = document.getElementById('confirmModal');
+            const confirmDialog = document.getElementById('confirmDialog');
+            const confirmModalBody = document.getElementById('confirmModalBody');
+            const confirmModalFooter = document.getElementById('confirmModalFooter');
+            const confirmModalClose = document.getElementById('confirmModalClose');
+
+            const celebrateModal = document.getElementById('celebrateModal');
+            const celebrateDialog = document.getElementById('celebrateDialog');
+            const celebrateModalBody = document.getElementById('celebrateModalBody');
+            const celebrateModalCloseBtn = document.getElementById('celebrateModalCloseBtn');
+
+            // ============ INIT ============
+            function loadFromStorage() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    if (data) {
+                        const arr = JSON.parse(data);
+                        if (Array.isArray(arr)) {
+                            completedSet = new Set(arr.filter(n => Number.isInteger(n) && n >= 1 && n <= 110));
+                        }
+                    }
+                } catch (e) {
+                    completedSet = new Set();
+                }
+            }
+
+            function saveToStorage() {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedSet]));
+                } catch (e) {
+                    // storage full or unavailable
+                }
+            }
+
+            function updateStats() {
+                const count = completedSet.size;
+                const total = allItems.length;
+                const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+                completedCountEl.textContent = count;
+                progressBar.style.width = percent + '%';
+                progressText.textContent = percent + '%';
+            }
+
+            // ============ TOAST ============
+            let toastTimer;
+
+            function showToast(message) {
+                clearTimeout(toastTimer);
+                toast.textContent = message;
+                toast.classList.add('show');
+                toastTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+
+            // ============ CONFETTI ============
+            function spawnConfetti() {
+                const emojis = ['🎉', '✨', '🌟', '💫', '🎊', '🥳', '👏', '💖', '🔥', '⭐'];
+                const colors = ['#f9d56e', '#f0a550', '#e8b4a2', '#c8956c', '#b5c9a2', '#a2c4c9', '#d4a8c8',
+                '#ff6b6b'];
+                for (let i = 0; i < 50; i++) {
+                    const piece = document.createElement('span');
+                    piece.className = 'confetti-piece';
+                    piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    piece.style.left = Math.random() * 100 + '%';
+                    piece.style.top = -(Math.random() * 40 + 10) + 'px';
+                    piece.style.animationDuration = (Math.random() * 2 + 2.5) + 's';
+                    piece.style.animationDelay = Math.random() * 0.8 + 's';
+                    piece.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                    document.body.appendChild(piece);
+                    setTimeout(() => {
+                        if (piece.parentNode) piece.parentNode.removeChild(piece);
+                    }, 3500);
+                }
+            }
+
+            // ============ MODAL: 通用方法 ============
+            function openModal(overlay, dialog) {
+                overlay.style.display = 'flex';
+                overlay.classList.remove('closing');
+                dialog.classList.remove('closing-dialog');
+                // 强制回流后添加动画
+                void dialog.offsetWidth;
+                dialog.style.animation = 'none';
+                dialog.offsetHeight;
+                dialog.style.animation = '';
+            }
+
+            function closeModal(overlay, dialog, callback) {
+                overlay.classList.add('closing');
+                dialog.classList.add('closing-dialog');
+                const onAnimEnd = () => {
+                    overlay.style.display = 'none';
+                    overlay.classList.remove('closing');
+                    dialog.classList.remove('closing-dialog');
+                    dialog.removeEventListener('animationend', onAnimEnd);
+                    if (callback) callback();
+                };
+                dialog.addEventListener('animationend', onAnimEnd, { once: true });
+                // 兜底
+                setTimeout(() => {
+                    if (overlay.style.display !== 'none') {
+                        overlay.style.display = 'none';
+                        overlay.classList.remove('closing');
+                        dialog.classList.remove('closing-dialog');
+                        if (callback) callback();
+                    }
+                }, 350);
+            }
+
+            function closeModalImmediate(overlay, dialog) {
+                overlay.style.display = 'none';
+                overlay.classList.remove('closing');
+                dialog.classList.remove('closing-dialog');
+            }
+
+            // ============ MODAL: 详情弹窗 ============
+            function showDetailModal(item) {
+                const isCompleted = completedSet.has(item.id);
+                detailModalTitle.innerHTML = '📋 项目详情';
+                detailModalBody.innerHTML = `
+                    <span class="detail-emoji">${item.emoji}</span>
+                    <div class="detail-title">#${item.id} ${item.text}</div>
+                    <div class="detail-category">
+                        <span class="item-tag tag-${item.category}">${item.tag}</span>
+                    </div>
+                    <p class="detail-desc">${item.desc}</p>
+                    <div class="detail-status ${isCompleted ? 'status-done' : 'status-pending'}">
+                        ${isCompleted ? '✅ 已完成' : '⏳ 尚未完成'}
+                    </div>
+                `;
+                detailModalFooter.innerHTML = `
+                    <button class="btn btn-outline" id="detailModalCancel">关闭</button>
+                    <button class="btn btn-primary" id="detailModalToggle">
+                        ${isCompleted ? '↩ 标记为未完成' : '✅ 标记为已完成'}
+                    </button>
+                `;
+
+                openModal(detailModal, detailDialog);
+
+                // 事件绑定
+                const btnToggle = document.getElementById('detailModalToggle');
+                const btnCancel = document.getElementById('detailModalCancel');
+
+                const cleanup = () => {
+                    btnToggle?.removeEventListener('click', onToggle);
+                    btnCancel?.removeEventListener('click', onCancel);
+                    detailModalClose.removeEventListener('click', onClose);
+                };
+
+                const onToggle = () => {
+                    toggleItem(item, !completedSet.has(item.id));
+                    closeModal(detailModal, detailDialog, () => {
+                        cleanup();
+                        // 重新打开更新后的详情
+                        setTimeout(() => showDetailModal(item), 150);
+                    });
+                };
+                const onCancel = () => {
+                    closeModal(detailModal, detailDialog, cleanup);
+                };
+                const onClose = () => {
+                    closeModal(detailModal, detailDialog, cleanup);
+                };
+
+                btnToggle?.addEventListener('click', onToggle);
+                btnCancel?.addEventListener('click', onCancel);
+                detailModalClose.addEventListener('click', onClose);
+
+                // 点击遮罩关闭
+                detailModal.onclick = function(e) {
+                    if (e.target === detailModal) {
+                        closeModal(detailModal, detailDialog, cleanup);
+                        detailModal.onclick = null;
+                    }
+                };
+            }
+
+            // ============ MODAL: 确认弹窗 ============
+            function showConfirmModal(message, onConfirm, confirmLabel = '确认', confirmClass = 'btn-primary') {
+                confirmModalBody.textContent = message;
+                confirmModalFooter.innerHTML = `
+                    <button class="btn btn-outline" id="confirmModalCancelBtn">取消</button>
+                    <button class="btn ${confirmClass}" id="confirmModalConfirmBtn">${confirmLabel}</button>
+                `;
+                openModal(confirmModal, confirmDialog);
+
+                const btnConfirm = document.getElementById('confirmModalConfirmBtn');
+                const btnCancel = document.getElementById('confirmModalCancelBtn');
+
+                const cleanup = () => {
+                    btnConfirm?.removeEventListener('click', onConfirmClick);
+                    btnCancel?.removeEventListener('click', onCancelClick);
+                    confirmModalClose.removeEventListener('click', onCloseClick);
+                };
+
+                const onConfirmClick = () => {
+                    closeModal(confirmModal, confirmDialog, () => {
+                        cleanup();
+                        if (onConfirm) onConfirm();
+                    });
+                };
+                const onCancelClick = () => {
+                    closeModal(confirmModal, confirmDialog, cleanup);
+                };
+                const onCloseClick = () => {
+                    closeModal(confirmModal, confirmDialog, cleanup);
+                };
+
+                btnConfirm?.addEventListener('click', onConfirmClick);
+                btnCancel?.addEventListener('click', onCancelClick);
+                confirmModalClose.addEventListener('click', onCloseClick);
+
+                confirmModal.onclick = function(e) {
+                    if (e.target === confirmModal) {
+                        closeModal(confirmModal, confirmDialog, cleanup);
+                        confirmModal.onclick = null;
+                    }
+                };
+            }
+
+            // ============ MODAL: 庆祝弹窗 ============
+            function showCelebrateModal(count) {
+                let message = '';
+                if (count === 110) {
+                    message = '🏆 不可思议！你完成了全部110项人生清单！<br>你的人生堪称传奇！';
+                } else if (count >= 100) {
+                    message = `🌟 你已经完成了 <b>${count}</b> 项！<br>离大圆满只差一步之遥，继续冲刺！`;
+                } else if (count >= 75) {
+                    message = `🎯 太厉害了！已完成 <b>${count}</b> 项！<br>你的人生体验已经非常丰富！`;
+                } else if (count >= 50) {
+                    message = `🎉 过半了！已完成 <b>${count}</b> 项！<br>你正在认真活出精彩人生！`;
+                } else if (count >= 25) {
+                    message = `👏 已完成 <b>${count}</b> 项！<br>四分之一的路程已走过，继续保持！`;
+                } else {
+                    message = `💪 已完成 <b>${count}</b> 项！<br>好的开始是成功的一半，加油！`;
+                }
+                celebrateModalBody.innerHTML = `
+                    <p style="font-size:3rem;margin-bottom:8px;">🎊</p>
+                    <p style="font-size:1.05rem;line-height:1.8;">${message}</p>
+                `;
+                openModal(celebrateModal, celebrateDialog);
+                spawnConfetti();
+
+                const cleanup = () => {
+                    celebrateModalCloseBtn.removeEventListener('click', onClose);
+                };
+                const onClose = () => {
+                    closeModal(celebrateModal, celebrateDialog, cleanup);
+                };
+                celebrateModalCloseBtn.addEventListener('click', onClose);
+                celebrateModal.onclick = function(e) {
+                    if (e.target === celebrateModal) {
+                        closeModal(celebrateModal, celebrateDialog, cleanup);
+                        celebrateModal.onclick = null;
+                    }
+                };
+            }
+
+            // ============ TOGGLE ITEM ============
+            function toggleItem(item, setToCompleted) {
+                const prevCount = completedSet.size;
+                if (setToCompleted) {
+                    completedSet.add(item.id);
+                } else {
+                    completedSet.delete(item.id);
+                }
+                const newCount = completedSet.size;
+                saveToStorage();
+                updateStats();
+                renderList(currentFilter);
+
+                // 提示
+                if (setToCompleted && newCount > prevCount) {
+                    showToast(`✅ 已完成：#${item.id} ${item.text}`);
+                    // 检查庆祝节点
+                    if (celebrationMilestones.has(newCount)) {
+                        setTimeout(() => showCelebrateModal(newCount), 400);
+                    }
+                } else if (!setToCompleted && newCount < prevCount) {
+                    showToast(`↩ 已取消：#${item.id} ${item.text}`);
+                }
+            }
+
+            // ============ RENDER LIST ============
+            function renderList(filter) {
+                let itemsToShow = allItems;
+                if (filter !== 'all') {
+                    itemsToShow = allItems.filter(item => item.category === filter);
+                }
+
+                if (itemsToShow.length === 0) {
+                    listContainer.innerHTML = '';
+                    emptyState.style.display = 'block';
+                } else {
+                    emptyState.style.display = 'none';
+                    listContainer.innerHTML = itemsToShow.map((item, index) => {
+                        const isCompleted = completedSet.has(item.id);
+                        return `
+                            <div class="list-item ${isCompleted ? 'completed' : ''}"
+                                 style="animation-delay:${index * 0.012}s;"
+                                 data-id="${item.id}">
+                                <div class="checkbox-custom">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="item-number">${item.id}</div>
+                                <div class="item-content">
+                                    <span class="item-emoji">${item.emoji}</span>
+                                    <span class="item-text">${item.text}</span>
+                                    <span class="item-tag tag-${item.category}">${item.tag}</span>
+                                </div>
+                                <span class="item-detail-arrow">›</span>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // 绑定事件
+                    const items = listContainer.querySelectorAll('.list-item');
+                    items.forEach(el => {
+                        el.addEventListener('click', function(e) {
+                            const id = parseInt(this.getAttribute('data-id'));
+                            const item = allItems.find(i => i.id === id);
+                            if (item) {
+                                // 判断点击的是否是复选框区域（左侧）
+                                const checkbox = this.querySelector('.checkbox-custom');
+                                const rect = checkbox.getBoundingClientRect();
+                                const clickX = e.clientX;
+                                if (clickX <= rect.right + 8) {
+                                    // 点击左侧 → 切换完成状态
+                                    toggleItem(item, !completedSet.has(item.id));
+                                } else {
+                                    // 点击右侧 → 打开详情弹窗
+                                    showDetailModal(item);
+                                }
+                            }
+                        });
+                    });
+                }
+                updateStats();
+            }
+
+            // ============ FILTER ============
+            function setFilter(category) {
+                currentFilter = category;
+                const buttons = filterBar.querySelectorAll('.filter-btn');
+                buttons.forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+                });
+                renderList(category);
+                // 滚动到顶部
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            filterBar.addEventListener('click', function(e) {
+                const btn = e.target.closest('.filter-btn');
+                if (!btn) return;
+                const category = btn.getAttribute('data-category');
+                if (category) {
+                    setFilter(category);
+                }
+            });
+
+            // ============ KEYBOARD SHORTCUTS ============
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    // 关闭所有弹窗
+                    if (detailModal.style.display === 'flex') {
+                        closeModalImmediate(detailModal, detailDialog);
+                    }
+                    if (confirmModal.style.display === 'flex') {
+                        closeModalImmediate(confirmModal, confirmDialog);
+                    }
+                    if (celebrateModal.style.display === 'flex') {
+                        closeModalImmediate(celebrateModal, celebrateDialog);
+                    }
+                }
+            });
+
+            // ============ RESET BUTTON (添加在header或filter附近) ============
+            // 在filter bar后添加一个小的重置按钮区域
+            const resetArea = document.createElement('div');
+            resetArea.style.cssText = 'text-align:right;margin-bottom:8px;';
+            resetArea.innerHTML =
+                '<button id="resetAllBtn" style="background:none;border:1px solid #e0d5c5;padding:6px 14px;border-radius:16px;cursor:pointer;font-size:0.75rem;color:#a09080;transition:all 0.2s;">🔄 重置全部</button>';
+            filterBar.insertAdjacentElement('afterend', resetArea);
+
+            document.getElementById('resetAllBtn').addEventListener('click', function() {
+                if (completedSet.size === 0) {
+                    showToast('📭 当前没有已完成的项目');
+                    return;
+                }
+                showConfirmModal(
+                    `确定要重置所有进度吗？<br>当前已完成 <b>${completedSet.size}</b> 项，此操作不可恢复。`,
+                    () => {
+                        completedSet.clear();
+                        saveToStorage();
+                        updateStats();
+                        renderList(currentFilter);
+                        showToast('🔄 已重置全部清单');
+                    },
+                    '确认重置',
+                    'btn-danger'
+                );
+            });
+
+            // 悬停效果
+            document.getElementById('resetAllBtn').addEventListener('mouseenter', function() {
+                this.style.borderColor = '#c0392b';
+                this.style.color = '#c0392b';
+            });
+            document.getElementById('resetAllBtn').addEventListener('mouseleave', function() {
+                this.style.borderColor = '#e0d5c5';
+                this.style.color = '#a09080';
+            });
+
+            // ============ STARTUP ============
+            loadFromStorage();
+            updateStats();
+            setFilter('all');
+
+            // 初始庆祝检查（如果从存储加载后有里程碑）
+            const initialCount = completedSet.size;
+            if (celebrationMilestones.has(initialCount) && initialCount > 0) {
+                setTimeout(() => showCelebrateModal(initialCount), 600);
+            }
+
+            console.log('🌟 人生完成清单已就绪！');
+            console.log(`   总计 110 项 | 已完成 ${initialCount} 项 | 进度 ${Math.round((initialCount/110)*100)}%`);
+            console.log('   💡 点击项目左侧圆圈切换完成状态');
+            console.log('   💡 点击项目右侧查看详情弹窗');
+            console.log('   💡 所有弹窗均为自定义HTML实现');
+            console.log('   💡 数据自动保存在浏览器本地存储中');
+        })();
+    </script>
+</body>
+</html>
