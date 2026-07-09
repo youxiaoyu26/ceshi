@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>马斯克生活模拟器 - 现实版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-pink: #ff2a6d;
+            --neon-green: #05ffa1;
+            --neon-purple: #bc13fe;
+            --dark-bg: #08080f;
+            --card-bg: rgba(18, 18, 30, 0.85);
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            touch-action: manipulation;
+            -ms-touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--dark-bg);
+            color: #e0e0e0;
+            position: relative;
+        }
+
+        /* 星空背景 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: twinkle 4s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        /* 顶部资产栏 */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(8, 8, 15, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 16px 20px;
+            text-align: center;
+            box-shadow: 0 4px 30px rgba(0, 212, 255, 0.15);
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .money-display {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 20px rgba(5, 255, 161, 0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            letter-spacing: 1px;
+        }
+
+        .money-display.spending {
+            color: #ff4757;
+            transform: scale(1.08);
+            text-shadow: 0 0 25px rgba(255, 71, 87, 0.6);
+        }
+
+        .progress-container {
+            width: 85%;
+            max-width: 500px;
+            height: 8px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            margin: 12px auto;
+            overflow: hidden;
+            border: 1px solid rgba(0, 212, 255, 0.15);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+            border-radius: 4px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 15px rgba(5, 255, 161, 0.3);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #888;
+            flex-wrap: wrap;
+        }
+
+        .stat-item span {
+            color: var(--neon-blue);
+            font-weight: 700;
+        }
+
+        /* 主内容 */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            padding: 30px 16px 100px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .quote-bar {
+            text-align: center;
+            padding: 16px;
+            background: var(--glass);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-style: italic;
+            color: #aaa;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            backdrop-filter: blur(10px);
+        }
+
+        .category {
+            margin-bottom: 32px;
+        }
+
+        .category-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--neon-blue);
+            margin-bottom: 16px;
+            padding-left: 12px;
+            border-left: 3px solid var(--neon-pink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 1px;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .item-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .item-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.05), transparent);
+            transition: left 0.6s;
+        }
+
+        .item-card:hover::before {
+            left: 100%;
+        }
+
+        .item-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 212, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.12);
+        }
+
+        .item-card:active {
+            transform: scale(0.97);
+        }
+
+        .item-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .item-name {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #f0f0f0;
+        }
+
+        .item-desc {
+            font-size: 0.78rem;
+            color: #777;
+            margin-bottom: 12px;
+            line-height: 1.4;
+            min-height: 32px;
+        }
+
+        .item-price {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            color: var(--neon-green);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .item-count {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--neon-pink);
+            color: white;
+            min-width: 26px;
+            height: 26px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 0 8px;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 10px rgba(255, 42, 109, 0.4);
+        }
+
+        .item-count.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .buy-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(188, 19, 254, 0.15));
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            color: var(--neon-blue);
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Sans SC', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .buy-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(188, 19, 254, 0.3));
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+            color: #fff;
+        }
+
+        .buy-btn:disabled {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        /* 浮动数字 */
+        .floating-number {
+            position: fixed;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ff4757;
+            pointer-events: none;
+            z-index: 1000;
+            animation: floatUp 1.2s ease-out forwards;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
+        }
+
+        /* 成就 */
+        .achievement {
+            position: fixed;
+            top: 90px;
+            right: -400px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.95), rgba(188, 19, 254, 0.95));
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            z-index: 1000;
+            transition: right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            max-width: 320px;
+            backdrop-filter: blur(10px);
+        }
+
+        .achievement.show {
+            right: 16px;
+        }
+
+        .achievement-title {
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .achievement-desc {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        /* 破产画面 */
+        .broke-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 8, 15, 0.98);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .broke-screen.show {
+            display: flex;
+        }
+
+        .broke-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            color: #ff4757;
+            margin-bottom: 16px;
+            animation: pulse 2s infinite;
+            text-shadow: 0 0 30px rgba(255, 71, 87, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .broke-stats {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 24px;
+            line-height: 2;
+        }
+
+        .restart-btn {
+            padding: 14px 48px;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, var(--neon-green), #00cc88);
+            border: none;
+            border-radius: 50px;
+            color: #000;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Sans SC', sans-serif;
+            letter-spacing: 2px;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 30px rgba(5, 255, 161, 0.4);
+        }
+
+        /* 收据 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1400;
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        .receipt {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: #f5f5f5;
+            color: #1a1a1a;
+            padding: 28px;
+            border-radius: 12px;
+            z-index: 1500;
+            max-width: 420px;
+            width: 90%;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            opacity: 0;
+            pointer-events: none;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+        }
+
+        .receipt.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .receipt h3 {
+            text-align: center;
+            border-bottom: 2px dashed #1a1a1a;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 0.85rem;
+            padding: 4px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .receipt-total {
+            border-top: 2px solid #1a1a1a;
+            margin-top: 16px;
+            padding-top: 12px;
+            font-weight: 900;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .close-receipt {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: #1a1a1a;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        /* 快速购买按钮 */
+        .quick-buy {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 100;
+        }
+
+        .quick-buy-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-pink), #d9005a);
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            cursor: pointer;
+            box-shadow: 0 6px 24px rgba(255, 42, 109, 0.4);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quick-buy-btn:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .quick-buy-btn .cart-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--neon-green);
+            color: #000;
+            font-size: 0.7rem;
+            font-weight: 900;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s;
+        }
+
+        .quick-buy-btn .cart-badge.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.2rem; }
+            .money-display { font-size: 1.6rem; }
+            .items-grid { grid-template-columns: 1fr; }
+            .broke-title { font-size: 2.2rem; }
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 212, 255, 0.5);
+        }
+
+        /* 彩纸 */
+        @keyframes fall {
+            to {
+                transform: translateY(110vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars" id="stars"></div>
+
+    <div class="header">
+        <h1>🚀 马斯克生活模拟器</h1>
+        <div class="money-display" id="moneyDisplay">$300,000,000,000</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">已购: <span id="totalItems">0</span> 件</div>
+            <div class="stat-item">总花费: <span id="totalSpent">$0</span></div>
+            <div class="stat-item">剩余: <span id="percentLeft">100%</span></div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="quote-bar" id="quoteBar">"当某件事足够重要时，即使胜算不大，你也要去做。" —— 埃隆·马斯克</div>
+
+        <div class="category">
+            <div class="category-title">☕ 日常开销</div>
+            <div class="items-grid" id="dailyGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">🚗 特斯拉产品</div>
+            <div class="items-grid" id="teslaGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">🛰️ SpaceX 与星链</div>
+            <div class="items-grid" id="spacexGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">🏰 房产与地产</div>
+            <div class="items-grid" id="estateGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">✈️ 交通出行</div>
+            <div class="items-grid" id="transportGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">💼 商业帝国</div>
+            <div class="items-grid" id="businessGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">🌍 慈善与科研</div>
+            <div class="items-grid" id="charityGrid"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">⚡ 其他投资</div>
+            <div class="items-grid" id="otherGrid"></div>
+        </div>
+    </div>
+
+    <div class="achievement" id="achievement">
+        <div class="achievement-title" id="achTitle"></div>
+        <div class="achievement-desc" id="achDesc"></div>
+    </div>
+
+    <div class="broke-screen" id="brokeScreen">
+        <div class="broke-title">💸 资金耗尽</div>
+        <div class="broke-stats" id="brokeStats"></div>
+        <button class="restart-btn" onclick="restart()">🔄 重新模拟</button>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeReceipt()"></div>
+    <div class="receipt" id="receipt">
+        <h3>🧾 消费清单</h3>
+        <div id="receiptContent"></div>
+        <button class="close-receipt" onclick="closeReceipt()">关闭</button>
+    </div>
+
+    <div class="quick-buy">
+        <button class="quick-buy-btn" onclick="showReceipt()" title="查看清单">
+            🛒
+            <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+    </div>
+
+    <script>
+        const INITIAL_MONEY = 300000000000000000000000000000000;
+        let currentMoney = INITIAL_MONEY;
+        let totalSpent = 0;
+        let totalItems = 0;
+        let cart = [];
+
+        const items = {
+            daily: [
+                { id: 'coffee', name: '星巴克拿铁', icon: '☕', price: 5, desc: '马斯克常喝的咖啡，加燕麦奶' },
+                { id: 'burger', name: 'In-N-Out 套餐', icon: '🍔', price: 12, desc: '加州本土汉堡，马斯克的最爱' },
+                { id: 'subway', name: '赛百味三明治', icon: '🥪', price: 8, desc: '他曾说这是他学生时代的回忆' },
+                { id: 'chef', name: '私人厨师一日', icon: '👨‍🍳', price: 800, desc: '为豪宅准备一日三餐' },
+                { id: 'security', name: '安保团队一日', icon: '🛡️', price: 50000, desc: '马斯克面临威胁，安保费用极高' },
+                { id: 'flight', name: '私人飞机单程', icon: '✈️', price: 50000, desc: 'G650ER 从洛杉矶飞奥斯汀' },
+                { id: 'bluecheck', name: '推特蓝V 10年', icon: '✓', price: 960, desc: '他自己定的价，$8/月' }
+            ],
+            tesla: [
+                { id: 'm3', name: 'Model 3 后驱版', icon: '🚗', price: 38990, desc: '特斯拉最畅销车型' },
+                { id: 'my', name: 'Model Y 长续航', icon: '🚙', price: 48490, desc: '全球最畅销的SUV' },
+                { id: 'ms', name: 'Model S Plaid', icon: '🏎️', price: 89990, desc: '0-100km/h 仅2.1秒' },
+                { id: 'mx', name: 'Model X Plaid', icon: '🦅', price: 99990, desc: '鹰翼门，七座布局' },
+                { id: 'cyber', name: 'Cybertruck 后驱版', icon: '🛻', price: 60990, desc: '不锈钢防弹车身' },
+                { id: 'cyber_beast', name: 'Cybertruck 野兽版', icon: '🔺', price: 99990, desc: '三电机，845马力' },
+                { id: 'roadster', name: 'Roadster 创始人版', icon: '🚀', price: 250000, desc: '带SpaceX推进器套件' },
+                { id: 'semi', name: 'Tesla Semi', icon: '🚛', price: 250000, desc: '电动半挂卡车，续航800km' },
+                { id: 'tsla_100', name: '特斯拉股票 100股', icon: '📈', price: 27000, desc: 'TSLA 当前约$270/股' },
+                { id: 'tsla_10k', name: '特斯拉股票 1万股', icon: '💹', price: 2700000, desc: '大额增持，长期看好' }
+            ],
+            spacex: [
+                { id: 'starlink_std', name: '星链标准终端', icon: '📡', price: 599, desc: '偏远地区上网神器' },
+                { id: 'starlink_pro', name: '星链高性能终端', icon: '🛰️', price: 2500, desc: '企业级，抗极端天气' },
+                { id: 'starlink_10y', name: '星链月费 10年', icon: '📶', price: 14400, desc: '$120/月，全球覆盖' },
+                { id: 'satellite', name: '星链卫星 1颗', icon: '🛸', price: 250000, desc: '制造成本，不含发射' },
+                { id: 'satellite_100', name: '星链卫星 100颗', icon: '🌌', price: 25000000, desc: '一批组网卫星' },
+                { id: 'falcon9', name: '猎鹰9号发射 1次', icon: '🚀', price: 67000000, desc: '全球最低发射报价' },
+                { id: 'falcon9_10', name: '猎鹰9号发射 10次', icon: '🚀', price: 670000000, desc: '批量发射折扣价' },
+                { id: 'falcon_heavy', name: '猎鹰重型发射 1次', icon: '💪', price: 97000000, desc: '近地轨道63.8吨运力' },
+                { id: 'dragon_seat', name: '龙飞船座位 1个', icon: '👨‍🚀', price: 55000000, desc: 'ISS往返，含训练' },
+                { id: 'starship', name: '星舰发射 1次', icon: '🌙', price: 100000000, desc: '人类前往火星的希望' }
+            ],
+            estate: [
+                { id: 'bel_air', name: '贝莱尔豪宅', icon: '🏛️', price: 50000000, desc: '2012年购买，2020年出售' },
+                { id: 'hillsborough', name: 'Hillsborough 豪宅', icon: '🏡', price: 23000000, desc: '旧金山湾区，7卧室' },
+                { id: 'wilder', name: 'Gene Wilder 故居', icon: '🎬', price: 7000000, desc: '为纪念喜剧演员购买' },
+                { id: 'austin', name: '奥斯汀湖畔住宅', icon: '🏠', price: 6000000, desc: '马斯克现居地，得州' },
+                { id: 'boca_chica', name: '博卡奇卡发射场土地', icon: '🌴', price: 10000000, desc: 'SpaceX 星舰基地周边' },
+                { id: 'tx_factory', name: '得州超级工厂用地', icon: '🏭', price: 50000000, desc: '奥斯汀 Gigafactory' },
+                { id: 'nv_factory', name: '内华达工厂扩建', icon: '🔋', price: 500000000, desc: '扩建电池生产线' },
+                { id: 'mx_factory', name: '墨西哥新超级工厂', icon: '🌮', price: 5000000000, desc: '蒙特雷 Gigafactory' }
+            ],
+            transport: [
+                { id: 'g650', name: '湾流 G650ER', icon: '✈️', price: 70000000, desc: '马斯克确实拥有的飞机' },
+                { id: 'g650_yearly', name: '湾流年运营费用', icon: '⛽', price: 5000000, desc: '燃油、机组、维护' },
+                { id: 'convoy', name: '装甲 SUV 车队', icon: '🚔', price: 2000000, desc: '特斯拉 Model S 改装版' },
+                { id: 'collection', name: '特斯拉全系收藏', icon: '🏎️', price: 500000, desc: '从Roadster到Cybertruck' }
+            ],
+            business: [
+                { id: 'twitter', name: '收购 Twitter/X', icon: '🐦', price: 44000000000, desc: '2022年实际收购价' },
+                { id: 'solarcity', name: '收购 SolarCity', icon: '☀️', price: 2600000000, desc: '2016年，特斯拉收购' },
+                { id: 'neuralink', name: '投资 Neuralink', icon: '🧠', price: 500000000, desc: '脑机接口公司' },
+                { id: 'boring', name: '投资 The Boring Co', icon: '🚇', price: 1000000000, desc: '地下隧道公司' },
+                { id: 'xai', name: '投资 xAI', icon: '🤖', price: 2000000000, desc: 'AI 公司，挑战 OpenAI' },
+                { id: 'openai', name: '投资 OpenAI（早期）', icon: '🔬', price: 1000000000, desc: '2015年联合创办投资' },
+                { id: 'tsla_buyback', name: '特斯拉回购股票', icon: '💎', price: 10000000000, desc: '提升每股收益' },
+                { id: 'spacex_round', name: 'SpaceX 新一轮融资', icon: '🌌', price: 5000000000, desc: '估值约$1800亿' },
+                { id: 'tsla_1pct', name: '增持特斯拉 1%股份', icon: '📊', price: 8000000000, desc: '按市值约$800B计算' },
+                { id: 'tsla_5pct', name: '增持特斯拉 5%股份', icon: '📈', price: 40000000000, desc: '大幅增持，巩固控制权' },
+                { id: 'tsla_10pct', name: '增持特斯拉 10%股份', icon: '👑', price: 80000000000, desc: '成为绝对控股股东' },
+                { id: 'spacex_5pct', name: '增持 SpaceX 5%股份', icon: '🚀', price: 8000000000, desc: '按估值$1600亿计算' },
+                { id: 'spacex_10pct', name: '增持 SpaceX 10%股份', icon: '🌟', price: 16000000000, desc: '进一步掌控太空业务' }
+            ],
+            charity: [
+                { id: 'foundation', name: '马斯克基金会年捐', icon: '❤️', price: 100000000, desc: '2022年实际捐赠额' },
+                { id: 'schools', name: '捐建 100 所学校', icon: '🏫', price: 5000000000, desc: 'STEM 教育重点' },
+                { id: 'carbon', name: '碳捕捉计划', icon: '🌱', price: 10000000000, desc: '直接空气碳捕获技术' },
+                { id: 'mars_1', name: '火星殖民初期投资', icon: '🔴', price: 100000000000, desc: '第一阶段：基础设施' },
+                { id: 'mars_2', name: '火星殖民二期', icon: '🏗️', price: 50000000000, desc: '第二阶段：生态建设' },
+                { id: 'fusion', name: '可控核聚变研究', icon: '⚛️', price: 20000000000, desc: '无限清洁能源' },
+                { id: 'global_starlink', name: '全球星链覆盖', icon: '🌍', price: 25000000000, desc: '让全世界都能上网' },
+                { id: 'child_support', name: '年度子女抚养', icon: '👶', price: 2000000, desc: '多位子女，多位母亲' },
+                { id: 'legal', name: '年度法律诉讼费', icon: '⚖️', price: 20000000, desc: '推特收购案、股东诉讼等' }
+            ],
+            other: [
+                { id: 'h100', name: '英伟达 H100 x100', icon: '⚡', price: 3000000, desc: '训练xAI模型必备' },
+                { id: 'bitcoin', name: '比特币 1000枚', icon: '₿', price: 65000000, desc: '特斯拉曾持有约4.3万枚' },
+                { id: 'tesla_btc', name: '特斯拉历史购币', icon: '💰', price: 1500000000, desc: '2021年实际购买金额' },
+                { id: 'supercomputer', name: '超级计算机集群', icon: '🖥️', price: 500000000, desc: 'Dojo 超算扩建' }
+            ]
+        };
+
+        const quotes = [
+            "当某件事足够重要时，即使胜算不大，你也要去做。",
+            "我要死在火星上——当然不是在着陆时。",
+            "我认为普通人可以选择成为非凡的人。",
+            "失败是一种选择。如果事情没有失败，那说明你的创新不够。",
+            "坚持是非常重要的。除非被迫放弃，否则你不应该放弃。",
+            "有些人不喜欢改变，但如果不改变就意味着灾难，你必须接受改变。",
+            "生命太短暂，不能用于长期的不快。",
+            "AI 比核武器危险得多。",
+            "品牌只是对产品质量的感知。",
+            "我认为我们很有可能不是生活在基础现实中。"
+        ];
+
+        function init() {
+            createStars();
+            renderItems();
+            updateDisplay();
+            rotateQuotes();
+            preventZoom();
+        }
+
+        function preventZoom() {
+            document.addEventListener('touchmove', function(e) {
+                if (e.scale !== 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(e) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            
+            document.addEventListener('gesturestart', function(e) {
+                e.preventDefault();
+            });
+            document.addEventListener('gesturechange', function(e) {
+                e.preventDefault();
+            });
+            document.addEventListener('gestureend', function(e) {
+                e.preventDefault();
+            });
+        }
+
+        function createStars() {
+            const container = document.getElementById('stars');
+            for (let i = 0; i < 80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 4 + 's';
+                const size = Math.random() * 2 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                container.appendChild(star);
+            }
+        }
+
+        function renderItems() {
+            renderGrid('dailyGrid', items.daily);
+            renderGrid('teslaGrid', items.tesla);
+            renderGrid('spacexGrid', items.spacex);
+            renderGrid('estateGrid', items.estate);
+            renderGrid('transportGrid', items.transport);
+            renderGrid('businessGrid', items.business);
+            renderGrid('charityGrid', items.charity);
+            renderGrid('otherGrid', items.other);
+        }
+
+        function renderGrid(gridId, itemList) {
+            const grid = document.getElementById(gridId);
+            itemList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <div class="item-count" id="count-${item.id}">0</div>
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-desc">${item.desc}</div>
+                    <div class="item-price">${formatMoney(item.price)}</div>
+                    <button class="buy-btn" id="btn-${item.id}" onclick="buyItem('${item.id}', ${item.price}, '${item.name}', '${item.icon}')">购买</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function buyItem(id, price, name, icon) {
+            if (currentMoney < price) {
+                showAchievement('余额不足', '这笔交易超出了你的资金');
+                return;
+            }
+
+            currentMoney -= price;
+            totalSpent += price;
+            totalItems++;
+
+            const existing = cart.find(c => c.id === id);
+            if (existing) {
+                existing.count++;
+            } else {
+                cart.push({ id, name, icon, price, count: 1 });
+            }
+
+            updateDisplay();
+            updateItemCount(id);
+            createFloatingNumber(price);
+            updateCartBadge();
+            checkAchievements();
+
+            if (currentMoney <= 0) {
+                setTimeout(showBrokeScreen, 800);
+            }
+        }
+
+        function updateDisplay() {
+            const moneyDisplay = document.getElementById('moneyDisplay');
+            moneyDisplay.textContent = formatMoney(currentMoney);
+            moneyDisplay.classList.add('spending');
+            setTimeout(() => moneyDisplay.classList.remove('spending'), 300);
+
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('totalSpent').textContent = formatMoney(totalSpent);
+            
+            const percentLeft = ((currentMoney / INITIAL_MONEY) * 100).toFixed(2);
+            document.getElementById('percentLeft').textContent = percentLeft + '%';
+            
+            const percentSpent = ((totalSpent / INITIAL_MONEY) * 100);
+            document.getElementById('progressBar').style.width = percentSpent + '%';
+
+            const allItems = Object.values(items).flat();
+            allItems.forEach(item => {
+                const btn = document.getElementById(`btn-${item.id}`);
+                if (btn) {
+                    if (currentMoney < item.price) {
+                        btn.disabled = true;
+                        btn.textContent = '资金不足';
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = '购买';
+                    }
+                }
+            });
+        }
+
+        function updateItemCount(id) {
+            const countEl = document.getElementById(`count-${id}`);
+            const item = cart.find(c => c.id === id);
+            if (item && countEl) {
+                countEl.textContent = item.count;
+                countEl.classList.add('show');
+            }
+        }
+
+        function updateCartBadge() {
+            const badge = document.getElementById('cartBadge');
+            const uniqueItems = cart.length;
+            if (uniqueItems > 0) {
+                badge.textContent = uniqueItems;
+                badge.classList.add('show');
+            }
+        }
+
+        function formatMoney(amount) {
+            if (amount >= 1e12) return '$' + (amount / 1e12).toFixed(2) + 'T';
+            if (amount >= 1e9) return '$' + (amount / 1e9).toFixed(2) + 'B';
+            if (amount >= 1e6) return '$' + (amount / 1e6).toFixed(2) + 'M';
+            if (amount >= 1e3) return '$' + (amount / 1e3).toFixed(1) + 'K';
+            return '$' + amount.toLocaleString();
+        }
+
+        function createFloatingNumber(price) {
+            const el = document.createElement('div');
+            el.className = 'floating-number';
+            el.textContent = '-' + formatMoney(price);
+            const x = Math.random() * window.innerWidth * 0.6 + window.innerWidth * 0.2;
+            const y = window.innerHeight * 0.4;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1200);
+        }
+
+        const achievements = [
+            { threshold: 1000, title: '初出茅庐', desc: '第一笔消费，从咖啡开始' },
+            { threshold: 100000, title: '小康生活', desc: '花费突破10万美元' },
+            { threshold: 1000000, title: '百万富翁', desc: '100万就这么花了' },
+            { threshold: 100000000, title: '亿万富翁', desc: '1亿美元！开始上道了' },
+            { threshold: 1000000000, title: '十亿俱乐部', desc: '10亿，能买一家小公司了' },
+            { threshold: 10000000000, title: '百亿玩家', desc: '100亿，可以收购推特了' },
+            { threshold: 50000000000, title: '挥金如土', desc: '500亿！地球已经容不下你了' },
+            { threshold: 100000000000, title: '半神模式', desc: '1000亿，火星在召唤' },
+            { threshold: 200000000000, title: '破产边缘', desc: '只剩不到1000亿了！' }
+        ];
+        let shownAchievements = new Set();
+
+        function checkAchievements() {
+            achievements.forEach(ach => {
+                if (totalSpent >= ach.threshold && !shownAchievements.has(ach.threshold)) {
+                    shownAchievements.add(ach.threshold);
+                    showAchievement(ach.title, ach.desc);
+                }
+            });
+        }
+
+        function showAchievement(title, desc) {
+            const el = document.getElementById('achievement');
+            document.getElementById('achTitle').textContent = '🏆 ' + title;
+            document.getElementById('achDesc').textContent = desc;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        function showBrokeScreen() {
+            const stats = document.getElementById('brokeStats');
+            const uniqueItems = cart.length;
+            stats.innerHTML = `
+                你总共消费了 <strong>${totalItems}</strong> 笔<br>
+                涉及 <strong>${uniqueItems}</strong> 种不同商品<br>
+                总花费: <strong>${formatMoney(totalSpent)}</strong><br>
+                剩余资金: <strong>$0.00</strong><br><br>
+                马斯克的钱终于被你花光了。<br>
+                现在他得去星巴克打工还花呗了。
+            `;
+            document.getElementById('brokeScreen').classList.add('show');
+            createConfetti();
+        }
+
+        function restart() {
+            currentMoney = INITIAL_MONEY;
+            totalSpent = 0;
+            totalItems = 0;
+            cart = [];
+            shownAchievements.clear();
+            document.getElementById('brokeScreen').classList.remove('show');
+            document.querySelectorAll('.item-count').forEach(el => {
+                el.textContent = '0';
+                el.classList.remove('show');
+            });
+            document.getElementById('cartBadge').classList.remove('show');
+            updateDisplay();
+        }
+
+        function showReceipt() {
+            const content = document.getElementById('receiptContent');
+            if (cart.length === 0) {
+                content.innerHTML = '<div style="text-align:center;color:#666;padding:20px;">购物车是空的</div>';
+            } else {
+                let html = '';
+                cart.forEach(item => {
+                    html += `<div class="receipt-item"><span>${item.icon} ${item.name} x${item.count}</span><span>${formatMoney(item.price * item.count)}</span></div>`;
+                });
+                html += `<div class="receipt-total"><span>总计</span><span>${formatMoney(totalSpent)}</span></div>`;
+                html += `<div style="margin-top:8px;font-size:0.75rem;color:#666;">剩余: ${formatMoney(currentMoney)}</div>`;
+                content.innerHTML = html;
+            }
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('receipt').classList.add('show');
+        }
+
+        function closeReceipt() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('receipt').classList.remove('show');
+        }
+
+        function rotateQuotes() {
+            let idx = 0;
+            setInterval(() => {
+                idx = (idx + 1) % quotes.length;
+                document.getElementById('quoteBar').textContent = `"${quotes[idx]}" —— 埃隆·马斯克`;
+            }, 10000);
+        }
+
+        function createConfetti() {
+            const colors = ['#ff4757', '#05ffa1', '#00d4ff', '#bc13fe', '#ffa502'];
+            for (let i = 0; i < 80; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = (Math.random() * 8 + 4) + 'px';
+                confetti.style.height = (Math.random() * 8 + 4) + 'px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.zIndex = '3000';
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                confetti.style.animation = `fall ${Math.random() * 2 + 2}s linear forwards`;
+                confetti.style.opacity = Math.random() * 0.5 + 0.5;
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
