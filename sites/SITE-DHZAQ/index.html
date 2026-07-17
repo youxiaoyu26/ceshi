@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>晃动图片工坊 - 多区域版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f1a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #e8e8f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .sw-workshop {
+    max-width: 900px;
+    width: 100%;
+    background: #0f0f1a;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .sw-header { text-align: center; margin-bottom: 24px; }
+  .sw-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #ff6b9d, #c44569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 8px 0;
+  }
+  .sw-header p { color: #8892b0; font-size: 14px; margin: 0; }
+  .sw-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .sw-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    user-select: none;
+  }
+  .sw-btn-primary {
+    background: linear-gradient(135deg, #ff6b9d, #c44569);
+    color: white;
+  }
+  .sw-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,107,157,0.3); }
+  .sw-btn-secondary {
+    background: #1e1e2e;
+    color: #a0a0c0;
+    border: 1px solid #2d2d44;
+  }
+  .sw-btn-secondary:hover { background: #2a2a3e; color: #e0e0f0; }
+  .sw-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .sw-canvas-wrap {
+    position: relative;
+    border-radius: 16px;
+    overflow: auto;
+    background: #1a1a2e;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #2d2d44;
+  }
+  .sw-canvas-wrap.has-image { border-style: solid; border-color: #2d2d44; }
+  #swCanvas { display: block; cursor: crosshair; max-width: 100%; max-height: 500px; }
+  .sw-placeholder { text-align: center; color: #5a5a7a; padding: 60px 20px; }
+  .sw-placeholder svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
+  .sw-controls {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .sw-control-group {
+    background: #16162a;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #252540;
+  }
+  .sw-control-group label {
+    display: block;
+    font-size: 12px;
+    color: #8892b0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .sw-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #2d2d44;
+    outline: none;
+  }
+  .sw-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b9d, #c44569);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(255,107,157,0.4);
+  }
+  .sw-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b9d, #c44569);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 10px rgba(255,107,157,0.4);
+  }
+  .sw-hint {
+    background: #1e1e3a;
+    border-left: 3px solid #ff6b9d;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #b0b0d0;
+  }
+  .sw-hint strong { color: #ff6b9d; }
+  .sw-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #2d2d44;
+    color: #a0a0c0;
+    margin-left: 6px;
+  }
+  .sw-mode-active { background: #ff6b9d20 !important; color: #ff6b9d !important; border-color: #ff6b9d !important; }
+  #swFileInput { display: none; }
+
+  .sw-selection-box {
+    position: absolute;
+    border: 2px dashed;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+  .sw-selection-box::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px solid;
+    border-radius: 6px;
+    opacity: 0.3;
+    animation: pulse 2s infinite;
+  }
+  .sw-sel-label {
+    position: absolute;
+    top: -22px;
+    left: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px 6px 0 0;
+    color: #fff;
+    pointer-events: auto;
+    cursor: pointer;
+    user-select: none;
+  }
+  .sw-sel-label:hover { opacity: 0.8; }
+  @keyframes pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.6; } }
+
+  .sw-download { margin-top: 16px; text-align: center; }
+  select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #2d2d44;
+    background: #1e1e2e;
+    color: #e0e0f0;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  select:focus { border-color: #ff6b9d; }
+  .sw-canvas-inner { position: relative; display: inline-block; line-height: 0; }
+  .sw-sel-count { color: #ff6b9d; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="sw-workshop">
+  <div class="sw-header">
+    <h1>🎨 晃动图片工坊</h1>
+    <p>上传照片 → 框选多个区域 → 生成轻微晃动效果</p>
+  </div>
+
+  <div class="sw-toolbar">
+    <button class="sw-btn sw-btn-primary" onclick="document.getElementById('swFileInput').click()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      上传照片
+    </button>
+    <button class="sw-btn sw-btn-secondary" id="btnSelect" onclick="toggleSelectMode()" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+      添加选区
+    </button>
+    <button class="sw-btn sw-btn-secondary" id="btnShake" onclick="generateShake()" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      生成晃动
+    </button>
+    <button class="sw-btn sw-btn-secondary" id="btnReset" onclick="resetAll()" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      重置
+    </button>
+  </div>
+
+  <input type="file" id="swFileInput" accept="image/*" onchange="handleUpload(event)">
+
+  <div class="sw-canvas-wrap" id="canvasWrap">
+    <div class="sw-placeholder" id="placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <div>点击「上传照片」选择图片开始</div>
+    </div>
+    <div class="sw-canvas-inner" id="canvasInner" style="display:none;">
+      <canvas id="swCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="sw-controls" id="controls" style="display:none;">
+    <div class="sw-control-group">
+      <label>晃动强度 <span class="sw-badge" id="intensityVal">3px</span></label>
+      <input type="range" class="sw-slider" id="intensity" min="1" max="10" value="3" oninput="document.getElementById('intensityVal').textContent=this.value+'px'">
+    </div>
+    <div class="sw-control-group">
+      <label>晃动速度 <span class="sw-badge" id="speedVal">中</span></label>
+      <input type="range" class="sw-slider" id="speed" min="1" max="5" value="3" oninput="updateSpeedLabel(this.value)">
+    </div>
+    <div class="sw-control-group">
+      <label>晃动方向</label>
+      <select id="direction">
+        <option value="random">随机方向</option>
+        <option value="horizontal">水平晃动</option>
+        <option value="vertical">垂直晃动</option>
+        <option value="both">双向晃动</option>
+      </select>
+    </div>
+    <div class="sw-control-group">
+      <label>输出格式</label>
+      <select id="format">
+        <option value="gif">GIF 动图</option>
+        <option value="png">PNG 序列</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sw-hint" id="hint">
+    <strong>提示：</strong>上传图片后，点击「添加选区」在图片上拖拽框选要晃动的区域，可重复添加多个区域。
+  </div>
+
+  <div class="sw-download" id="downloadArea" style="display:none;">
+    <button class="sw-btn sw-btn-primary" onclick="downloadResult()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      下载结果
+    </button>
+  </div>
+</div>
+
+<script>
+let canvas, ctx, img;
+let selections = [];
+let mode = 'view', isDragging = false, dragStart = null;
+let animId = null, frames = [], resultBlob = null;
+let canvasInner;
+let offscreenCanvas = null;
+let selCounter = 0;
+
+const PALETTE = [
+  {border:'#ff6b9d', bg:'rgba(255,107,157,0.12)', label:'#ff6b9d'},
+  {border:'#4ecdc4', bg:'rgba(78,205,196,0.12)', label:'#4ecdc4'},
+  {border:'#ffe66d', bg:'rgba(255,230,109,0.12)', label:'#ffe66d'},
+  {border:'#a8e6cf', bg:'rgba(168,230,207,0.12)', label:'#a8e6cf'},
+  {border:'#ff8b94', bg:'rgba(255,139,148,0.12)', label:'#ff8b94'},
+  {border:'#c7ceea', bg:'rgba(199,206,234,0.12)', label:'#c7ceea'},
+  {border:'#ffd93d', bg:'rgba(255,217,61,0.12)',  label:'#ffd93d'},
+  {border:'#6bcb77', bg:'rgba(107,203,119,0.12)', label:'#6bcb77'},
+];
+
+function getCanvasCSSCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  let clientX, clientY;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+  } else if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
+  } else {
+    clientX = e.clientX; clientY = e.clientY;
+  }
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function cssToInternal(cssX, cssY) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: cssX * (canvas.width / rect.width),
+    y: cssY * (canvas.height / rect.height)
+  };
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    img = new Image();
+    img.onload = function() {
+      canvas = document.getElementById('swCanvas');
+      ctx = canvas.getContext('2d');
+      const maxW = 800, maxH = 500;
+      let w = img.width, h = img.height;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW/w, maxH/h);
+        w = Math.round(w * ratio); h = Math.round(h * ratio);
+      }
+      canvas.width = w; canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+
+      offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = w; offscreenCanvas.height = h;
+      offscreenCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      canvasInner = document.getElementById('canvasInner');
+      canvasInner.style.display = 'inline-block';
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('canvasWrap').classList.add('has-image');
+      document.getElementById('controls').style.display = 'grid';
+      document.getElementById('btnSelect').disabled = false;
+      document.getElementById('btnReset').disabled = false;
+      updateHint();
+      setupCanvasEvents();
+    };
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupCanvasEvents() {
+  canvas.addEventListener('mousedown', onCanvasMouseDown);
+  canvas.addEventListener('touchstart', onCanvasTouchStart, {passive: false});
+}
+
+function toggleSelectMode() {
+  if (mode === 'select') {
+    mode = 'view';
+    document.getElementById('btnSelect').classList.remove('sw-mode-active');
+    document.getElementById('btnSelect').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>添加选区';
+  } else {
+    mode = 'select';
+    document.getElementById('btnSelect').classList.add('sw-mode-active');
+    document.getElementById('btnSelect').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>完成添加';
+    updateHint();
+  }
+}
+
+function onCanvasMouseDown(e) {
+  if (mode !== 'select') return;
+  e.preventDefault();
+  const coords = getCanvasCSSCoords(e);
+  isDragging = true;
+  dragStart = {x: coords.x, y: coords.y};
+  document.addEventListener('mousemove', onDocumentMouseMove);
+  document.addEventListener('mouseup', onDocumentMouseUp);
+}
+
+let tempOverlay = null;
+function onDocumentMouseMove(e) {
+  if (!isDragging || !dragStart) return;
+  const coords = getCanvasCSSCoords(e);
+  const left = Math.min(dragStart.x, coords.x);
+  const top = Math.min(dragStart.y, coords.y);
+  const w = Math.abs(coords.x - dragStart.x);
+  const h = Math.abs(coords.y - dragStart.y);
+
+  if (!tempOverlay) {
+    tempOverlay = document.createElement('div');
+    tempOverlay.className = 'sw-selection-box';
+    tempOverlay.style.borderColor = '#fff';
+    tempOverlay.style.background = 'rgba(255,255,255,0.1)';
+    tempOverlay.style.zIndex = '20';
+    canvasInner.appendChild(tempOverlay);
+  }
+  tempOverlay.style.display = 'block';
+  tempOverlay.style.left = left + 'px';
+  tempOverlay.style.top = top + 'px';
+  tempOverlay.style.width = w + 'px';
+  tempOverlay.style.height = h + 'px';
+}
+
+function onDocumentMouseUp(e) {
+  if (!isDragging || !dragStart) { cleanupDrag(); return; }
+  const coords = getCanvasCSSCoords(e);
+  const left = Math.min(dragStart.x, coords.x);
+  const top = Math.min(dragStart.y, coords.y);
+  const w = Math.abs(coords.x - dragStart.x);
+  const h = Math.abs(coords.y - dragStart.y);
+
+  if (tempOverlay) { tempOverlay.remove(); tempOverlay = null; }
+
+  if (w > 5 && h > 5) {
+    const tl = cssToInternal(left, top);
+    const br = cssToInternal(left + w, top + h);
+    const sel = {
+      id: selCounter++,
+      x: Math.max(0, Math.round(tl.x)),
+      y: Math.max(0, Math.round(tl.y)),
+      w: Math.max(1, Math.round(br.x - tl.x)),
+      h: Math.max(1, Math.round(br.y - tl.y))
+    };
+    sel.w = Math.min(sel.w, canvas.width - sel.x);
+    sel.h = Math.min(sel.h, canvas.height - sel.y);
+    addSelection(sel, left, top, w, h);
+  }
+  cleanupDrag();
+  updateHint();
+}
+
+function onCanvasTouchStart(e) {
+  if (mode !== 'select') return;
+  e.preventDefault();
+  const coords = getCanvasCSSCoords(e);
+  isDragging = true;
+  dragStart = {x: coords.x, y: coords.y};
+  document.addEventListener('touchmove', onDocumentTouchMove, {passive: false});
+  document.addEventListener('touchend', onDocumentTouchEnd);
+}
+
+function onDocumentTouchMove(e) {
+  if (!isDragging || !dragStart) return;
+  e.preventDefault();
+  const coords = getCanvasCSSCoords(e);
+  const left = Math.min(dragStart.x, coords.x);
+  const top = Math.min(dragStart.y, coords.y);
+  const w = Math.abs(coords.x - dragStart.x);
+  const h = Math.abs(coords.y - dragStart.y);
+  if (!tempOverlay) {
+    tempOverlay = document.createElement('div');
+    tempOverlay.className = 'sw-selection-box';
+    tempOverlay.style.borderColor = '#fff';
+    tempOverlay.style.background = 'rgba(255,255,255,0.1)';
+    tempOverlay.style.zIndex = '20';
+    canvasInner.appendChild(tempOverlay);
+  }
+  tempOverlay.style.display = 'block';
+  tempOverlay.style.left = left + 'px';
+  tempOverlay.style.top = top + 'px';
+  tempOverlay.style.width = w + 'px';
+  tempOverlay.style.height = h + 'px';
+}
+
+function onDocumentTouchEnd(e) {
+  if (!isDragging || !dragStart) { cleanupDragTouch(); return; }
+  const coords = getCanvasCSSCoords(e);
+  const left = Math.min(dragStart.x, coords.x);
+  const top = Math.min(dragStart.y, coords.y);
+  const w = Math.abs(coords.x - dragStart.x);
+  const h = Math.abs(coords.y - dragStart.y);
+
+  if (tempOverlay) { tempOverlay.remove(); tempOverlay = null; }
+
+  if (w > 5 && h > 5) {
+    const tl = cssToInternal(left, top);
+    const br = cssToInternal(left + w, top + h);
+    const sel = {
+      id: selCounter++,
+      x: Math.max(0, Math.round(tl.x)),
+      y: Math.max(0, Math.round(tl.y)),
+      w: Math.max(1, Math.round(br.x - tl.x)),
+      h: Math.max(1, Math.round(br.y - tl.y))
+    };
+    sel.w = Math.min(sel.w, canvas.width - sel.x);
+    sel.h = Math.min(sel.h, canvas.height - sel.y);
+    addSelection(sel, left, top, w, h);
+  }
+  cleanupDragTouch();
+  updateHint();
+}
+
+function addSelection(sel, cssLeft, cssTop, cssW, cssH) {
+  const color = PALETTE[sel.id % PALETTE.length];
+  const el = document.createElement('div');
+  el.className = 'sw-selection-box';
+  el.style.borderColor = color.border;
+  el.style.background = color.bg;
+  el.style.left = cssLeft + 'px';
+  el.style.top = cssTop + 'px';
+  el.style.width = cssW + 'px';
+  el.style.height = cssH + 'px';
+
+  const label = document.createElement('div');
+  label.className = 'sw-sel-label';
+  label.style.background = color.border;
+  label.textContent = '区域' + (sel.id + 1) + ' ×';
+  label.title = '点击删除此选区';
+  label.onclick = function(ev) {
+    ev.stopPropagation();
+    removeSelection(sel.id);
+  };
+  el.appendChild(label);
+  canvasInner.appendChild(el);
+
+  sel.el = el;
+  selections.push(sel);
+  document.getElementById('btnShake').disabled = false;
+}
+
+function removeSelection(id) {
+  const idx = selections.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  if (selections[idx].el) selections[idx].el.remove();
+  selections.splice(idx, 1);
+  if (selections.length === 0) {
+    document.getElementById('btnShake').disabled = true;
+  }
+  updateHint();
+}
+
+function cleanupDrag() {
+  isDragging = false; dragStart = null;
+  document.removeEventListener('mousemove', onDocumentMouseMove);
+  document.removeEventListener('mouseup', onDocumentMouseUp);
+}
+function cleanupDragTouch() {
+  isDragging = false; dragStart = null;
+  document.removeEventListener('touchmove', onDocumentTouchMove);
+  document.removeEventListener('touchend', onDocumentTouchEnd);
+}
+
+function updateHint() {
+  const hint = document.getElementById('hint');
+  if (selections.length === 0) {
+    if (mode === 'select') {
+      hint.innerHTML = '<strong>框选模式：</strong>在图片上拖拽框出要晃动的区域，可重复添加多个。点击「完成添加」退出模式。';
+    } else {
+      hint.innerHTML = '<strong>提示：</strong>点击「添加选区」开始框选要晃动的区域，可添加多个。';
+    }
+  } else {
+    hint.innerHTML = '<strong>已添加 <span class="sw-sel-count">' + selections.length + '</span> 个晃动区域</strong>。可继续添加，或点击「生成晃动」。点击区域标签上的 × 可删除。';
+  }
+}
+
+function updateSpeedLabel(v) {
+  const labels = ['极慢','慢','中','快','极快'];
+  document.getElementById('speedVal').textContent = labels[v-1];
+}
+
+function resetAll() {
+  selections.forEach(s => { if (s.el) s.el.remove(); });
+  selections = []; selCounter = 0;
+  frames = []; resultBlob = null;
+  if (tempOverlay) { tempOverlay.remove(); tempOverlay = null; }
+  document.getElementById('btnShake').disabled = true;
+  document.getElementById('downloadArea').style.display = 'none';
+  mode = 'view';
+  document.getElementById('btnSelect').classList.remove('sw-mode-active');
+  document.getElementById('btnSelect').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>添加选区';
+  updateHint();
+  if (canvas && offscreenCanvas && ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(offscreenCanvas, 0, 0);
+  }
+  if (animId) {
+    if (typeof animId === 'number') cancelAnimationFrame(animId);
+    else clearTimeout(animId);
+    animId = null;
+  }
+}
+
+function generateShake() {
+  if (!selections.length || !canvas || !offscreenCanvas) return;
+  const intensity = parseInt(document.getElementById('intensity').value);
+  const speed = parseInt(document.getElementById('speed').value);
+  const direction = document.getElementById('direction').value;
+  const format = document.getElementById('format').value;
+
+  document.getElementById('hint').innerHTML = '<strong>生成中...</strong> 正在渲染 ' + selections.length + ' 个区域的晃动效果。';
+  document.getElementById('btnShake').disabled = true;
+
+  if (animId) {
+    if (typeof animId === 'number') cancelAnimationFrame(animId);
+    else clearTimeout(animId);
+    animId = null;
+  }
+
+  if (format === 'gif') {
+    generateGIF(intensity, speed, direction);
+  } else {
+    generatePreview(intensity, speed, direction);
+  }
+}
+
+function getShakeOffset(intensity, direction, frame, seedOffset) {
+  const seed = (frame * 137.5) + (seedOffset * 91.3);
+  let dx = 0, dy = 0;
+  if (direction === 'random') {
+    dx = (Math.sin(seed) * 2 - 1) * intensity;
+    dy = (Math.cos(seed * 1.3) * 2 - 1) * intensity;
+  } else if (direction === 'horizontal') {
+    dx = Math.sin(seed) * intensity;
+  } else if (direction === 'vertical') {
+    dy = Math.cos(seed) * intensity;
+  } else if (direction === 'both') {
+    dx = Math.sin(seed) * intensity;
+    dy = Math.cos(seed * 0.7) * intensity;
+  }
+  return {dx: Math.round(dx), dy: Math.round(dy)};
+}
+
+function renderShakenFrame(frame) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(offscreenCanvas, 0, 0);
+  selections.forEach((sel, idx) => {
+    const {dx, dy} = getShakeOffset(
+      parseInt(document.getElementById('intensity').value),
+      document.getElementById('direction').value,
+      frame,
+      idx
+    );
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(sel.x, sel.y, sel.w, sel.h);
+    ctx.clip();
+    ctx.drawImage(offscreenCanvas, dx, dy);
+    ctx.restore();
+  });
+}
+
+function generatePreview(intensity, speed, direction) {
+  let frame = 0;
+  const speedMap = [8, 6, 4, 3, 2];
+  const skip = speedMap[speed - 1] || 4;
+
+  function loop() {
+    if (!selections.length) return;
+    renderShakenFrame(frame);
+    frame++;
+    animId = requestAnimationFrame(function tick() {
+      if (frame % skip === 0) loop();
+      else { frame++; animId = requestAnimationFrame(tick); }
+    });
+  }
+  loop();
+  document.getElementById('hint').innerHTML = '<strong>预览模式：</strong>' + selections.length + ' 个区域正在同时晃动。点击「下载结果」保存，或调整参数重新生成。';
+  document.getElementById('btnShake').disabled = false;
+  document.getElementById('downloadArea').style.display = 'block';
+  canvas.toBlob(function(blob) { resultBlob = blob; });
+}
+
+function generateGIF(intensity, speed, direction) {
+  frames = [];
+  const totalFrames = 12;
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tctx = tempCanvas.getContext('2d');
+
+  for (let i = 0; i < totalFrames; i++) {
+    tctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+    tctx.drawImage(offscreenCanvas, 0, 0);
+    selections.forEach((sel, idx) => {
+      const {dx, dy} = getShakeOffset(intensity, direction, i, idx);
+      tctx.save();
+      tctx.beginPath();
+      tctx.rect(sel.x, sel.y, sel.w, sel.h);
+      tctx.clip();
+      tctx.drawImage(offscreenCanvas, dx, dy);
+      tctx.restore();
+    });
+    frames.push(tempCanvas.toDataURL('image/png'));
+  }
+
+  let idx = 0;
+  const speedMap = [400, 300, 200, 150, 100];
+  const delay = speedMap[speed - 1] || 200;
+
+  function playFrame() {
+    if (!frames.length) return;
+    const fimg = new Image();
+    fimg.onload = function() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(fimg, 0, 0);
+    };
+    fimg.src = frames[idx];
+    idx = (idx + 1) % frames.length;
+    animId = setTimeout(playFrame, delay);
+  }
+  playFrame();
+
+  document.getElementById('hint').innerHTML = '<strong>GIF 模式：</strong>已生成 ' + totalFrames + ' 帧动画，' + selections.length + ' 个区域同时晃动。下载将保存当前帧为 PNG。';
+  document.getElementById('btnShake').disabled = false;
+  document.getElementById('downloadArea').style.display = 'block';
+  canvas.toBlob(function(blob) { resultBlob = blob; });
+}
+
+function downloadResult() {
+  if (!resultBlob) {
+    canvas.toBlob(function(blob) {
+      resultBlob = blob;
+      doDownload();
+    });
+  } else {
+    doDownload();
+  }
+}
+
+function doDownload() {
+  const url = URL.createObjectURL(resultBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'shaky_' + Date.now() + '.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById('hint').innerHTML = '<strong>已下载！</strong>图片已保存到本地。';
+}
+</script>
+
+</body>
+</html>
