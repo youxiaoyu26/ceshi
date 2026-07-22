@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>孝泉师范学校学生社区</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+@font-face{font-family:'NaiLaoTi';src:url('https://cdn.jsdelivr.net/gh/kyomukyomupurin/fonts@main/nailaoti.woff2')format('woff2');font-weight:normal;font-style:normal;font-display:swap;}
+:root{--bg-gradient-start:#f3f0ff;--bg-gradient-end:#e9e3f8;--text-primary:#333;--text-secondary:#666;--accent:#5a189a;--accent-light:rgba(90,24,154,0.1);--glass-bg:rgba(255,255,255,0.85);--glass-border:rgba(255,255,255,0.3);--shadow-color:rgba(90,24,154,0.08);--card-bg:rgba(255,255,255,0.6);--scrollbar-thumb:rgba(90,24,154,0.3);--scrollbar-track:transparent;}
+[data-theme="dark"]{--bg-gradient-start:#1a1a2e;--bg-gradient-end:#16213e;--text-primary:#e0e0e0;--text-secondary:#aaa;--accent:#bb86fc;--accent-light:rgba(187,134,252,0.15);--glass-bg:rgba(30,30,60,0.85);--glass-border:rgba(255,255,255,0.1);--shadow-color:rgba(0,0,0,0.3);--card-bg:rgba(30,30,60,0.6);--scrollbar-thumb:rgba(187,134,252,0.3);}
+[data-theme="mint"]{--bg-gradient-start:#e8f5e9;--bg-gradient-end:#c8e6c9;--text-primary:#2e7d32;--text-secondary:#558b2f;--accent:#2e7d32;--accent-light:rgba(46,125,50,0.1);--glass-bg:rgba(255,255,255,0.85);--glass-border:rgba(255,255,255,0.4);--shadow-color:rgba(46,125,50,0.08);--card-bg:rgba(255,255,255,0.6);--scrollbar-thumb:rgba(46,125,50,0.3);}
+*{-webkit-tap-highlight-color:transparent;margin:0;padding:0;box-sizing:border-box;font-family:'NaiLaoTi','Segoe UI','Microsoft YaHei',sans-serif;}
+html,body{width:100%;min-height:100vh;background:linear-gradient(135deg,var(--bg-gradient-start)0%,var(--bg-gradient-end)100%);background-attachment:fixed;color:var(--text-primary);overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--scrollbar-track);border-radius:3px;}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+.glass{background:var(--glass-bg);backdrop-filter:blur(10px)saturate(180%);-webkit-backdrop-filter:blur(10px)saturate(180%);border-radius:16px;border:1px solid var(--glass-border);box-shadow:0 8px 32px var(--shadow-color);}
+.page{display:none;min-height:100vh;}
+.page.active{display:block;}
+/* ===== INDEX ===== */
+#index-page{padding-top:130px;padding-left:260px;padding-bottom:45px;transition:padding-left .3s ease;}
+#index-page.sidebar-hidden{padding-left:0;}
+.fixed-header{position:fixed;top:0;left:0;width:100%;z-index:1002;background:var(--glass-bg);backdrop-filter:blur(12px)saturate(180%);border-bottom:2px solid var(--glass-border);box-shadow:0 4px 20px var(--shadow-color);display:flex;justify-content:space-between;align-items:center;padding:15px 20px;height:70px;}
+.sidebar-toggle-btn,.user-btn{background:var(--accent-light);border:none;border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:18px;cursor:pointer;transition:all .3s ease;flex-shrink:0;}
+.sidebar-toggle-btn:hover,.user-btn:hover{background:var(--accent);color:white;}
+.logo{display:flex;align-items:center;justify-content:center;}
+.logo img{width:40px;height:40px;object-fit:contain;}
+.fixed-sidebar{position:fixed;top:130px;left:0;bottom:0;width:260px;z-index:999;background:var(--glass-bg);backdrop-filter:blur(10px)saturate(180%);border-right:1px solid var(--glass-border);box-shadow:0 8px 32px var(--shadow-color);padding:25px 15px;overflow-y:auto;transition:transform .3s ease;}
+.fixed-sidebar.hidden{transform:translateX(-100%);}
+.sidebar-menu{display:flex;flex-direction:column;gap:10px;}
+.sidebar-title{font-size:.9rem;color:var(--text-secondary);padding:0 15px;margin-bottom:10px;font-weight:600;}
+.sidebar-item{text-decoration:none;color:var(--text-secondary);padding:12px 15px;border-radius:12px;transition:all .3s ease;display:flex;align-items:center;gap:12px;font-weight:500;cursor:pointer;border:none;background:transparent;width:100%;font-size:1rem;}
+.sidebar-item:hover,.sidebar-item.active{background-color:var(--accent-light);color:var(--accent);}
+.main-container{max-width:1200px;margin:0 auto;padding:20px;min-height:calc(100vh - 175px);position:relative;transition:all .3s ease;}
+.main-container.dimmed::after{content:'';position:fixed;top:130px;left:0;right:0;bottom:45px;background:rgba(0,0,0,0.4);z-index:990;pointer-events:auto;opacity:1;transition:opacity .3s ease;}
+.publish-float-btn{position:fixed;bottom:75px;right:30px;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,rgba(90,24,154,0.5),rgba(123,44,191,0.5));color:white;border:none;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;z-index:1001;box-shadow:0 8px 25px rgba(90,24,154,0.2);transition:all .3s ease;}
+.publish-float-btn:hover{transform:scale(1.1) rotate(90deg);background:linear-gradient(135deg,rgba(90,24,154,0.85),rgba(123,44,191,0.85));box-shadow:0 10px 30px rgba(90,24,154,0.35);}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);z-index:1003;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal-content{width:100%;max-width:500px;max-height:85vh;overflow-y:auto;animation:slideUp .3s ease;position:relative;padding:25px;}
+.modal-close-btn{position:absolute;top:15px;right:15px;width:36px;height:36px;border-radius:50%;background:var(--glass-bg);border:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--text-primary);transition:all .2s ease;z-index:10;}
+.modal-close-btn:hover{background:var(--accent);color:white;}
+.pinned-modal{z-index:1004;}
+.pinned-content{max-width:480px;padding:30px;}
+.pinned-title{font-size:1.3rem;font-weight:600;color:var(--text-primary);margin-bottom:15px;text-align:center;}
+.pinned-body{font-size:.95rem;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow-y:auto;margin-bottom:20px;}
+.pinned-btn-group{display:flex;flex-direction:column;gap:10px;width:100%;}
+.pinned-close-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#7b2cbf);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s;}
+.pinned-close-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow-color);}
+.pinned-hide-btn{width:fit-content;margin:0 auto;padding:4px 8px;background:transparent;border:none;color:var(--text-secondary);font-size:.8rem;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.pinned-hide-btn:hover{color:var(--accent);}
+.glass-footer{position:fixed;bottom:0;left:0;width:100%;z-index:998;background:var(--glass-bg);backdrop-filter:blur(10px)saturate(180%);border-top:1px solid var(--glass-border);box-shadow:0 -4px 20px var(--shadow-color);padding:6px 15px;font-size:.7rem;color:var(--text-secondary);}
+.footer-wrapper{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:10px;}
+.footer-core{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.footer-extra{display:flex;align-items:center;gap:12px;flex-shrink:1;overflow:hidden;white-space:nowrap;}
+.footer-toggle{background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:.7rem;padding:2px 6px;border-radius:4px;transition:all .2s ease;flex-shrink:0;}
+.footer-toggle:hover{background:var(--accent-light);}
+.footer-icp a{color:var(--text-secondary);text-decoration:none;transition:color .2s ease;}
+.footer-icp a:hover{color:var(--accent);}
+.footer-item{display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.footer-extra.collapsed{display:none;}
+/* Posts */
+.fixed-tab-nav{position:fixed;top:70px;left:0;width:100%;z-index:1001;background:rgba(255,255,255,0.35);backdrop-filter:blur(12px)saturate(180%);-webkit-backdrop-filter:blur(12px)saturate(180%);border-bottom:1px solid var(--glass-border);}
+.tab-nav-wrapper{display:flex;justify-content:center;align-items:center;gap:15px;max-width:1200px;margin:0 auto;padding-left:260px;padding-right:20px;height:60px;transition:padding-left .3s ease;}
+#index-page.sidebar-hidden .tab-nav-wrapper{padding-left:20px;}
+.tab-item{background:transparent;border:none;padding:10px 20px;flex:0 1 100px;text-align:center;border-radius:8px;font-size:1rem;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .3s ease;}
+.tab-item:hover,.tab-item.active{background:rgba(255,255,255,0.5);color:var(--accent);}
+.fixed-status-container{position:fixed;top:130px;bottom:45px;left:0;width:100%;padding-left:260px;z-index:990;display:none;align-items:center;justify-content:center;transition:padding-left .3s ease;}
+#index-page.sidebar-hidden .fixed-status-container{padding-left:0;}
+.status-content{width:100%;max-width:1200px;padding:0 20px;text-align:center;}
+#posts-list{display:flex;flex-direction:column;background:transparent;border-radius:0;overflow:hidden;}
+.post-item{position:relative;padding:14px 20px;border-bottom:1px solid rgba(90,24,154,0.06);transition:background .2s ease;background:transparent;height:140px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;}
+.post-item::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;background:rgba(0,168,255,0.6);border-radius:2px;}
+.post-item:hover{background:var(--card-bg);}
+.post-header{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+.post-author{font-size:1rem;color:var(--text-secondary);font-weight:500;display:flex;align-items:center;gap:6px;}
+.post-content{font-size:1.2rem;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;word-break:break-word;padding-left:0;flex:1;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+.post-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.post-time{font-size:.85rem;color:var(--text-secondary);display:flex;align-items:center;gap:4px;}
+.post-meta{display:flex;align-items:center;gap:16px;}
+.meta-item{font-size:.85rem;color:var(--text-secondary);display:flex;align-items:center;gap:4px;}
+.loading,.no-posts,.error{color:var(--text-secondary);font-size:1rem;}
+.error{color:#d32f2f;}
+.no-posts{padding:40px 20px;}
+#no-more-tip{text-align:center;padding:20px 0;color:var(--text-secondary);font-size:.9rem;}
+/* Publish */
+.post-form{padding:10px;}
+.post-form h2{margin:0 0 24px 0;background:linear-gradient(135deg,var(--accent),#7b2cbf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;padding-bottom:12px;border-bottom:2px solid var(--accent-light);display:flex;align-items:center;gap:10px;font-size:1.4rem;font-weight:600;}
+.form-row{display:flex;gap:15px;margin-bottom:16px;}
+.form-group{flex:1;position:relative;}
+.form-group label{display:block;margin-bottom:8px;font-weight:600;color:var(--text-secondary);font-size:.95rem;}
+.required{color:#c9184a;font-weight:600;}
+.post-form input,.post-form textarea,.post-form select{width:100%;padding:12px 16px;border:1px solid var(--accent-light);border-radius:12px;font-size:.95rem;transition:all .3s cubic-bezier(0.4,0,0.2,1);background:var(--card-bg);backdrop-filter:blur(6px);box-sizing:border-box;color:var(--text-primary);}
+.post-form textarea{resize:none;min-height:120px;}
+.post-form input:focus,.post-form textarea:focus,.post-form select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-light);background:var(--glass-bg);transform:translateY(-1px);}
+.word-count{text-align:right;font-size:.75rem;color:var(--text-secondary);margin-top:6px;transition:color .2s;}
+.word-count.overflow{color:#c9184a;font-weight:600;}
+.image-upload-area{width:100%;position:relative;}
+.upload-trigger{width:100%;padding:30px 20px;border:2px dashed var(--accent-light);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .3s ease;background:var(--accent-light);}
+.upload-trigger:hover{border-color:var(--accent);transform:scale(1.01);}
+.upload-icon{width:45px;height:45px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7b2cbf);display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;margin-bottom:5px;}
+.upload-trigger p{margin:0;font-size:1rem;color:var(--text-secondary);font-weight:500;}
+.upload-trigger span{font-size:.75rem;color:var(--text-secondary);}
+.image-preview{position:relative;width:100%;margin-top:10px;border-radius:12px;overflow:hidden;border:1px solid var(--accent-light);box-shadow:0 4px 15px rgba(0,0,0,0.05);display:none;}
+.image-preview img{width:100%;height:auto;max-height:320px;object-fit:contain;display:block;background:#f8f8f8;}
+.remove-img-btn{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.65);color:white;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s ease;backdrop-filter:blur(4px);}
+.remove-img-btn:hover{background:#c9184a;transform:scale(1.1);}
+.submit-btn{background:linear-gradient(135deg,var(--accent),#7b2cbf,#9d4edd);background-size:200% 100%;color:white;border:none;padding:14px 20px;border-radius:12px;font-size:1.05rem;font-weight:600;cursor:pointer;width:100%;transition:all .3s cubic-bezier(0.4,0,0.2,1);display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;box-shadow:0 4px 15px rgba(90,24,154,0.25);}
+.submit-btn:hover{background-position:100% 0;transform:translateY(-2px);box-shadow:0 8px 25px rgba(90,24,154,0.35);}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important;background-position:0 0;}
+.msg{margin-top:15px;padding:12px 16px;border-radius:10px;font-size:.9rem;animation:fadeIn .3s ease;}
+.msg.error{background:linear-gradient(90deg,#ffebee,#fce4ec);color:#c62828;border-left:4px solid #c62828;}
+.msg.success{background:linear-gradient(90deg,#e8f5e9,#e0f7fa);color:#2e7d32;border-left:4px solid #2e7d32;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@keyframes slideInLeft{from{transform:translateX(-30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.slide-in{animation:slideInLeft .3s ease forwards;}
+/* ===== DETAIL ===== */
+#detail-page .post-detail-wrapper{width:100%;padding:20px 20px 30px;background:var(--glass-bg);min-height:100vh;}
+#detail-page .post-header{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:15px;margin-bottom:10px;padding-bottom:20px;border-bottom:1px solid var(--glass-border);}
+#detail-page .post-author{display:flex;align-items:center;gap:8px;font-size:1.2rem;font-weight:600;color:var(--text-primary);}
+#detail-page .post-meta{margin-left:auto;display:flex;align-items:center;gap:20px;color:var(--text-secondary);font-size:.9rem;}
+#detail-page .post-content{width:100%;font-size:1.3rem;line-height:1.8;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;margin-bottom:25px;margin-top:0;padding:0;}
+#detail-page .post-image{width:100%;max-width:600px;margin:0 auto 30px;border-radius:8px;overflow:hidden;}
+#detail-page .post-image img{width:100%;height:auto;max-height:50vh;object-fit:contain;display:block;cursor:zoom-in;transition:transform .3s ease;margin:0 auto;}
+#detail-page .post-image img:hover{transform:scale(1.02);}
+#detail-page .interaction-bar{width:100%;display:flex;align-items:center;gap:30px;padding:20px 0;border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);margin-bottom:30px;}
+#detail-page .like-btn{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--accent-light);border:none;border-radius:30px;font-size:1rem;color:var(--text-secondary);cursor:pointer;transition:all .3s ease;}
+#detail-page .like-btn:hover{background:var(--accent-light);transform:scale(1.05);}
+#detail-page .like-btn.active{background:linear-gradient(135deg,var(--accent),#7b2cbf);color:white;}
+#detail-page .like-btn.active i{animation:heartBeat .5s ease;}
+#detail-page .comment-count{display:flex;align-items:center;gap:8px;font-size:1rem;color:var(--text-secondary);}
+#detail-page .comment-fold-wrapper{width:100%;margin-bottom:30px;}
+#detail-page .comment-toggle-btn{width:100%;padding:12px 20px;background:var(--accent-light);border:1px solid var(--glass-border);border-radius:8px;font-size:1rem;color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s ease;}
+#detail-page .comment-toggle-btn:hover{border-color:var(--accent);}
+#detail-page .comment-form-wrapper{max-height:0;overflow:hidden;transition:max-height .4s ease,opacity .4s ease;opacity:0;}
+#detail-page .comment-form-wrapper.show{max-height:600px;opacity:1;margin-top:20px;}
+#detail-page .comment-section{width:100%;}
+#detail-page .comment-section h3{font-size:1.2rem;color:var(--text-primary);margin-bottom:20px;}
+#detail-page .comment-form{width:100%;}
+#detail-page .comment-form-row{display:flex;gap:15px;margin-bottom:15px;}
+#detail-page .comment-form-group{flex:1;}
+#detail-page .comment-form input,#detail-page .comment-form textarea{width:100%;padding:12px 16px;border:1px solid var(--glass-border);border-radius:8px;font-size:.95rem;background:var(--card-bg);color:var(--text-primary);}
+#detail-page .comment-form textarea{min-height:100px;resize:none;margin-bottom:15px;}
+#detail-page .comment-form input:focus,#detail-page .comment-form textarea:focus{outline:none;border-color:var(--accent);}
+#detail-page .comment-submit-btn{padding:12px 30px;background:linear-gradient(135deg,var(--accent),#7b2cbf);color:white;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:all .3s ease;}
+#detail-page .comment-submit-btn:hover{transform:translateY(-2px);box-shadow:0 4px 15px var(--shadow-color);}
+#detail-page .comment-submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+#detail-page .form-msg{margin-top:10px;font-size:.9rem;}
+#detail-page .form-msg.error{color:#c62828;}
+#detail-page .form-msg.success{color:#2e7d32;}
+#detail-page .comment-list{width:100%;display:flex;flex-direction:column;gap:20px;}
+#detail-page .comment-item{width:100%;padding:15px 0;border-bottom:1px solid var(--glass-border);}
+#detail-page .comment-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+#detail-page .comment-author{font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:6px;}
+#detail-page .comment-time{font-size:.85rem;color:var(--text-secondary);margin-left:auto;}
+#detail-page .comment-content{font-size:1rem;line-height:1.6;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;}
+#detail-page .empty-comment{text-align:center;padding:40px 0;color:var(--text-secondary);}
+#detail-page .empty-state{width:100%;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+#detail-page .empty-state i{font-size:4rem;color:#ccc;margin-bottom:20px;}
+#detail-page .empty-state h3{color:var(--text-secondary);margin-bottom:15px;}
+@keyframes heartBeat{0%{transform:scale(1);}50%{transform:scale(1.3);}100%{transform:scale(1);}}
+/* ===== 公告 ===== */
+#announcement-page .full-page-container{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+#announcement-page .top-nav{width:100%;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--glass-bg);backdrop-filter:blur(12px)saturate(180%);border-bottom:1px solid var(--glass-border);flex-shrink:0;}
+#announcement-page .back-btn{width:38px;height:38px;border-radius:8px;background:var(--accent-light);border:none;color:var(--accent);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s ease;}
+#announcement-page .back-btn:hover{background:var(--accent);color:white;}
+#announcement-page .nav-title{font-size:1.2rem;font-weight:600;color:var(--text-primary);}
+#announcement-page .nav-placeholder{width:38px;}
+#announcement-page .main-content{flex:1;width:100%;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:15px;}
+#announcement-page .announcement-card{padding:18px 20px;cursor:pointer;transition:all .3s ease;position:relative;overflow:hidden;}
+#announcement-page .announcement-card:hover{transform:translateY(-2px);box-shadow:0 12px 40px var(--shadow-color);}
+#announcement-page .announcement-card.pinned{border-left:4px solid var(--accent);}
+#announcement-page .card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+#announcement-page .pin-badge{background:var(--accent);color:white;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600;}
+#announcement-page .card-title{font-size:1.15rem;font-weight:600;color:var(--text-primary);flex:1;}
+#announcement-page .card-content{font-size:.95rem;color:var(--text-secondary);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:12px;}
+#announcement-page .card-footer{display:flex;align-items:center;justify-content:space-between;font-size:.8rem;color:var(--text-secondary);}
+#announcement-page .card-author{display:flex;align-items:center;gap:5px;}
+#announcement-page .load-more-btn{display:block;width:200px;margin:10px auto;padding:12px 20px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent);border-radius:30px;font-size:.95rem;font-weight:500;cursor:pointer;transition:all .3s ease;}
+#announcement-page .load-more-btn:hover{background:var(--accent);color:white;}
+#announcement-page .load-more-btn:disabled{opacity:.5;cursor:not-allowed;}
+#announcement-page .empty-state{text-align:center;padding:60px 20px;color:var(--text-secondary);}
+#announcement-page .empty-state i{font-size:3rem;margin-bottom:15px;opacity:.5;}
+#announcement-page .loading-state{text-align:center;padding:40px;color:var(--text-secondary);}
+#announcement-page .no-more{text-align:center;padding:20px;color:var(--text-secondary);font-size:.85rem;}
+#announcement-page .detail-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
+#announcement-page .detail-modal.show{display:flex;}
+#announcement-page .detail-content{width:100%;max-width:600px;max-height:80vh;overflow-y:auto;padding:30px;animation:slideUp .3s ease;position:relative;}
+#announcement-page .detail-close-btn{position:absolute;top:15px;right:15px;width:36px;height:36px;border-radius:50%;background:var(--glass-bg);border:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--text-primary);transition:all .2s ease;}
+#announcement-page .detail-close-btn:hover{background:var(--accent);color:white;}
+#announcement-page .detail-title{font-size:1.4rem;font-weight:600;color:var(--text-primary);margin-bottom:15px;}
+#announcement-page .detail-meta{display:flex;align-items:center;gap:15px;font-size:.85rem;color:var(--text-secondary);margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid var(--glass-border);}
+#announcement-page .detail-body{font-size:1rem;line-height:1.8;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;}
+/* ===== 主题 ===== */
+#theme-page .full-page-container{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+#theme-page .top-nav{width:100%;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--glass-bg);backdrop-filter:blur(12px)saturate(180%);border-bottom:1px solid var(--glass-border);flex-shrink:0;}
+#theme-page .back-btn{width:38px;height:38px;border-radius:8px;background:var(--accent-light);border:none;color:var(--accent);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s ease;}
+#theme-page .back-btn:hover{background:var(--accent);color:white;}
+#theme-page .nav-title{font-size:1.2rem;font-weight:600;color:var(--text-primary);}
+#theme-page .nav-placeholder{width:38px;}
+#theme-page .main-content{flex:1;width:100%;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+#theme-page .section-title{font-size:1.1rem;font-weight:600;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+#theme-page .theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;}
+#theme-page .theme-card{padding:20px;cursor:pointer;transition:all .3s ease;text-align:center;position:relative;}
+#theme-page .theme-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px var(--shadow-color);}
+#theme-page .theme-card.active{border:2px solid var(--accent);box-shadow:0 0 0 3px var(--accent-light);}
+#theme-page .theme-card.active::after{content:'\f00c';font-family:'Font Awesome 6 Free';font-weight:900;position:absolute;top:10px;right:10px;width:24px;height:24px;background:var(--accent);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+#theme-page .theme-preview{width:100%;height:80px;border-radius:10px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+#theme-page .theme-name{font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+#theme-page .theme-desc{font-size:.8rem;color:var(--text-secondary);}
+#theme-page .preview-light{background:linear-gradient(135deg,#f3f0ff,#e9e3f8);color:#5a189a;}
+#theme-page .preview-dark{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#bb86fc;}
+#theme-page .preview-mint{background:linear-gradient(135deg,#e8f5e9,#c8e6c9);color:#2e7d32;}
+#theme-page .custom-section{padding:20px;}
+#theme-page .color-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px;}
+#theme-page .color-item{display:flex;align-items:center;gap:10px;}
+#theme-page .color-item label{font-size:.85rem;color:var(--text-secondary);min-width:80px;}
+#theme-page .color-item input[type="color"]{width:40px;height:32px;border:1px solid var(--glass-border);border-radius:6px;cursor:pointer;background:transparent;padding:2px;}
+#theme-page .btn-row{display:flex;gap:12px;margin-top:15px;}
+#theme-page .save-btn{flex:1;padding:12px;background:linear-gradient(135deg,var(--accent),#7b2cbf);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s ease;}
+#theme-page .save-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow-color);}
+#theme-page .reset-btn{padding:12px 20px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent);border-radius:10px;font-size:1rem;font-weight:500;cursor:pointer;transition:all .3s ease;}
+#theme-page .reset-btn:hover{background:var(--accent);color:white;}
+#theme-page .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%)translateY(20px);background:var(--glass-bg);backdrop-filter:blur(10px);color:var(--text-primary);padding:12px 24px;border-radius:30px;font-size:.9rem;box-shadow:0 8px 30px var(--shadow-color);border:1px solid var(--glass-border);opacity:0;transition:all .3s ease;z-index:3000;pointer-events:none;}
+#theme-page .toast.show{opacity:1;transform:translateX(-50%)translateY(0);}
+/* ===== 关于 ===== */
+#about-page .full-page-container{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+#about-page .top-nav{width:100%;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--glass-bg);backdrop-filter:blur(12px)saturate(180%);border-bottom:1px solid var(--glass-border);flex-shrink:0;z-index:10;}
+#about-page .back-btn{width:38px;height:38px;border-radius:8px;background:var(--accent-light);border:none;color:var(--accent);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s ease;}
+#about-page .back-btn:hover{background:var(--accent);color:white;}
+#about-page .nav-title{font-size:1.2rem;font-weight:600;color:var(--text-primary);}
+#about-page .nav-placeholder{width:38px;}
+#about-page .main-content{flex:1;width:100%;padding:20px;display:flex;flex-direction:column;gap:15px;overflow:hidden;}
+#about-page .dev-card{width:100%;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0;}
+#about-page .avatar-box{width:90px;height:90px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 4px 15px var(--shadow-color);}
+#about-page .avatar-box img{width:100%;height:100%;object-fit:cover;}
+#about-page .dev-name{font-size:1.3rem;font-weight:600;color:var(--accent);}
+#about-page .dev-desc{font-size:.95rem;color:var(--text-secondary);text-align:center;}
+#about-page .website-btn{margin-top:4px;padding:8px 18px;border-radius:8px;background:var(--accent);border:none;color:#fff;font-size:.9rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .3s ease;text-decoration:none;}
+#about-page .website-btn:hover{background:var(--accent-hover,#48127a);transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow-color);}
+#about-page .collapse-wrapper{width:100%;display:flex;flex-direction:column;gap:12px;flex-shrink:1;overflow:hidden;}
+#about-page .collapse-item{width:100%;border-radius:12px;overflow:hidden;flex-shrink:0;}
+#about-page .collapse-header{width:100%;padding:15px 20px;background:var(--accent-light);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .3s ease;}
+#about-page .collapse-header:hover{filter:brightness(1.05);}
+#about-page .collapse-title{font-size:1.05rem;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:8px;}
+#about-page .collapse-icon{color:var(--accent);transition:transform .3s ease;}
+#about-page .collapse-item.active .collapse-icon{transform:rotate(180deg);}
+#about-page .collapse-content{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(0.4,0,0.2,1);background:var(--card-bg);}
+#about-page .collapse-item.active .collapse-content{max-height:320px;overflow-y:auto;}
+#about-page .content-inner{padding:15px 20px;line-height:1.7;color:var(--text-primary);font-size:.95rem;}
+#about-page .content-inner p{margin-bottom:10px;}
+#about-page .content-inner p:last-child{margin-bottom:0;}
+#about-page .content-inner a{color:var(--accent);text-decoration:none;font-weight:500;transition:color .3s ease;}
+#about-page .content-inner a:hover{color:var(--accent-hover,#48127a);text-decoration:underline;}
+#about-page .page-footer{width:100%;padding:10px 20px;text-align:center;color:var(--text-secondary);font-size:.75rem;background:var(--glass-bg);backdrop-filter:blur(10px);border-top:1px solid var(--glass-border);flex-shrink:0;}
+#about-page .page-footer a{color:var(--accent);text-decoration:none;transition:color .3s ease;}
+#about-page .page-footer a:hover{color:var(--accent-hover);}
+/* ===== 条款 ===== */
+#terms-page .full-page-container{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+#terms-page .top-nav{width:100%;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--glass-bg);backdrop-filter:blur(12px)saturate(180%);flex-shrink:0;z-index:10;border-bottom:1px solid var(--glass-border);}
+#terms-page .back-btn{width:38px;height:38px;border-radius:8px;background:var(--accent-light);border:none;color:var(--accent);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;}
+#terms-page .back-btn:hover,#terms-page .back-btn:focus-visible{background:var(--accent);color:white;outline:2px solid var(--accent);outline-offset:2px;}
+#terms-page .nav-title{font-size:1.2rem;font-weight:600;color:var(--text-primary);text-align:center;word-break:keep-all;}
+#terms-page .nav-placeholder{width:38px;flex-shrink:0;}
+#terms-page .main-content{flex:1;width:100%;overflow:hidden;display:flex;flex-direction:column;}
+#terms-page .collapse-wrapper{width:100%;height:100%;display:flex;flex-direction:column;gap:2px;overflow-y:auto;padding:12px 0;scroll-behavior:smooth;}
+#terms-page .collapse-wrapper::-webkit-scrollbar{width:4px;}
+#terms-page .collapse-wrapper::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:4px;}
+#terms-page .collapse-wrapper::-webkit-scrollbar-track{background:var(--scrollbar-track);}
+#terms-page .collapse-item{width:94%;margin:0 auto;background:var(--card-bg);border-radius:12px;overflow:hidden;flex-shrink:0;backdrop-filter:blur(6px);border:1px solid var(--glass-border);}
+#terms-page .collapse-header{width:100%;padding:18px 25px;background:var(--glass-bg);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .3s cubic-bezier(0.4,0,0.2,1);user-select:none;}
+#terms-page .collapse-header:hover,#terms-page .collapse-header:focus-visible{background:var(--accent-light);outline:none;}
+#terms-page .collapse-title{font-size:1.05rem;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:10px;}
+#terms-page .collapse-icon{color:var(--accent);transition:transform .3s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;}
+#terms-page .collapse-item.active .collapse-icon{transform:rotate(180deg);}
+#terms-page .collapse-content{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(0.4,0,0.2,1);background:var(--card-bg);}
+#terms-page .content-inner{padding:20px 25px;line-height:1.8;color:var(--text-primary);font-size:.95rem;}
+#terms-page .content-inner h4{color:var(--accent);margin:16px 0 8px 0;font-size:1rem;font-weight:600;}
+#terms-page .content-inner p{margin-bottom:12px;color:var(--text-secondary);text-align:justify;}
+#terms-page .content-inner p:last-child{margin-bottom:0;}
+#terms-page .content-inner ul{margin:8px 0 12px 20px;}
+#terms-page .content-inner li{margin-bottom:8px;color:var(--text-secondary);}
+/* ===== 暂未开发 ===== */
+#wip-page html,#wip-page body{width:100vw!important;height:100vh!important;max-width:100vw!important;max-height:100vh!important;overflow:hidden!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;background:linear-gradient(135deg,var(--bg-gradient-start)0%,var(--bg-gradient-end)100%);background-attachment:fixed;color:var(--text-primary);}
+#wip-page .container{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:0;margin:0;animation:fadeInUp .6s ease forwards;opacity:0;}
+#wip-page .icon-box{width:100px;height:100px;border-radius:0;background:var(--accent-light);display:flex;align-items:center;justify-content:center;animation:breathe 2s ease-in-out infinite;}
+#wip-page .icon{font-size:48px;color:var(--accent);}
+#wip-page .title{font-size:24px;color:var(--text-primary);font-weight:600;text-align:center;}
+#wip-page .desc{font-size:15px;color:var(--text-secondary);text-align:center;line-height:1.6;max-width:280px;}
+#wip-page .back-btn{margin-top:10px;padding:14px 40px;background:linear-gradient(135deg,var(--accent),#7b2cbf);color:#fff;border-radius:0;font-size:15px;font-weight:500;cursor:pointer;transition:all .3s ease;border:none;}
+#wip-page .back-btn:hover{transform:translateY(-3px);opacity:.9;}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+/* ===== Admin ===== */
+#admin-page body{background:linear-gradient(135deg,#f3f0ff 0%,#e9e3f8 100%);min-height:100vh;color:#333;background-attachment:fixed;}
+#admin-page .admin-header{background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);padding:15px 25px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #f0f0f0;position:sticky;top:0;z-index:100;}
+#admin-page .admin-logo{font-size:1.3rem;font-weight:600;color:#5a189a;display:flex;align-items:center;gap:10px;}
+#admin-page .admin-header-actions{display:flex;gap:10px;align-items:center;}
+#admin-page .header-btn{padding:8px 16px;border-radius:8px;border:none;font-size:.9rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:6px;}
+#admin-page .header-btn.primary{background:#5a189a;color:white;}
+#admin-page .header-btn.primary:hover{background:#7b2cbf;}
+#admin-page .header-btn.secondary{background:rgba(90,24,154,0.1);color:#5a189a;}
+#admin-page .header-btn.secondary:hover{background:rgba(90,24,154,0.2);}
+#admin-page .admin-layout{display:flex;min-height:calc(100vh - 62px);}
+#admin-page .admin-sidebar{width:220px;background:rgba(255,255,255,0.8);backdrop-filter:blur(10px);padding:20px 0;border-right:1px solid rgba(255,255,255,0.3);flex-shrink:0;}
+#admin-page .sidebar-nav-item{display:flex;align-items:center;gap:10px;padding:12px 20px;color:#666;text-decoration:none;cursor:pointer;transition:all .3s;border-left:3px solid transparent;font-size:.95rem;background:transparent;border:none;width:100%;text-align:left;}
+#admin-page .sidebar-nav-item:hover{background:rgba(90,24,154,0.05);color:#5a189a;}
+#admin-page .sidebar-nav-item.active{background:rgba(90,24,154,0.1);color:#5a189a;border-left-color:#5a189a;font-weight:600;}
+#admin-page .sidebar-nav-item i{width:20px;text-align:center;}
+#admin-page .admin-main{flex:1;padding:25px;overflow-y:auto;}
+#admin-page .admin-panel{display:none;}
+#admin-page .admin-panel.active{display:block;}
+#admin-page .panel-title{font-size:1.3rem;font-weight:600;color:#333;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+#admin-page .login-wrapper{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 62px);}
+#admin-page .login-card{width:100%;max-width:400px;padding:40px;text-align:center;}
+#admin-page .login-card h2{color:#5a189a;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px;}
+#admin-page .login-card p{color:#666;margin-bottom:25px;font-size:.9rem;}
+#admin-page .form-group{margin-bottom:16px;text-align:left;}
+#admin-page .form-group label{display:block;margin-bottom:6px;font-weight:600;color:#555;font-size:.9rem;}
+#admin-page .form-group input,#admin-page .form-group select,#admin-page .form-group textarea{width:100%;padding:12px 16px;border:1px solid #e0e0e0;border-radius:10px;font-size:.95rem;transition:all .3s;background:rgba(255,255,255,0.6);}
+#admin-page .form-group input:focus,#admin-page .form-group select:focus,#admin-page .form-group textarea:focus{outline:none;border-color:#5a189a;box-shadow:0 0 0 3px rgba(90,24,154,0.1);}
+#admin-page .form-group textarea{min-height:100px;resize:vertical;}
+#admin-page .btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,#5a189a,#7b2cbf);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:8px;}
+#admin-page .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(90,24,154,0.3);}
+#admin-page .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+#admin-page .msg{margin-top:12px;padding:10px;border-radius:8px;font-size:.9rem;}
+#admin-page .msg.error{background:#ffebee;color:#c62828;}
+#admin-page .msg.success{background:#e8f5e9;color:#2e7d32;}
+#admin-page .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:25px;}
+#admin-page .stat-card{padding:20px;text-align:center;}
+#admin-page .stat-icon{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.3rem;}
+#admin-page .stat-icon.purple{background:rgba(90,24,154,0.1);color:#5a189a;}
+#admin-page .stat-icon.blue{background:rgba(33,150,243,0.1);color:#2196f3;}
+#admin-page .stat-icon.orange{background:rgba(255,152,0,0.1);color:#ff9800;}
+#admin-page .stat-icon.green{background:rgba(76,175,80,0.1);color:#4caf50;}
+#admin-page .stat-number{font-size:1.8rem;font-weight:700;color:#333;}
+#admin-page .stat-label{font-size:.85rem;color:#888;margin-top:4px;}
+#admin-page .data-table{width:100%;border-collapse:collapse;}
+#admin-page .data-table th{background:rgba(90,24,154,0.05);padding:12px 15px;text-align:left;font-weight:600;color:#555;font-size:.85rem;border-bottom:2px solid #f0f0f0;}
+#admin-page .data-table td{padding:12px 15px;border-bottom:1px solid #f5f5f5;font-size:.9rem;color:#444;vertical-align:middle;}
+#admin-page .data-table tr:hover td{background:rgba(90,24,154,0.02);}
+#admin-page .table-wrapper{overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.7);}
+#admin-page .action-btn{padding:6px 12px;border-radius:6px;border:none;font-size:.8rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:4px;margin-right:5px;}
+#admin-page .action-btn.edit{background:#e3f2fd;color:#1976d2;}
+#admin-page .action-btn.edit:hover{background:#bbdefb;}
+#admin-page .action-btn.delete{background:#ffebee;color:#c62828;}
+#admin-page .action-btn.delete:hover{background:#ffcdd2;}
+#admin-page .action-btn.pin{background:#fff3e0;color:#e65100;}
+#admin-page .action-btn.pin:hover{background:#ffe0b2;}
+#admin-page .action-btn.toggle{background:#e8f5e9;color:#2e7d32;}
+#admin-page .action-btn.toggle:hover{background:#c8e6c9;}
+#admin-page .action-btn.toggle.off{background:#ffebee;color:#c62828;}
+#admin-page .status-badge{padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:600;}
+#admin-page .status-badge.active{background:#e8f5e9;color:#2e7d32;}
+#admin-page .status-badge.inactive{background:#ffebee;color:#c62828;}
+#admin-page .status-badge.pinned{background:#fff3e0;color:#e65100;}
+#admin-page .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;flex-wrap:wrap;gap:10px;}
+#admin-page .toolbar-left{display:flex;align-items:center;gap:10px;}
+#admin-page .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+#admin-page .modal-overlay.show{display:flex;}
+#admin-page .modal-box{width:100%;max-width:550px;max-height:85vh;overflow-y:auto;padding:30px;position:relative;animation:slideUp .3s ease;}
+#admin-page .modal-close{position:absolute;top:15px;right:15px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.9);border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:#333;transition:all .2s;}
+#admin-page .modal-close:hover{background:#5a189a;color:white;}
+#admin-page .modal-title{font-size:1.2rem;font-weight:600;color:#333;margin-bottom:20px;}
+#admin-page .log-item{padding:10px 15px;border-bottom:1px solid #f5f5f5;display:flex;align-items:center;gap:12px;font-size:.85rem;}
+#admin-page .log-time{color:#999;min-width:140px;}
+#admin-page .log-action{color:#5a189a;font-weight:600;min-width:100px;}
+#admin-page .log-detail{color:#666;flex:1;}
+#admin-page .log-ip{color:#aaa;min-width:100px;text-align:right;}
+#admin-page .loading{text-align:center;padding:40px;color:#888;}
+#admin-page .empty-table{text-align:center;padding:30px;color:#999;}
+@media(max-width:768px){
+#index-page{padding-left:0!important;padding-top:115px;padding-bottom:40px;}
+.fixed-header{height:60px;padding:10px 15px;}
+.sidebar-toggle-btn,.user-btn{width:34px;height:34px;font-size:16px;}
+.logo img{width:32px;height:32px;}
+.fixed-sidebar{top:115px;transform:translateX(-100%);}
+.fixed-sidebar.show{transform:translateX(0);}
+.tab-nav-wrapper{height:55px;padding-left:15px!important;padding-right:15px!important;gap:8px;}
+.tab-item{flex:1;max-width:90px;font-size:.9rem;padding:8px 12px;}
+.fixed-status-container{top:115px;bottom:40px;padding-left:0!important;}
+.post-item{padding:12px 16px;height:120px;}
+.post-item::before{top:12px;bottom:12px;width:3px;}
+.post-header{margin-bottom:6px;}
+.post-author{font-size:.95rem;}
+.post-content{font-size:1.05rem;-webkit-line-clamp:2;}
+.post-footer{margin-top:6px;}
+.post-time{font-size:.75rem;}
+.post-meta{gap:12px;}
+.meta-item{font-size:.75rem;}
+.main-container{padding:15px 10px;}
+.main-container.dimmed::after{top:115px;bottom:40px;}
+.publish-float-btn{bottom:60px;right:20px;width:55px;height:55px;font-size:22px;}
+.glass-footer{padding:4px 10px;font-size:.65rem;}
+.footer-wrapper{gap:6px;}
+.footer-core{gap:8px;}
+.footer-extra{display:none;}
+.footer-extra.show{display:flex;flex-wrap:wrap;width:100%;margin-top:4px;}
+.footer-wrapper{flex-wrap:wrap;}
+.pinned-btn-group{flex-direction:column;gap:10px;}
+#detail-page .post-detail-wrapper{padding:15px 15px 20px;}
+#detail-page .post-header{gap:10px;margin-bottom:8px;}
+#detail-page .post-meta{width:100%;margin-left:0;justify-content:space-between;}
+#detail-page .post-content{font-size:1.15rem;}
+#detail-page .interaction-bar{gap:20px;}
+#detail-page .comment-form-row{flex-direction:column;gap:10px;}
+#detail-page .post-image{max-width:100%;}
+#detail-page .post-image img{max-height:40vh;}
+#announcement-page .top-nav,#theme-page .top-nav,#about-page .top-nav,#terms-page .top-nav{height:55px;padding:0 15px;}
+#announcement-page .back-btn,#theme-page .back-btn,#about-page .back-btn,#terms-page .back-btn{width:34px;height:34px;font-size:16px;}
+#announcement-page .nav-placeholder,#theme-page .nav-placeholder,#about-page .nav-placeholder,#terms-page .nav-placeholder{width:34px;}
+#announcement-page .main-content,#theme-page .main-content,#about-page .main-content{padding:15px;}
+#announcement-page .announcement-card{padding:15px;}
+#announcement-page .card-title{font-size:1.05rem;}
+#theme-page .theme-grid{grid-template-columns:repeat(3,1fr);gap:10px;}
+#theme-page .theme-card{padding:15px 10px;}
+#theme-page .theme-preview{height:60px;font-size:1.2rem;}
+#theme-page .theme-name{font-size:.9rem;}
+#theme-page .color-grid{grid-template-columns:1fr;}
+#about-page .avatar-box{width:75px;height:75px;}
+#about-page .dev-name{font-size:1.15rem;}
+#about-page .dev-desc{font-size:.85rem;}
+#about-page .website-btn{padding:7px 16px;font-size:.85rem;}
+#about-page .collapse-header{padding:12px 15px;}
+#about-page .content-inner{padding:12px 15px;font-size:.9rem;}
+#about-page .collapse-item.active .collapse-content{max-height:240px;}
+#terms-page .collapse-header{padding:15px 20px;}
+#terms-page .collapse-title{font-size:1rem;}
+#terms-page .content-inner{padding:15px 20px;font-size:.9rem;}
+#wip-page .icon-box{width:90px;height:90px;}
+#wip-page .icon{font-size:42px;}
+#wip-page .title{font-size:22px;}
+#wip-page .desc{font-size:14px;}
+#wip-page .back-btn{padding:12px 35px;font-size:14px;}
+#admin-page .admin-layout{flex-direction:column;}
+#admin-page .admin-sidebar{width:100%;display:flex;overflow-x:auto;padding:10px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.3);}
+#admin-page .sidebar-nav-item{padding:10px 15px;border-left:none;white-space:nowrap;font-size:.85rem;border-bottom:3px solid transparent;}
+#admin-page .sidebar-nav-item.active{border-bottom-color:#5a189a;border-left-color:transparent;}
+#admin-page .admin-main{padding:15px;}
+#admin-page .stats-grid{grid-template-columns:repeat(2,1fr);}
+#admin-page .stat-number{font-size:1.4rem;}
+#admin-page .data-table th,#admin-page .data-table td{padding:8px 10px;font-size:.8rem;}
+#admin-page .action-btn{padding:5px 8px;font-size:.75rem;}
+#admin-page .header-btn span{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== INDEX PAGE ==================== -->
+<div id="index-page" class="page active">
+  <header class="fixed-header">
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="fas fa-bars"></i></button>
+    <div class="logo"><img src="1.png" alt="校徽" onerror="this.style.display='none'"></div>
+    <button class="user-btn" onclick="location.hash='#/wip'"><i class="fas fa-user"></i></button>
+  </header>
+  <aside class="fixed-sidebar" id="fixedSidebar">
+    <div class="sidebar-menu">
+      <p class="sidebar-title">社区导航</p>
+      <a class="sidebar-item" onclick="location.hash='#/announcements'"><i class="fas fa-bullhorn"></i><span>通知公告</span></a>
+      <a class="sidebar-item" onclick="location.hash='#/wip'"><i class="fas fa-calendar-alt"></i><span>课表查询</span></a>
+      <a class="sidebar-item" onclick="location.hash='#/wip'"><i class="fas fa-calendar"></i><span>校园日历</span></a>
+      <p class="sidebar-title" style="margin-top:30px;">设置</p>
+      <a class="sidebar-item" onclick="location.hash='#/theme'"><i class="fas fa-palette"></i><span>主题设置</span></a>
+      <a class="sidebar-item" onclick="location.hash='#/about'"><i class="fas fa-info-circle"></i><span>关于开发</span></a>
+      <a class="sidebar-item" onclick="location.hash='#/terms'"><i class="fas fa-file-contract"></i><span>免责条款</span></a>
+      <a class="sidebar-item" onclick="location.hash='#/admin'" style="color:#c62828;"><i class="fas fa-user-shield"></i><span>管理后台</span></a>
+    </div>
+  </aside>
+  <div class="fixed-tab-nav">
+    <div class="tab-nav-wrapper" id="tabNavWrapper">
+      <button class="tab-item active" data-type="latest">最新</button>
+      <button class="tab-item" data-type="hot">最热</button>
+      <button class="tab-item" data-type="expose">挂人</button>
+    </div>
+  </div>
+  <div class="fixed-status-container" id="fixedStatusContainer">
+    <div class="status-content"><div class="loading"><i class="fas fa-spinner fa-spin"></i> 正在加载内容...</div></div>
+  </div>
+  <main class="main-container" id="mainContainer">
+    <section class="posts-container"><div id="posts-list"></div></section>
+  </main>
+  <footer class="glass-footer">
+    <div class="footer-wrapper">
+      <div class="footer-core">
+        <span class="footer-item" id="runtimeCount"><i class="fas fa-heartbeat"></i> 社区已稳定运行0天0小时0分0秒</span>
+        <span class="footer-icp"><a href="https://icp.gov.moe/" target="_blank">萌ICP备20260121号</a></span>
+        <button class="footer-toggle" id="footerToggleBtn"><i class="fas fa-ellipsis-h"></i></button>
+      </div>
+      <div class="footer-extra collapsed" id="footerExtra">
+        <span class="footer-item" id="loadTime"><i class="fas fa-bolt"></i> 加载耗时: <span>0</span>ms</span>
+        <span class="footer-item" id="queryCount"><i class="fas fa-database"></i> 共查询: <span>0</span>次</span>
+      </div>
+    </div>
+  </footer>
+  <button class="publish-float-btn" id="publishBtn"><i class="fas fa-plus"></i></button>
+  <div class="modal-overlay" id="publishModal">
+    <div class="modal-content glass">
+      <button class="modal-close-btn" id="closeModalBtn"><i class="fas fa-times"></i></button>
+      <section class="post-form">
+        <h2><i class="fas fa-feather-alt"></i> 投稿</h2>
+        <form id="postForm" onsubmit="return false;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>内容分类</label>
+              <select id="category" name="category"><option value="普通">普通日常</option><option value="挂人">曝光挂人</option></select>
+            </div>
+            <div class="form-group">
+              <label>你的昵称</label>
+              <input type="text" id="author" name="author" placeholder="不填则匿名" maxlength="20">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>内容详情 <span class="required">*</span></label>
+            <textarea id="content" name="content" rows="5" placeholder="在这里写下你想说的话..." required maxlength="50"></textarea>
+            <div class="word-count" id="contentCount">0/50</div>
+          </div>
+          <div class="form-group">
+            <label>上传配图</label>
+            <div class="image-upload-area">
+              <input type="file" id="postImage" name="image" accept="image/*" hidden>
+              <div class="upload-trigger" id="uploadTrigger">
+                <div class="upload-icon"><i class="fas fa-camera"></i></div>
+                <p>点击选择图片</p><span>支持jpg/png/gif/webp，最大2MB</span>
+              </div>
+              <div class="image-preview" id="imagePreview">
+                <img id="previewImg" src="" alt="预览图">
+                <button type="button" class="remove-img-btn" id="removeImgBtn"><i class="fas fa-times"></i></button>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="submit-btn" id="submitPostBtn"><i class="fas fa-paper-plane"></i> 立即发布</button>
+          <div id="formMsg" class="msg"></div>
+        </form>
+      </section>
+    </div>
+  </div>
+  <div class="modal-overlay pinned-modal" id="pinnedModal">
+    <div class="pinned-content glass">
+      <div class="pinned-title" id="pinnedTitle"></div>
+      <div class="pinned-body" id="pinnedBody"></div>
+      <div class="pinned-btn-group">
+        <button class="pinned-close-btn" id="pinnedDismissBtn">我知道了</button>
+        <button class="pinned-hide-btn" id="pinnedHideBtn">24小时内不再显示</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DETAIL PAGE ==================== -->
+<div id="detail-page" class="page">
+  <div class="full-screen-container" id="detailContainer">
+    <div class="empty-state" id="detailEmpty">
+      <i class="fas fa-file-exclamation"></i>
+      <h3>帖子不存在或已被删除</h3>
+      <button onclick="location.hash=''" style="margin-top:15px;padding:10px 20px;background:var(--accent);border:none;border-radius:8px;color:white;font-size:1rem;cursor:pointer;">返回首页</button>
+    </div>
+    <div class="post-detail-wrapper" id="detailWrapper" style="display:none;">
+      <div class="post-header">
+        <span class="post-author"><i class="fas fa-user-circle"></i> <span id="d-author"></span></span>
+        <div class="post-meta">
+          <span><i class="far fa-clock"></i> <span id="d-time"></span></span>
+          <span><i class="far fa-eye"></i> <span id="d-views">0</span> 次浏览</span>
+        </div>
+      </div>
+      <div class="post-content" id="d-content"></div>
+      <div class="post-image" id="d-image-box" style="display:none;"><img id="d-image" src="" alt="帖子配图" onclick="window.open(this.src)"></div>
+      <div class="interaction-bar">
+        <button class="like-btn" id="d-likeBtn"><i class="fas fa-heart"></i> <span id="d-likes">0</span> 赞</button>
+        <div class="comment-count"><i class="far fa-comment"></i> <span id="d-commentCount">0</span> 条评论</div>
+      </div>
+      <div class="comment-section">
+        <div class="comment-fold-wrapper">
+          <button class="comment-toggle-btn" id="commentToggleBtn"><i class="fas fa-pen"></i><span>发表评论</span></button>
+          <div class="comment-form-wrapper" id="commentFormWrapper">
+            <form class="comment-form" id="commentForm" onsubmit="return false;">
+              <input type="hidden" id="c-post-id">
+              <div class="comment-form-row">
+                <div class="comment-form-group"><input type="text" id="c-author" placeholder="你的昵称（不填则匿名）" maxlength="5"></div>
+              </div>
+              <textarea id="c-content" placeholder="写下你的评论..." required maxlength="30"></textarea>
+              <button type="submit" class="comment-submit-btn" id="c-submit">发布评论</button>
+              <div class="form-msg" id="c-msg"></div>
+            </form>
+          </div>
+        </div>
+        <h3>全部评论 (<span id="c-total">0</span>)</h3>
+        <div class="comment-list" id="commentList"><div class="empty-comment">暂无评论，快来抢沙发吧！</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ANNOUNCEMENT PAGE ==================== -->
+<div id="announcement-page" class="page">
+  <div class="full-page-container">
+    <nav class="top-nav">
+      <button class="back-btn" onclick="location.hash=''"><i class="fas fa-arrow-left"></i></button>
+      <div class="nav-title">通知公告</div>
+      <div class="nav-placeholder"></div>
+    </nav>
+    <main class="main-content" id="announcementList">
+      <div class="loading-state"><i class="fas fa-spinner fa-spin"></i> 正在加载公告...</div>
+    </main>
+  </div>
+  <div class="detail-modal" id="annDetailModal">
+    <div class="detail-content glass" style="position:relative;">
+      <button class="detail-close-btn" onclick="document.getElementById('annDetailModal').classList.remove('show')"><i class="fas fa-times"></i></button>
+      <div class="detail-title" id="annDetailTitle"></div>
+      <div class="detail-meta" id="annDetailMeta"></div>
+      <div class="detail-body" id="annDetailBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== THEME PAGE ==================== -->
+<div id="theme-page" class="page">
+  <div class="full-page-container">
+    <nav class="top-nav">
+      <button class="back-btn" onclick="location.hash=''"><i class="fas fa-arrow-left"></i></button>
+      <div class="nav-title">主题设置</div>
+      <div class="nav-placeholder"></div>
+    </nav>
+    <main class="main-content">
+      <div>
+        <div class="section-title"><i class="fas fa-palette"></i> 选择主题</div>
+        <div class="theme-grid">
+          <div class="theme-card glass" data-theme="light">
+            <div class="theme-preview preview-light"><i class="fas fa-sun"></i></div>
+            <div class="theme-name">日间模式</div>
+            <div class="theme-desc">紫色渐变，清新优雅</div>
+          </div>
+          <div class="theme-card glass" data-theme="dark">
+            <div class="theme-preview preview-dark"><i class="fas fa-moon"></i></div>
+            <div class="theme-name">深色模式</div>
+            <div class="theme-desc">暗夜护眼，沉浸体验</div>
+          </div>
+          <div class="theme-card glass" data-theme="mint">
+            <div class="theme-preview preview-mint"><i class="fas fa-leaf"></i></div>
+            <div class="theme-name">薄荷绿</div>
+            <div class="theme-desc">清新绿调，自然舒适</div>
+          </div>
+        </div>
+      </div>
+      <div class="custom-section glass">
+        <div class="section-title"><i class="fas fa-sliders-h"></i> 自定义颜色</div>
+        <div class="color-grid">
+          <div class="color-item"><label>渐变起始色</label><input type="color" id="colorBgStart" value="#f3f0ff"></div>
+          <div class="color-item"><label>渐变结束色</label><input type="color" id="colorBgEnd" value="#e9e3f8"></div>
+          <div class="color-item"><label>主文字色</label><input type="color" id="colorTextPrimary" value="#333333"></div>
+          <div class="color-item"><label>次要文字色</label><input type="color" id="colorTextSecondary" value="#666666"></div>
+          <div class="color-item"><label>强调色</label><input type="color" id="colorAccent" value="#5a189a"></div>
+          <div class="color-item"><label>玻璃背景色</label><input type="color" id="colorGlassBg" value="#ffffff"></div>
+        </div>
+        <div class="btn-row">
+          <button class="save-btn" id="saveCustomBtn"><i class="fas fa-save"></i> 保存自定义主题</button>
+          <button class="reset-btn" id="resetThemeBtn"><i class="fas fa-undo"></i> 重置</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="themeToast"></div>
+</div>
+
+<!-- ==================== ABOUT PAGE ==================== -->
+<div id="about-page" class="page">
+  <div class="full-page-container">
+    <nav class="top-nav">
+      <button class="back-btn" onclick="location.hash=''"><i class="fas fa-arrow-left"></i></button>
+      <div class="nav-title">关于</div>
+      <div class="nav-placeholder"></div>
+    </nav>
+    <main class="main-content">
+      <div class="dev-card glass">
+        <div class="avatar-box"><img src="2.png" alt="开发者头像" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2290%22 height=%2290%22%3E%3Crect fill=%22%23ddd%22 width=%2290%22 height=%2290%22/%3E%3Ctext x=%2245%22 y=%2250%22 text-anchor=%22middle%22 fill=%22999%22 font-size=%2230%22%3E%E7%94%A8%3C/text%3E%3C/svg%3E'"></div>
+        <div class="dev-name">毕加昊、优优</div>
+        <div class="dev-desc">2024级9班 ｜ 独立开发者</div>
+        <a href="https://www.xn--fiq8jrnb7t1b.top" target="_blank" rel="noopener noreferrer" class="website-btn"><i class="fas fa-globe"></i> 访问个人官网</a>
+      </div>
+      <div class="collapse-wrapper">
+        <div class="collapse-item glass" id="devCollapse">
+          <div class="collapse-header">
+            <div class="collapse-title"><i class="fas fa-user-circle"></i> 关于开发者</div>
+            <i class="fas fa-chevron-down collapse-icon"></i>
+          </div>
+          <div class="collapse-content">
+            <div class="content-inner">
+              <p>您好！我是本校园社区的开发者毕加昊，专注于为孝泉师范学校的同学们打造便捷、友好的校园线上交流平台。</p>
+              <p>开发初衷是希望能为同学们提供一个自由交流、信息共享、互帮互助的校园专属空间，解决校园内信息分散、交流不便的问题。</p>
+              <p>如果你有任何功能建议、问题反馈，或是想一起完善这个项目，都可以通过校园内渠道或个人官网联系我。</p>
+              <p>感谢每一位同学的支持与包容，我会持续优化项目，给大家带来更好的使用体验。</p>
+            </div>
+          </div>
+        </div>
+        <div class="collapse-item glass" id="projectCollapse">
+          <div class="collapse-header">
+            <div class="collapse-title"><i class="fas fa-code"></i> 关于本项目</div>
+            <i class="fas fa-chevron-down collapse-icon"></i>
+          </div>
+          <div class="collapse-content">
+            <div class="content-inner">
+              <p>项目名称：孝泉师范学校学生社区</p>
+              <p>项目定位：校园专属的匿名/实名交流社区，聚焦校园生活、信息分享、同学互助。</p>
+              <p>核心功能：最新动态发布、热门内容排行、曝光挂人专区、帖子点赞评论、图片上传分享，后续会持续上线更多校园实用功能。</p>
+              <p>技术说明：项目前端采用HTML+CSS+JavaScript，后端采用原生PHP开发，无第三方框架，轻量高效。</p>
+              <p>温馨提示：本社区仅用于校园内正常交流，请大家遵守校规校纪与法律法规，文明发言，理性交流。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="page-footer">© 2026 孝泉师范学校学生社区 版权所有 | 开发者 <a href="https://www.xn--fiq8jrnb7t1b.top" target="_blank" rel="noopener noreferrer">毕加昊</a></footer>
+  </div>
+</div>
+
+<!-- ==================== TERMS PAGE ==================== -->
+<div id="terms-page" class="page">
+  <div class="full-page-container">
+    <nav class="top-nav">
+      <button class="back-btn" onclick="location.hash=''"><i class="fas fa-arrow-left"></i></button>
+      <div class="nav-title">条款与政策</div>
+      <div class="nav-placeholder"></div>
+    </nav>
+    <main class="main-content">
+      <div class="collapse-wrapper">
+        <div class="collapse-item" id="userAgreementCollapse">
+          <div class="collapse-header" tabindex="0" role="button" aria-expanded="false">
+            <div class="collapse-title"><i class="fas fa-file-contract"></i> 用户协议</div>
+            <i class="fas fa-chevron-down collapse-icon"></i>
+          </div>
+          <div class="collapse-content">
+            <div class="content-inner">
+              <h4>一、协议主体与适用范围</h4>
+              <p>1. 本平台为孝泉师范学校在校学生自发搭建的非官方校园交流社区，与孝泉师范学校官方无任何隶属、关联关系，平台所有内容与立场均不代表学校官方。</p>
+              <p>2. 本协议服务对象仅限孝泉师范学校在校学生，校外人员禁止注册、登录及使用本平台任何服务。</p>
+              <p>3. 本协议是您与平台运营方之间，关于本平台使用相关权利义务的约定。</p>
+              <h4>二、账号使用规范</h4>
+              <p>1. 您需凭本人真实在校学生相关信息完成注册，保证注册信息真实、准确、完整、有效，禁止冒用、盗用他人信息注册账号。</p>
+              <p>2. 您应对账号的安全与使用行为全权负责，不得将账号出借、出租、转让、售卖给他人使用。</p>
+              <h4>三、用户行为规范</h4>
+              <p>您在使用本平台过程中，必须严格遵守国家法律法规、学校校规校纪，以及社会公序良俗，不得实施以下行为：</p>
+              <ul>
+                <li>发布、传播违反宪法、法律法规、国家政策的内容；</li>
+                <li>发布、传播谣言、虚假信息，扰乱校园秩序与社会秩序；</li>
+                <li>发布、传播低俗、色情、暴力、恐怖、赌博、教唆犯罪的内容；</li>
+                <li>发布、传播侮辱、诽谤、骚扰、人肉搜索、泄露他人隐私等侵害他人合法权益的内容；</li>
+                <li>发布商业广告、微商推广、刷单返利、诈骗引流等营销或违法违规内容；</li>
+                <li>恶意刷屏、灌水、重复发布无关内容，干扰平台正常运营秩序；</li>
+                <li>实施破解、攻击平台服务器、篡改平台数据等危害网络安全的行为。</li>
+              </ul>
+              <h4>四、知识产权约定</h4>
+              <p>1. 您在本平台发布的原创内容，知识产权归您本人所有，您授予平台非独家、免费、全球范围内的使用权。</p>
+              <p>2. 您保证发布的内容不侵犯任何第三方的知识产权、肖像权、名誉权等合法权益。</p>
+              <h4>五、违规处理</h4>
+              <p>1. 平台有权对您发布的内容进行巡查审核，如发现您违反本协议约定，有权根据违规情节严重程度，采取包括但不限于内容删除、屏蔽、账号限制功能、短期封禁、永久封禁等处理措施。</p>
+              <p>2. 因您的违规行为给平台或第三方造成损失的，您应承担全部赔偿责任。</p>
+              <h4>六、服务的变更与终止</h4>
+              <p>1. 平台有权根据运营需求，对服务内容进行调整、升级、中断或终止，调整前将通过平台公告等方式告知。</p>
+              <p>2. 您有权随时停止使用本平台服务，也可联系运营方申请注销账号。</p>
+              <h4>七、其他条款</h4>
+              <p>1. 平台有权根据法律法规及运营需求修改本协议，修改后的协议将在平台内公示，公示后即生效。</p>
+              <p>2. 本协议未尽事宜，遵照国家相关法律法规执行。</p>
+            </div>
+          </div>
+        </div>
+        <div class="collapse-item" id="privacyPolicyCollapse">
+          <div class="collapse-header" tabindex="0" role="button" aria-expanded="false">
+            <div class="collapse-title"><i class="fas fa-user-shield"></i> 隐私政策</div>
+            <i class="fas fa-chevron-down collapse-icon"></i>
+          </div>
+          <div class="collapse-content">
+            <div class="content-inner">
+              <p>本隐私政策严格遵照《中华人民共和国个人信息保护法》《中华人民共和国网络安全法》等法律法规制定，我们将严格保护您的个人信息安全。</p>
+              <h4>一、信息收集范围与使用目的</h4>
+              <p>我们遵循「最小必要」原则，仅收集实现平台服务所必需的信息：</p>
+              <ul>
+                <li><strong>基础注册信息</strong>：您注册时提供的在校身份相关信息，仅用于身份核验；</li>
+                <li><strong>发布内容信息</strong>：您主动发布的帖子、评论、图片等内容，用于平台社区交流展示；</li>
+                <li><strong>设备与网络信息</strong>：您的设备型号、操作系统、IP地址、网络日志信息，仅用于平台安全防护、故障排查；</li>
+                <li><strong>操作行为信息</strong>：您在平台内的点击、浏览、互动记录，仅用于优化平台功能、提升用户体验。</li>
+              </ul>
+              <h4>二、信息存储与安全保护</h4>
+              <p>1. 您的个人信息全部存储于中华人民共和国境内，我们不会向境外传输、存储您的个人信息。</p>
+              <p>2. 我们采用行业通用的加密技术、访问控制、防火墙等安全技术措施，保护您的个人信息。</p>
+              <p>3. 我们将按照法律法规要求，设置合理的信息留存期限，超出留存期限后，我们将对您的个人信息进行删除或匿名化处理。</p>
+              <h4>三、信息的共享与披露</h4>
+              <p>我们郑重承诺：不会向任何第三方出售、出租、共享、泄露您的个人信息，以下情况除外：</p>
+              <ul>
+                <li>获得您本人明确、主动的授权同意；</li>
+                <li>根据法律法规、司法机关、行政机关的强制性要求必须提供；</li>
+                <li>为维护您的合法权益、社会公共利益所必需的情形。</li>
+              </ul>
+              <h4>四、您的个人信息权利</h4>
+              <p>您对自己的个人信息享有以下法定权利：</p>
+              <ul>
+                <li><strong>查阅、复制权</strong>：您有权查阅、复制我们存储的您的个人信息；</li>
+                <li><strong>更正、补充权</strong>：您发现您的个人信息有误、不完整的，有权要求我们更正、补充；</li>
+                <li><strong>删除权</strong>：您有权要求我们删除您发布的内容、账号相关的个人信息；</li>
+                <li><strong>注销权</strong>：您有权随时申请注销账号；</li>
+                <li><strong>撤回同意权</strong>：您有权撤回对本隐私政策的同意。</li>
+              </ul>
+              <h4>五、未成年人保护</h4>
+              <p>我们高度重视未成年人个人信息保护。若您是未成年人，应在监护人的指导、同意下使用本平台。</p>
+              <h4>六、政策变更与联系方式</h4>
+              <p>1. 我们有权根据法律法规及运营需求修改本隐私政策，修改后的政策将在平台内公示，公示后即生效。</p>
+              <p>2. 如您对本隐私政策有任何疑问、建议，或需要行使您的个人信息相关权利，可通过平台内的联系方式与我们取得联系。</p>
+            </div>
+          </div>
+        </div>
+        <div class="collapse-item" id="disclaimerCollapse">
+          <div class="collapse-header" tabindex="0" role="button" aria-expanded="false">
+            <div class="collapse-title"><i class="fas fa-exclamation-circle"></i> 免责条款</div>
+            <i class="fas fa-chevron-down collapse-icon"></i>
+          </div>
+          <div class="collapse-content">
+            <div class="content-inner">
+              <p>您在使用本平台前，请仔细阅读本免责条款，您使用本平台的行为，即视为您同意并接受本条款全部内容。</p>
+              <h4>一、平台性质免责</h4>
+              <p>1. 本平台为孝泉师范学校在校学生自发搭建的非官方校园社区，与孝泉师范学校官方无任何隶属、关联、授权关系，平台内所有内容、观点、行为均不代表学校官方立场。</p>
+              <p>2. 本平台仅为在校学生提供免费的信息发布、交流互动服务，无任何商业盈利行为，不构成任何形式的服务承诺与担保。</p>
+              <h4>二、内容相关免责</h4>
+              <p>1. 平台内所有用户发布的内容，仅代表发布者个人观点，不代表本平台立场。平台对用户发布内容的真实性、准确性、合法性、完整性不做任何明示或默示的担保。</p>
+              <p>2. 您因信赖平台内用户发布的内容而做出的任何判断、决策、行为，所产生的全部风险与损失由您自行承担。</p>
+              <h4>三、使用行为免责</h4>
+              <p>1. 您应对自己在平台内的所有操作行为、发布内容、互动交流承担全部法律责任。因您的行为给第三方或平台造成损失的，全部责任由您自行承担。</p>
+              <p>2. 平台不对您通过本平台与其他用户产生的交流、交易、线下互动等行为承担任何责任。</p>
+              <h4>四、服务稳定性免责</h4>
+              <p>1. 对于因服务器维护、设备故障、网络中断、黑客攻击、不可抗力等原因，导致平台服务中断、无法正常使用、数据丢失的，平台不承担任何赔偿责任。</p>
+              <p>2. 平台有权根据运营需求调整、中断、终止部分或全部服务，对此不承担任何责任。</p>
+              <h4>五、法律责任边界</h4>
+              <p>1. 本条款不免除平台因故意、重大过失造成用户合法权益损害的法定责任，也不排除法律法规的强制性规定。</p>
+              <p>2. 如您不同意本免责条款的任何内容，请您立即停止注册、使用本平台。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ==================== WIP PAGE ==================== -->
+<div id="wip-page" class="page">
+  <div class="container">
+    <div class="icon-box"><i class="fas fa-tools icon"></i></div>
+    <h1 class="title">功能暂未开发</h1>
+    <p class="desc">该功能正在紧急开发中，敬请期待～</p>
+    <button class="back-btn" onclick="history.back()">返回上一页</button>
+  </div>
+</div>
+
+<!-- ==================== ADMIN PAGE ==================== -->
+<div id="admin-page" class="page">
+  <div id="adminLoginSection" class="login-wrapper">
+    <div class="login-card glass">
+      <h2><i class="fas fa-user-shield"></i> 管理后台</h2>
+      <p>请输入管理密码以进行操作</p>
+      <div class="form-group">
+        <label for="adminPass">管理密码</label>
+        <input type="password" id="adminPass" placeholder="你来这里干什么？">
+      </div>
+      <button class="btn-primary" id="adminLoginBtn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+      <div class="msg" id="adminLoginMsg"></div>
+      <div style="margin-top:15px;"><a href="#" onclick="location.hash=''" style="color:#5a189a;font-size:.85rem;text-decoration:none;">← 返回前台</a></div>
+    </div>
+  </div>
+  <div id="adminManageSection" style="display:none;">
+    <header class="admin-header">
+      <div class="admin-logo"><i class="fas fa-user-shield"></i> 管理后台</div>
+      <div class="admin-header-actions">
+        <button class="header-btn secondary" onclick="showChangePassword()"><i class="fas fa-key"></i> <span>修改密码</span></button>
+        <button class="header-btn secondary" onclick="location.hash=''"><i class="fas fa-arrow-left"></i> <span>返回前台</span></button>
+        <button class="header-btn primary" onclick="doAdminLogout()"><i class="fas fa-sign-out-alt"></i> <span>退出</span></button>
+      </div>
+    </header>
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="sidebar-nav-item active" data-panel="stats"><i class="fas fa-chart-bar"></i> 数据统计</div>
+        <div class="sidebar-nav-item" data-panel="announcements"><i class="fas fa-bullhorn"></i> 公告管理</div>
+        <div class="sidebar-nav-item" data-panel="posts"><i class="fas fa-file-alt"></i> 内容管理</div>
+        <div class="sidebar-nav-item" data-panel="logs"><i class="fas fa-history"></i> 操作日志</div>
+      </aside>
+      <main class="admin-main">
+        <div class="admin-panel active" id="panel-stats">
+          <div class="panel-title"><i class="fas fa-chart-bar"></i> 数据统计</div>
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-card glass"><div class="stat-icon purple"><i class="fas fa-file-alt"></i></div><div class="stat-number" id="statPosts">-</div><div class="stat-label">总帖子数</div></div>
+            <div class="stat-card glass"><div class="stat-icon blue"><i class="fas fa-comments"></i></div><div class="stat-number" id="statComments">-</div><div class="stat-label">总评论数</div></div>
+            <div class="stat-card glass"><div class="stat-icon orange"><i class="fas fa-eye"></i></div><div class="stat-number" id="statViews">-</div><div class="stat-label">总浏览量</div></div>
+            <div class="stat-card glass"><div class="stat-icon green"><i class="fas fa-heart"></i></div><div class="stat-number" id="statLikes">-</div><div class="stat-label">总点赞数</div></div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card glass"><div class="stat-icon purple"><i class="fas fa-plus-circle"></i></div><div class="stat-number" id="statTodayPosts">-</div><div class="stat-label">今日发布</div></div>
+            <div class="stat-card glass"><div class="stat-icon orange"><i class="fas fa-eye"></i></div><div class="stat-number" id="statTodayViews">-</div><div class="stat-label">今日浏览</div></div>
+          </div>
+        </div>
+        <div class="admin-panel" id="panel-announcements">
+          <div class="panel-title"><i class="fas fa-bullhorn"></i> 公告管理</div>
+          <div class="toolbar">
+            <div class="toolbar-left"></div>
+            <button class="btn-primary" style="width:auto;padding:10px 20px;" onclick="showCreateAnnouncement()"><i class="fas fa-plus"></i> 新建公告</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>标题</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+              <tbody id="annTableBody"><tr><td colspan="4" class="empty-table">加载中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="admin-panel" id="panel-posts">
+          <div class="panel-title"><i class="fas fa-file-alt"></i> 内容管理</div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>作者</th><th>内容</th><th>浏览</th><th>点赞</th><th>评论</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+              <tbody id="postTableBody"><tr><td colspan="8" class="empty-table">加载中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="admin-panel" id="panel-logs">
+          <div class="panel-title"><i class="fas fa-history"></i> 操作日志</div>
+          <div class="table-wrapper"><div id="logContainer"><div class="log-item"><span class="log-time">加载中...</span></div></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div class="modal-overlay" id="adminModalOverlay">
+    <div class="modal-box glass" id="adminModalBox">
+      <button class="modal-close" onclick="closeAdminModal()"><i class="fas fa-times"></i></button>
+      <div id="adminModalContent"></div>
+    </div>
+  </div>
+</div>
+<script>
+// ==================== 模拟 API 层 ====================
+const DB = {
+  get:(k,def='')=>{try{return JSON.parse(localStorage.getItem(k))||def}catch(e){return def}},
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),
+  ls:(k)=>{try{const r=localStorage.getItem(k);return r?r.split('\n').filter(Boolean):[]}catch(e){return[]}},
+  append:(k,v)=>{const c=localStorage.getItem(k)||'';localStorage.setItem(k,c?c+'\n'+v:v)}
+};
+const API = {
+  posts:()=>DB.get('community_posts',[]),
+  savePosts:(d)=>DB.set('community_posts',d),
+  comments:()=>DB.get('community_comments',[]),
+  saveComments:(d)=>DB.set('community_comments',d),
+  likes:()=>DB.get('community_likes',[]),
+  saveLikes:(d)=>DB.set('community_likes',d),
+  anns:()=>DB.get('community_announcements',[]),
+  saveAnns:(d)=>DB.set('community_announcements',d),
+  logs:()=>DB.get('community_logs',[]),
+  saveLogs:(d)=>DB.set('community_logs',d),
+  pass:()=>DB.get('community_password','lhnb081216'),
+  savePass:(p)=>DB.set('community_password',p),
+  hide:()=>DB.get('community_hide_announce',[]),
+  saveHide:(d)=>DB.set('community_hide_announce',d),
+  daily:()=>{const k='community_daily_'+new Date().toISOString().slice(0,10);return DB.get(k,{posts:0,views:0})},
+  saveDaily:(v)=>{const k='community_daily_'+new Date().toISOString().slice(0,10);DB.set(k,v)}
+};
+function writeLog(action,detail=''){
+  const logs=API.logs();logs.push({time:new Date().toLocaleString('zh-CN'),ip:'127.0.0.1',action,detail});API.saveLogs(logs);
+}
+function mockFetch(url,opts={}){
+  const u=new URL(url,'http://localhost');const act=u.searchParams.get('action');
+  return new Promise((resolve)=>{
+    setTimeout(()=>{
+      let res={success:false,message:'未知错误'};
+      if(act==='get'){
+        let type=u.searchParams.get('type')||'latest',page=parseInt(u.searchParams.get('page')||1),ps=parseInt(u.searchParams.get('pageSize')||10);
+        let posts=API.posts().filter(p=>p.is_active!==false);
+        if(type==='hot')posts.sort((a,b)=>(b.view_count||0)-(a.view_count||0)||b.timestamp-a.timestamp);
+        else if(type==='expose')posts=posts.filter(p=>p.category==='挂人').sort((a,b)=>b.timestamp-a.timestamp);
+        else posts.sort((a,b)=>b.timestamp-a.timestamp);
+        const total=posts.length,offset=(page-1)*ps,paginated=posts.slice(offset,offset+ps);
+        res={success:true,posts:paginated,pagination:{total,current_page:page,page_size:ps,has_more:(offset+ps)<total}};
+      }
+      else if(act==='post'){
+        const fd=opts.body;if(fd instanceof FormData){
+          const author=(fd.get('author')||'匿名用户').toString().trim()||'匿名用户';
+          const content=(fd.get('content')||'').toString().trim();
+          const category=(fd.get('category')||'普通').toString();
+          if(!content){res={success:false,message:'发布内容不能为空'};}
+          else{
+            const post={id:'p_'+Date.now(),author,content,category,image:'',view_count:0,like_count:0,comment_count:0,is_active:true,timestamp:Date.now(),ip:'127.0.0.1'};
+            API.savePosts([post,...API.posts()]);
+            const d=API.daily();d.posts++;API.saveDaily(d);
+            res={success:true,message:'发布成功！'};
+          }
+        }
+      }
+      else if(act==='get_post'){
+        const pid=u.searchParams.get('post_id');const p=API.posts().find(x=>x.id===pid);
+        if(p){p.view_count=(p.view_count||0)+1;API.savePosts(API.posts());res={success:true,post:p};}
+        else res={success:false,message:'帖子不存在'};
+      }
+      else if(act==='increment_view'){
+        const pid=u.searchParams.get('post_id');const posts=API.posts();const p=posts.find(x=>x.id===pid);
+        if(p){p.view_count=(p.view_count||0)+1;API.savePosts(posts);res={success:true,post:p};}
+        else res={success:false,message:'帖子不存在'};
+      }
+      else if(act==='like'){
+        const body=JSON.parse(opts.body||'{}');const pid=body.id;const userIp='127.0.0.1';const key=pid+'|'+userIp;
+        const likes=API.likes();if(likes.includes(key)){res={success:false,message:'您已经点赞过啦'};}
+        else{const posts=API.posts();const p=posts.find(x=>x.id===pid);if(p){p.like_count=(p.like_count||0)+1;API.savePosts(posts);likes.push(key);API.saveLikes(likes);res={success:true,message:'点赞成功',like_count:p.like_count};}else res={success:false,message:'帖子不存在'};}
+      }
+      else if(act==='check_like'){
+        const pid=u.searchParams.get('post_id');const userIp='127.0.0.1';res={success:true,is_liked:API.likes().includes(pid+'|'+userIp)};
+      }
+      else if(act==='comment'){
+        const body=JSON.parse(opts.body||'{}');const post_id=body.post_id,author=(body.author||'匿名用户').toString().trim()||'匿名用户',content=(body.content||'').toString().trim();
+        if(!post_id||!content)res={success:false,message:'评论内容不能为空'};
+        else{
+          const c={id:'c_'+Date.now(),post_id,author,content,timestamp:Date.now(),ip:'127.0.0.1'};
+          API.saveComments([c,...API.comments()]);
+          const posts=API.posts();const p=posts.find(x=>x.id===post_id);if(p){p.comment_count=(p.comment_count||0)+1;API.savePosts(posts);}
+          res={success:true,message:'评论发布成功',comment:c,comment_count:p?p.comment_count:0};
+        }
+      }
+      else if(act==='get_comments'){
+        const pid=u.searchParams.get('post_id');const cs=API.comments().filter(c=>c.post_id===pid).sort((a,b)=>b.timestamp-a.timestamp);
+        res={success:true,comments:cs,total:cs.length};
+      }
+      else if(act==='delete'){
+        const body=JSON.parse(opts.body||'{}');const pid=body.id,pwd=body.password;
+        if(API.pass()!==pwd)res={success:false,message:'管理密码错误'};
+        else{API.savePosts(API.posts().filter(p=>p.id!==pid));writeLog('删除帖子','ID: '+pid);res={success:true,message:'删除成功'};}
+      }
+      else if(act==='admin_login'){
+        const body=JSON.parse(opts.body||'{}');if(API.pass()===body.password){writeLog('管理员登录','登录成功');res={success:true,message:'登录成功'};}else res={success:false,message:'密码错误'};
+      }
+      else if(act==='admin_change_password'){
+        const body=JSON.parse(opts.body||'{}}');if(API.pass()!==body.old_password)res={success:false,message:'原密码错误'};
+        else if((body.new_password||'').length<6)res={success:false,message:'新密码至少6位'};
+        else{API.savePass(body.new_password);writeLog('修改密码','密码已修改');res={success:true,message:'密码修改成功'};}
+      }
+      else if(act==='admin_stats'){
+        const posts=API.posts(),comments=API.comments();let tv=0,tl=0;posts.forEach(p=>{tv+=p.view_count||0;tl+=p.like_count||0;});
+        const d=API.daily();res={success:true,stats:{total_posts:posts.length,total_comments:comments.length,total_views:tv,total_likes:tl,today_posts:d.posts,today_views:d.views}};
+      }
+      else if(act==='admin_logs'){
+        res={success:true,logs:API.logs().slice().reverse().slice(0,50)};
+      }
+      else if(act==='admin_toggle_post'){
+        const body=JSON.parse(opts.body||'{}');const posts=API.posts();const p=posts.find(x=>x.id===body.id);
+        if(p){p.is_active=!p.is_active;API.savePosts(posts);writeLog(p.is_active?'上架帖子':'下架帖子','ID: '+body.id);res={success:true,message:'操作成功'};}
+        else res={success:false,message:'帖子不存在'};
+      }
+      else if(act==='admin_get_all_posts'){
+        res={success:true,posts:API.posts().sort((a,b)=>b.timestamp-a.timestamp)};
+      }
+      else if(act==='announcement_list'){
+        let list=API.anns();const now=Date.now();
+        list=list.filter(a=>{if(a.expire_at&&a.expire_at<now&&a.is_active)a.is_active=false;return true;});
+        API.saveAnns(list);
+        list.sort((a,b)=>(b.is_pinned?1:0)-(a.is_pinned?1:0)||b.created_at-a.created_at);
+        res={success:true,list,pagination:{total:list.length,has_more:false}};
+      }
+      else if(act==='announcement_create'){
+        const body=JSON.parse(opts.body||'{}');const title=(body.title||'').trim(),content=(body.content||'').trim();
+        if(!title||!content)res={success:false,message:'标题和内容不能为空'};
+        else{
+          if(body.is_pinned){const aa=API.anns();aa.forEach(a=>a.is_pinned=false);API.saveAnns(aa);}
+          const ann={id:'a_'+Date.now(),title,content,author:body.author||'管理员',is_pinned:!!body.is_pinned,is_active:true,created_at:Date.now(),updated_at:Date.now(),publish_at:body.publish_at>0?body.publish_at:Date.now(),expire_at:body.expire_at||0};
+          API.saveAnns([ann,...API.anns()]);writeLog('创建公告','标题: '+title);res={success:true,message:'公告创建成功',announcement:ann};
+        }
+      }
+      else if(act==='announcement_update'){
+        const body=JSON.parse(opts.body||'{}');const anns=API.anns();const a=anns.find(x=>x.id===body.id);
+        if(!a)res={success:false,message:'公告不存在'};
+        else{if(body.title)a.title=body.title.trim();if(body.content)a.content=body.content.trim();if(body.publish_at)a.publish_at=body.publish_at;if(body.expire_at)a.expire_at=body.expire_at;a.updated_at=Date.now();API.saveAnns(anns);writeLog('编辑公告','ID: '+body.id);res={success:true,message:'公告更新成功'};}
+      }
+      else if(act==='announcement_delete'){
+        const body=JSON.parse(opts.body||'{}');API.saveAnns(API.anns().filter(a=>a.id!==body.id));writeLog('删除公告','ID: '+body.id);res={success:true,message:'公告删除成功'};
+      }
+      else if(act==='announcement_pin'){
+        const body=JSON.parse(opts.body||'{}');const anns=API.anns();const a=anns.find(x=>x.id===body.id);
+        if(!a)res={success:false,message:'公告不存在'};
+        else{anns.forEach(x=>{if(x.id===body.id)x.is_pinned=!x.is_pinned;else x.is_pinned=false;});API.saveAnns(anns);writeLog(a.is_pinned?'置顶':'取消置顶','公告ID: '+body.id);res={success:true,message:'操作成功'};}
+      }
+      else if(act==='announcement_toggle'){
+        const body=JSON.parse(opts.body||'{}');const anns=API.anns();const a=anns.find(x=>x.id===body.id);
+        if(!a)res={success:false,message:'公告不存在'};
+        else{a.is_active=!a.is_active;a.updated_at=Date.now();API.saveAnns(anns);writeLog(a.is_active?'上架':'下架','公告ID: '+body.id);res={success:true,message:'操作成功'};}
+      }
+      else if(act==='announcement_pinned'){
+        const now=Date.now();const a=API.anns().find(x=>x.is_pinned&&x.is_active&&(!x.publish_at||x.publish_at<=now)&&(!x.expire_at||x.expire_at>now));
+        if(a)res={success:true,announcement:a};else res={success:false,message:'暂无置顶公告'};
+      }
+      else if(act==='announcement_check_hide'){
+        const ip='127.0.0.1';const h=API.hide();const now=Date.now();
+        const isHidden=h.some(x=>x.ip===ip&&x.expire_at>now);
+        res={success:true,is_hidden:isHidden};
+      }
+      else if(act==='announcement_set_hide'){
+        const ip='127.0.0.1';const now=Date.now();let h=API.hide().filter(x=>x.expire_at>now&&x.ip!==ip);
+        h.push({ip,expire_at:now+86400000,created_at:now});API.saveHide(h);res={success:true,message:'已设置24小时内不再显示'};
+      }
+      resolve({json:()=>Promise.resolve(res)});
+    },100+Math.random()*200);
+  });
+}
+
+// ==================== 路由系统 ====================
+const Router = {
+  current:'',
+  go:(hash)=>{
+    const h=hash.replace('#','')||'/';
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    if(h==='/'||h===''){document.getElementById('index-page').classList.add('active');initIndex();}
+    else if(h.startsWith('/detail')){document.getElementById('detail-page').classList.add('active');initDetail(new URLSearchParams(h.split('?')[1]).get('id'));}
+    else if(h==='/announcements'){document.getElementById('announcement-page').classList.add('active');initAnnouncements();}
+    else if(h==='/theme'){document.getElementById('theme-page').classList.add('active');initTheme();}
+    else if(h==='/about'){document.getElementById('about-page').classList.add('active');initAbout();}
+    else if(h==='/terms'){document.getElementById('terms-page').classList.add('active');initTerms();}
+    else if(h==='/wip'){document.getElementById('wip-page').classList.add('active');}
+    else if(h==='/admin'){document.getElementById('admin-page').classList.add('active');initAdmin();}
+    window.scrollTo(0,0);
+  }
+};
+window.addEventListener('hashchange',()=>Router.go(location.hash));
+// ==================== Index 页逻辑 ====================
+let adminPassCache='';
+function initIndex(){
+  const sidebar=document.getElementById('fixedSidebar'),toggle=document.getElementById('sidebarToggleBtn'),main=document.getElementById('mainContainer');
+  if(toggle){toggle.onclick=()=>{const isMobile=window.innerWidth<=768;if(isMobile)sidebar.classList.toggle('show');else{sidebar.classList.toggle('hidden');document.getElementById('index-page').classList.toggle('sidebar-hidden');}syncDim();}};}
+  function syncDim(){const open=window.innerWidth<=768?sidebar.classList.contains('show'):!sidebar.classList.contains('hidden');main.classList.toggle('dimmed',open);}
+  if(main){main.onclick=(e)=>{if(main.classList.contains('dimmed')){if(window.innerWidth<=768)sidebar.classList.remove('show');else{sidebar.classList.add('hidden');document.getElementById('index-page').classList.add('sidebar-hidden');}main.classList.remove('dimmed');}};}
+  // 发布模态框
+  const pubBtn=document.getElementById('publishBtn'),pubModal=document.getElementById('publishModal'),closePub=document.getElementById('closeModalBtn');
+  pubBtn.onclick=()=>{pubModal.classList.add('show');document.body.style.overflow='hidden';};
+  closePub.onclick=()=>{pubModal.classList.remove('show');document.body.style.overflow='';};
+  pubModal.onclick=(e)=>{if(e.target===pubModal){pubModal.classList.remove('show');document.body.style.overflow='';}};
+  // 发布表单
+  const postForm=document.getElementById('postForm'),contentInp=document.getElementById('content'),contentCount=document.getElementById('contentCount');
+  const uploadTrigger=document.getElementById('uploadTrigger'),postImage=document.getElementById('postImage'),imagePreview=document.getElementById('imagePreview'),previewImg=document.getElementById('previewImg'),removeImgBtn=document.getElementById('removeImgBtn');
+  uploadTrigger.onclick=()=>postImage.click();
+  postImage.onchange=(e)=>{const f=e.target.files[0];if(!f)return;if(f.size>2*1024*1024){showFormMsg('图片大小不能超过2MB','error');postImage.value='';return;}if(!f.type.startsWith('image/')){showFormMsg('仅支持图片格式','error');postImage.value='';return;}const r=new FileReader();r.onload=(ev)=>{previewImg.src=ev.target.result;imagePreview.style.display='block';uploadTrigger.style.display='none';};r.readAsDataURL(f);};
+  removeImgBtn.onclick=()=>{postImage.value='';previewImg.src='';imagePreview.style.display='none';uploadTrigger.style.display='flex';};
+  contentInp.oninput=()=>{const len=contentInp.value.length;contentCount.textContent=len+'/50';contentCount.classList.toggle('overflow',len>50);};
+  postForm.onsubmit=async(e)=>{e.preventDefault();const btn=document.getElementById('submitPostBtn');const content=contentInp.value.trim();if(!content){showFormMsg('发布内容不能为空','error');return;}if(content.length>50){showFormMsg('输入内容超出字数限制','error');return;}
+    const sensitive=['ai','AI','垃圾','乐子'];if(sensitive.some(w=>content.toLowerCase().includes(w.toLowerCase()))){showFormMsg('内容包含违规信息','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> 发布中...';showFormMsg('','');
+    const fd=new FormData(postForm);
+    const r=await mockFetch('api.php?action=post',{method:'POST',body:fd}).then(x=>x.json());
+    if(r.success){showFormMsg(r.message,'success');postForm.reset();contentCount.textContent='0/50';postImage.value='';previewImg.src='';imagePreview.style.display='none';uploadTrigger.style.display='flex';setTimeout(()=>{pubModal.classList.remove('show');document.body.style.overflow='';showFormMsg('','');refreshPostsList('latest');},800);}
+    else{showFormMsg(r.message,'error');}
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> 立即发布';
+  };
+  function showFormMsg(msg,type){const el=document.getElementById('formMsg');el.textContent=msg;el.className='msg '+(type||'');}
+  // 标签切换
+  document.querySelectorAll('.tab-item').forEach(tab=>{tab.onclick=function(){document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));this.classList.add('active');refreshPostsList(this.dataset.type);};});
+  // 加载帖子
+  window.paginationState={currentPage:1,pageSize:10,currentType:'latest',isLoading:false,hasMore:true};
+  window.refreshPostsList=async(type='latest',isLoadMore=false)=>{
+    const postsList=document.getElementById('posts-list'),statusContainer=document.getElementById('fixedStatusContainer'),statusContent=statusContainer.querySelector('.status-content');
+    if(window.paginationState.isLoading)return;window.paginationState.isLoading=true;
+    if(!isLoadMore){window.paginationState.currentPage=1;window.paginationState.currentType=type;window.paginationState.hasMore=true;postsList.innerHTML='';statusContainer.style.display='flex';statusContent.innerHTML='<div class=\"loading\"><i class=\"fas fa-spinner fa-spin\"></i> 正在加载内容...</div>';document.body.classList.add('scroll-locked');}
+    const{currentPage,pageSize,currentType}=window.paginationState;
+    const data=await mockFetch(`api.php?action=get&type=${currentType}&page=${currentPage}&pageSize=${pageSize}`).then(x=>x.json());
+    if(data.success){
+      const{posts,pagination}=data;window.paginationState.hasMore=pagination.has_more;
+      if(!isLoadMore){if(posts.length>0){statusContainer.style.display='none';document.body.classList.remove('scroll-locked');}else{statusContent.innerHTML='<div class=\"no-posts\">该板块无内容...</div>';document.body.classList.add('scroll-locked');window.paginationState.isLoading=false;return;}}
+      let html='';posts.forEach(post=>{const date=new Date(post.timestamp).toLocaleString('zh-CN');html+=`<div class=\"post-item\" onclick=\"location.hash='#/detail?id=${post.id}'\"><div class=\"post-header\"><span class=\"post-author\"><i class=\"fas fa-user\"></i> ${post.author}</span></div><div class=\"post-content\">${post.content}</div><div class=\"post-footer\"><span class=\"post-time\"><i class=\"far fa-clock\"></i> ${date}</span><div class=\"post-meta\"><span class=\"meta-item\"><i class=\"far fa-eye\"></i> ${post.view_count||0}</span><span class=\"meta-item\"><i class=\"far fa-thumbs-up\"></i> ${post.like_count||0}</span><span class=\"meta-item\"><i class=\"far fa-comment\"></i> ${post.comment_count||0}</span></div></div></div>`;});
+      if(isLoadMore)postsList.innerHTML+=html;else postsList.innerHTML=html;
+      const noMore=document.getElementById('no-more-tip');if(!pagination.has_more&&pagination.total>0){if(!noMore)postsList.innerHTML+='<div id=\"no-more-tip\">没有更多内容了</div>';}else if(noMore)noMore.remove();
+    }else{if(!isLoadMore){statusContent.innerHTML='<div class=\"error\">加载失败，请稍后刷新。</div>';document.body.classList.add('scroll-locked');}}
+    window.paginationState.isLoading=false;
+  };
+  refreshPostsList('latest');
+  // 无限滚动
+  window.onscroll=()=>{const{isLoading,hasMore}=window.paginationState;if(isLoading||!hasMore)return;const st=document.documentElement.scrollTop||document.body.scrollTop,sh=document.documentElement.scrollHeight||document.body.scrollHeight,ch=document.documentElement.clientHeight||window.innerHeight;if(st+ch>=sh-50){window.paginationState.currentPage++;refreshPostsList(window.paginationState.currentType,true);}};
+  // 运行时间
+  const startTime=new Date('2026-04-18T00:00:00').getTime();
+  function updateRuntime(){const diff=Date.now()-startTime;const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);document.getElementById('runtimeCount').innerHTML=`<i class=\"fas fa-heartbeat\"></i> 站点已稳定运行${d}天${h}小时${m}分${s}秒`;}
+  setInterval(updateRuntime,1000);updateRuntime();
+  // 页脚
+  document.getElementById('footerToggleBtn').onclick=()=>{const extra=document.getElementById('footerExtra'),icon=document.querySelector('#footerToggleBtn i');extra.classList.toggle('collapsed');icon.className=extra.classList.contains('collapsed')?'fas fa-ellipsis-h':'fas fa-chevron-up';};
+  // 置顶公告
+  async function checkPinned(){try{const h=await mockFetch('api.php?action=announcement_check_hide').then(x=>x.json());if(h.success&&h.is_hidden)return;const a=await mockFetch('api.php?action=announcement_pinned').then(x=>x.json());if(a.success&&a.announcement){document.getElementById('pinnedTitle').textContent=a.announcement.title;document.getElementById('pinnedBody').textContent=a.announcement.content;document.getElementById('pinnedModal').classList.add('show');}}catch(e){}}
+  document.getElementById('pinnedHideBtn').onclick=async()=>{await mockFetch('api.php?action=announcement_set_hide');document.getElementById('pinnedModal').classList.remove('show');};
+  document.getElementById('pinnedDismissBtn').onclick=()=>{document.getElementById('pinnedModal').classList.remove('show');};
+  document.getElementById('pinnedModal').onclick=(e)=>{if(e.target.id==='pinnedModal')document.getElementById('pinnedModal').classList.remove('show');};
+  checkPinned();
+}
+
+// ==================== Detail 页逻辑 ====================
+async function initDetail(postId){
+  const container=document.getElementById('detailContainer'),empty=document.getElementById('detailEmpty'),wrapper=document.getElementById('detailWrapper');
+  if(!postId){empty.style.display='flex';wrapper.style.display='none';return;}
+  const data=await mockFetch(`api.php?action=get_post&post_id=${postId}`).then(x=>x.json());
+  if(!data.success||!data.post){empty.style.display='flex';wrapper.style.display='none';return;}
+  empty.style.display='none';wrapper.style.display='block';
+  const p=data.post;
+  document.getElementById('d-author').textContent=p.author;
+  document.getElementById('d-time').textContent=new Date(p.timestamp).toLocaleString('zh-CN');
+  document.getElementById('d-views').textContent=p.view_count||0;
+  document.getElementById('d-content').textContent=p.content;
+  document.getElementById('d-likes').textContent=p.like_count||0;
+  document.getElementById('d-commentCount').textContent=p.comment_count||0;
+  document.getElementById('c-post-id').value=p.id;
+  const imgBox=document.getElementById('d-image-box'),img=document.getElementById('d-image');
+  if(p.image){img.src=p.image;imgBox.style.display='block';}else{imgBox.style.display='none';}
+  // 点赞
+  const likeBtn=document.getElementById('d-likeBtn');
+  const lk=await mockFetch(`api.php?action=check_like&post_id=${postId}`).then(x=>x.json());
+  if(lk.success&&lk.is_liked)likeBtn.classList.add('active');
+  likeBtn.onclick=async()=>{if(likeBtn.classList.contains('active'))return;likeBtn.disabled=true;const r=await mockFetch('api.php?action=like',{method:'POST',body:JSON.stringify({id:postId})}).then(x=>x.json());if(r.success){likeBtn.classList.add('active');document.getElementById('d-likes').textContent=r.like_count;}else if(r.message.includes('已经点赞过'))likeBtn.classList.add('active');likeBtn.disabled=false;};
+  // 评论
+  const toggleBtn=document.getElementById('commentToggleBtn'),cfw=document.getElementById('commentFormWrapper');
+  toggleBtn.onclick=()=>{const open=cfw.classList.contains('show');if(open){cfw.classList.remove('show');toggleBtn.innerHTML='<i class=\"fas fa-pen\"></i><span>发表评论</span>';}else{cfw.classList.add('show');toggleBtn.innerHTML='<i class=\"fas fa-chevron-up\"></i><span>收起评论框</span>';setTimeout(()=>document.getElementById('c-content').focus(),100);}};
+  document.getElementById('c-submit').onclick=async(e)=>{e.preventDefault();const btn=document.getElementById('c-submit'),msg=document.getElementById('c-msg');const author=document.getElementById('c-author').value.trim()||'匿名用户',content=document.getElementById('c-content').value.trim();if(!content){msg.className='form-msg error';msg.textContent='评论内容不能为空';return;}btn.disabled=true;btn.textContent='发布中...';msg.className='form-msg';msg.textContent='';
+    const r=await mockFetch('api.php?action=comment',{method:'POST',body:JSON.stringify({post_id:postId,author,content})}).then(x=>x.json());
+    if(r.success){msg.className='form-msg success';msg.textContent=r.message;document.getElementById('c-content').value='';loadComments(postId);document.getElementById('d-commentCount').textContent=r.comment_count||0;document.getElementById('c-total').textContent=r.comment_count||0;setTimeout(()=>msg.textContent='',1500);}else{msg.className='form-msg error';msg.textContent=r.message;}
+    btn.disabled=false;btn.textContent='发布评论';
+  };
+  async function loadComments(pid){const r=await mockFetch(`api.php?action=get_comments&post_id=${pid}`).then(x=>x.json());const list=document.getElementById('commentList');if(r.success&&r.comments.length>0){let html='';r.comments.forEach(c=>{const date=new Date(c.timestamp).toLocaleString('zh-CN');html+=`<div class=\"comment-item\"><div class=\"comment-header\"><span class=\"comment-author\"><i class=\"fas fa-user-circle\"></i> ${c.author}</span><span class=\"comment-time\"><i class=\"far fa-clock\"></i> ${date}</span></div><div class=\"comment-content\">${c.content}</div></div>`;});list.innerHTML=html;}else{list.innerHTML='<div class=\"empty-comment\">暂无评论，快来抢沙发吧！</div>';}document.getElementById('c-total').textContent=r.total||0;}
+  loadComments(postId);
+}
+
+// ==================== 公告页逻辑 ====================
+async function initAnnouncements(){
+  const container=document.getElementById('announcementList');container.innerHTML='<div class=\"loading-state\"><i class=\"fas fa-spinner fa-spin\"></i> 正在加载公告...</div>';
+  const data=await mockFetch('api.php?action=announcement_list&active_only=1').then(x=>x.json());
+  if(!data.success||!data.list||data.list.length===0){container.innerHTML='<div class=\"empty-state\"><i class=\"fas fa-bullhorn\"></i><p>暂无公告</p></div>';return;}
+  container.innerHTML='';data.list.forEach(ann=>{const card=document.createElement('div');card.className='announcement-card glass'+(ann.is_pinned?' pinned':'');card.innerHTML=`<div class=\"card-header\">${ann.is_pinned?'<span class=\"pin-badge\"><i class=\"fas fa-thumbtack\"></i> 置顶</span>':''}<div class=\"card-title\">${ann.title}</div></div><div class=\"card-content\">${ann.content}</div><div class=\"card-footer\"><span class=\"card-author\"><i class=\"fas fa-user-shield\"></i> ${ann.author}</span><span><i class=\"far fa-clock\"></i> ${new Date(ann.created_at).toLocaleString('zh-CN')}</span></div>`;card.onclick=()=>{document.getElementById('annDetailTitle').textContent=ann.title;document.getElementById('annDetailMeta').innerHTML=`<span><i class=\"fas fa-user-shield\"></i> ${ann.author}</span><span><i class=\"far fa-clock\"></i> ${new Date(ann.created_at).toLocaleString('zh-CN')}</span>${ann.expire_at?'<span><i class=\"far fa-hourglass\"></i> 有效期至 '+new Date(ann.expire_at).toLocaleString('zh-CN')+'</span>':''}`;document.getElementById('annDetailBody').textContent=ann.content;document.getElementById('annDetailModal').classList.add('show');};container.appendChild(card);});
+  document.getElementById('annDetailModal').onclick=(e)=>{if(e.target.id==='annDetailModal')document.getElementById('annDetailModal').classList.remove('show');};
+}
+
+// ==================== 主题页逻辑 ====================
+function initTheme(){
+  const themes={light:{'--bg-gradient-start':'#f3f0ff','--bg-gradient-end':'#e9e3f8','--text-primary':'#333','--text-secondary':'#666','--accent':'#5a189a','--accent-light':'rgba(90,24,154,0.1)','--glass-bg':'rgba(255,255,255,0.85)','--glass-border':'rgba(255,255,255,0.3)','--shadow-color':'rgba(90,24,154,0.08)','--card-bg':'rgba(255,255,255,0.6)'},dark:{'--bg-gradient-start':'#1a1a2e','--bg-gradient-end':'#16213e','--text-primary':'#e0e0e0','--text-secondary':'#aaa','--accent':'#bb86fc','--accent-light':'rgba(187,134,252,0.15)','--glass-bg':'rgba(30,30,60,0.85)','--glass-border':'rgba(255,255,255,0.1)','--shadow-color':'rgba(0,0,0,0.3)','--card-bg':'rgba(30,30,60,0.6)'},mint:{'--bg-gradient-start':'#e8f5e9','--bg-gradient-end':'#c8e6c9','--text-primary':'#2e7d32','--text-secondary':'#558b2f','--accent':'#2e7d32','--accent-light':'rgba(46,125,50,0.1)','--glass-bg':'rgba(255,255,255,0.85)','--glass-border':'rgba(255,255,255,0.4)','--shadow-color':'rgba(46,125,50,0.08)','--card-bg':'rgba(255,255,255,0.6)'}};
+  function applyTheme(name){const t=themes[name];if(!t)return;Object.entries(t).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));if(name==='light')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',name);document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('active'));document.querySelector(`[data-theme="${name}"]`)?.classList.add('active');}
+  function showToast(msg){const t=document.getElementById('themeToast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+  document.querySelectorAll('.theme-card').forEach(card=>{card.onclick=()=>{const name=card.dataset.theme;localStorage.setItem('community_theme',JSON.stringify({name}));applyTheme(name);showToast('主题已保存！');};});
+  document.getElementById('saveCustomBtn').onclick=()=>{const custom={name:'custom',vars:{'--bg-gradient-start':document.getElementById('colorBgStart').value,'--bg-gradient-end':document.getElementById('colorBgEnd').value,'--text-primary':document.getElementById('colorTextPrimary').value,'--text-secondary':document.getElementById('colorTextSecondary').value,'--accent':document.getElementById('colorAccent').value,'--accent-light':document.getElementById('colorAccent').value+'1a','--glass-bg':'rgba(255,255,255,0.85)','--glass-border':'rgba(255,255,255,0.3)','--shadow-color':document.getElementById('colorAccent').value+'14','--card-bg':'rgba(255,255,255,0.6)'}};Object.entries(custom.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));document.documentElement.removeAttribute('data-theme');localStorage.setItem('community_theme',JSON.stringify(custom));document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('active'));showToast('自定义主题已保存！');};
+  document.getElementById('resetThemeBtn').onclick=()=>{localStorage.removeItem('community_theme');applyTheme('light');showToast('已重置为默认主题');};
+  ['colorBgStart','colorBgEnd','colorTextPrimary','colorTextSecondary','colorAccent'].forEach(id=>{document.getElementById(id).oninput=function(){const map={'colorBgStart':'--bg-gradient-start','colorBgEnd':'--bg-gradient-end','colorTextPrimary':'--text-primary','colorTextSecondary':'--text-secondary','colorAccent':'--accent'};document.documentElement.style.setProperty(map[this.id],this.value);};});
+  const saved=localStorage.getItem('community_theme');if(saved){try{const s=JSON.parse(saved);if(s.name==='custom'&&s.vars){Object.entries(s.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));}else{applyTheme(s.name||'light');}}catch(e){applyTheme('light');}}else{applyTheme('light');}
+}
+
+// ==================== 关于页逻辑 ====================
+function initAbout(){
+  document.querySelectorAll('#about-page .collapse-item').forEach(item=>{
+    const header=item.querySelector('.collapse-header');
+    header.onclick=()=>{const isActive=item.classList.contains('active');document.querySelectorAll('#about-page .collapse-item').forEach(i=>i.classList.remove('active'));if(!isActive)item.classList.add('active');};
+  });
+}
+
+// ==================== 条款页逻辑 ====================
+function initTerms(){
+  const items=document.querySelectorAll('#terms-page .collapse-item');let animating=false;
+  function toggle(item){if(animating)return;animating=true;const isActive=item.classList.contains('active'),content=item.querySelector('.collapse-content');items.forEach(i=>{if(i!==item&&i.classList.contains('active')){i.classList.remove('active');i.querySelector('.collapse-content').style.maxHeight='0px';}});if(isActive){item.classList.remove('active');content.style.maxHeight='0px';}else{item.classList.add('active');content.style.maxHeight=content.scrollHeight+'px';}setTimeout(()=>{animating=false;if(item.classList.contains('active'))content.style.maxHeight=content.scrollHeight+'px';},400);}
+  items.forEach(item=>{const h=item.querySelector('.collapse-header');h.onclick=()=>toggle(item);});
+}
+
+// ==================== Admin 页逻辑 ====================
+function initAdmin(){
+  const loginSection=document.getElementById('adminLoginSection'),manageSection=document.getElementById('adminManageSection');
+  if(adminPassCache){loginSection.style.display='none';manageSection.style.display='block';loadAdminStats();loadAdminAnnouncements();loadAdminPosts();loadAdminLogs();}
+  document.getElementById('adminLoginBtn').onclick=async()=>{const pass=document.getElementById('adminPass').value;if(!pass){showAdminLoginMsg('请输入密码','error');return;}const r=await mockFetch('api.php?action=admin_login',{method:'POST',body:JSON.stringify({password:pass})}).then(x=>x.json());if(r.success){adminPassCache=pass;loginSection.style.display='none';manageSection.style.display='block';loadAdminStats();loadAdminAnnouncements();loadAdminPosts();loadAdminLogs();}else{showAdminLoginMsg(r.message,'error');}};
+  function showAdminLoginMsg(msg,type){const el=document.getElementById('adminLoginMsg');el.textContent=msg;el.className='msg '+(type||'');}
+  window.doAdminLogout=()=>{adminPassCache='';loginSection.style.display='flex';manageSection.style.display='none';document.getElementById('adminPass').value='';};
+  document.querySelectorAll('#admin-page .sidebar-nav-item').forEach(item=>{item.onclick=function(){document.querySelectorAll('#admin-page .sidebar-nav-item').forEach(i=>i.classList.remove('active'));this.classList.add('active');const panel=this.dataset.panel;document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+panel).classList.add('active');if(panel==='stats')loadAdminStats();if(panel==='announcements')loadAdminAnnouncements();if(panel==='posts')loadAdminPosts();if(panel==='logs')loadAdminLogs();};});
+  async function loadAdminStats(){const r=await mockFetch('api.php?action=admin_stats').then(x=>x.json());if(r.success){const s=r.stats;document.getElementById('statPosts').textContent=s.total_posts;document.getElementById('statComments').textContent=s.total_comments;document.getElementById('statViews').textContent=s.total_views;document.getElementById('statLikes').textContent=s.total_likes;document.getElementById('statTodayPosts').textContent=s.today_posts;document.getElementById('statTodayViews').textContent=s.today_views;}}
+  async function loadAdminAnnouncements(){const r=await mockFetch('api.php?action=announcement_list&active_only=0').then(x=>x.json());const tbody=document.getElementById('annTableBody');if(!r.success||!r.list||!r.list.length){tbody.innerHTML='<tr><td colspan=\"4\" class=\"empty-table\">暂无公告</td></tr>';return;}let html='';r.list.forEach(ann=>{const date=new Date(ann.created_at).toLocaleString('zh-CN');let badges='';if(ann.is_pinned)badges+='<span class=\"status-badge pinned\">置顶</span> ';badges+=ann.is_active?'<span class=\"status-badge active\">上架</span>':'<span class=\"status-badge inactive\">下架</span>';html+=`<tr><td>${ann.title}</td><td>${badges}</td><td style=\"white-space:nowrap\">${date}</td><td style=\"white-space:nowrap\"><button class=\"action-btn pin\" onclick=\"pinAnn('${ann.id}')\"><i class=\"fas fa-thumbtack\"></i></button><button class=\"action-btn toggle ${ann.is_active?'':'off'}\" onclick=\"toggleAnn('${ann.id}')\"><i class=\"fas fa-${ann.is_active?'eye':'eye-slash'}\"></i></button><button class=\"action-btn edit\" onclick=\"editAnn('${ann.id}')\"><i class=\"fas fa-edit\"></i></button><button class=\"action-btn delete\" onclick=\"deleteAnn('${ann.id}')\"><i class=\"fas fa-trash\"></i></button></td></tr>`;});tbody.innerHTML=html;}
+  async function loadAdminPosts(){const r=await mockFetch('api.php?action=admin_get_all_posts').then(x=>x.json());const tbody=document.getElementById('postTableBody');if(!r.success||!r.posts||!r.posts.length){tbody.innerHTML='<tr><td colspan=\"8\" class=\"empty-table\">暂无帖子</td></tr>';return;}let html='';r.posts.forEach(post=>{const date=new Date(post.timestamp).toLocaleString('zh-CN');const content=post.content.length>30?post.content.substring(0,30)+'...':post.content;const status=post.is_active!==false?'<span class=\"status-badge active\">上架</span>':'<span class=\"status-badge inactive\">下架</span>';html+=`<tr><td>${post.author}</td><td title=\"${post.content.replace(/"/g,'&quot;')}\">${content}</td><td>${post.view_count||0}</td><td>${post.like_count||0}</td><td>${post.comment_count||0}</td><td>${status}</td><td style=\"white-space:nowrap\">${date}</td><td style=\"white-space:nowrap\"><button class=\"action-btn toggle ${post.is_active!==false?'':'off'}\" onclick=\"togglePost('${post.id}')\"><i class=\"fas fa-${post.is_active!==false?'eye':'eye-slash'}\"></i></button><button class=\"action-btn delete\" onclick=\"adminDeletePost('${post.id}')\"><i class=\"fas fa-trash\"></i></button></td></tr>`;});tbody.innerHTML=html;}
+  async function loadAdminLogs(){const r=await mockFetch('api.php?action=admin_logs').then(x=>x.json());const container=document.getElementById('logContainer');if(!r.success||!r.logs||!r.logs.length){container.innerHTML='<div class=\"log-item\"><span class=\"log-time\">暂无操作日志</span></div>';return;}let html='';r.logs.forEach(log=>{html+=`<div class=\"log-item\"><span class=\"log-time\">${log.time}</span><span class=\"log-action\">${log.action}</span><span class=\"log-detail\">${log.detail||'-'}</span><span class=\"log-ip\">${log.ip||''}</span></div>`;});container.innerHTML=html;}
+  window.showCreateAnnouncement=()=>{openAdminModal(`<div class=\"modal-title\"><i class=\"fas fa-plus\"></i> 新建公告</div><div class=\"form-group\"><label>标题</label><input id=\"annTitle\" placeholder=\"公告标题\"></div><div class=\"form-group\"><label>内容</label><textarea id=\"annContent\" placeholder=\"公告内容\"></textarea></div><div class=\"form-group\"><label>作者</label><input id=\"annAuthor\" value=\"管理员\"></div><div class=\"form-group\" style=\"display:flex;align-items:center;gap:10px;\"><input type=\"checkbox\" id=\"annPinned\" style=\"width:auto;\"><label for=\"annPinned\" style=\"margin:0;\">设为置顶</label></div><button class=\"btn-primary\" onclick=\"submitCreateAnn()\"><i class=\"fas fa-save\"></i> 创建</button>`);};
+  window.submitCreateAnn=async()=>{const data={title:document.getElementById('annTitle').value,content:document.getElementById('annContent').value,author:document.getElementById('annAuthor').value,is_pinned:document.getElementById('annPinned').checked};if(!data.title||!data.content){alert('标题和内容不能为空');return;}const r=await mockFetch('api.php?action=announcement_create',{method:'POST',body:JSON.stringify(data)}).then(x=>x.json());alert(r.message);if(r.success){closeAdminModal();loadAdminAnnouncements();}};
+  window.editAnn=async(id)=>{const r=await mockFetch('api.php?action=announcement_list&active_only=0').then(x=>x.json());const ann=r.list.find(a=>a.id===id);if(!ann){alert('公告不存在');return;}openAdminModal(`<div class=\"modal-title\"><i class=\"fas fa-edit\"></i> 编辑公告</div><div class=\"form-group\"><label>标题</label><input id=\"editAnnTitle\" value=\"${ann.title.replace(/"/g,'&quot;')}\"></div><div class=\"form-group\"><label>内容</label><textarea id=\"editAnnContent\">${ann.content}</textarea></div><button class=\"btn-primary\" onclick=\"submitEditAnn('${id}')\"><i class=\"fas fa-save\"></i> 保存</button>`);};
+  window.submitEditAnn=async(id)=>{const data={id,title:document.getElementById('editAnnTitle').value,content:document.getElementById('editAnnContent').value};const r=await mockFetch('api.php?action=announcement_update',{method:'POST',body:JSON.stringify(data)}).then(x=>x.json());alert(r.message);if(r.success){closeAdminModal();loadAdminAnnouncements();}};
+  window.deleteAnn=async(id)=>{if(!confirm('确定删除此公告？'))return;const r=await mockFetch('api.php?action=announcement_delete',{method:'POST',body:JSON.stringify({id})}).then(x=>x.json());alert(r.message);if(r.success)loadAdminAnnouncements();};
+  window.pinAnn=async(id)=>{const r=await mockFetch('api.php?action=announcement_pin',{method:'POST',body:JSON.stringify({id})}).then(x=>x.json());alert(r.message);if(r.success)loadAdminAnnouncements();};
+  window.toggleAnn=async(id)=>{const r=await mockFetch('api.php?action=announcement_toggle',{method:'POST',body:JSON.stringify({id})}).then(x=>x.json());alert(r.message);if(r.success)loadAdminAnnouncements();};
+  window.togglePost=async(id)=>{const r=await mockFetch('api.php?action=admin_toggle_post',{method:'POST',body:JSON.stringify({id})}).then(x=>x.json());alert(r.message);if(r.success)loadAdminPosts();};
+  window.adminDeletePost=async(id)=>{if(!confirm('确定删除此帖子？此操作不可撤销！'))return;const r=await mockFetch('api.php?action=delete',{method:'POST',body:JSON.stringify({id,password:adminPassCache})}).then(x=>x.json());if(r.message&&r.message.includes('密码')){alert('密码验证失败，请重新登录');doAdminLogout();}else{alert(r.message);if(r.success)loadAdminPosts();}};
+  window.showChangePassword=()=>{openAdminModal(`<div class=\"modal-title\"><i class=\"fas fa-key\"></i> 修改密码</div><div class=\"form-group\"><label>原密码</label><input type=\"password\" id=\"oldPass\"></div><div class=\"form-group\"><label>新密码（至少6位）</label><input type=\"password\" id=\"newPass\"></div><div class=\"form-group\"><label>确认新密码</label><input type=\"password\" id=\"confirmPass\"></div><button class=\"btn-primary\" onclick=\"submitChangePass()\"><i class=\"fas fa-save\"></i> 修改</button>`);};
+  window.submitChangePass=async()=>{const oldP=document.getElementById('oldPass').value,newP=document.getElementById('newPass').value,confirmP=document.getElementById('confirmPass').value;if(newP!==confirmP){alert('两次输入的新密码不一致');return;}const r=await mockFetch('api.php?action=admin_change_password',{method:'POST',body:JSON.stringify({old_password:oldP,new_password:newP})}).then(x=>x.json());alert(r.message);if(r.success){adminPassCache=newP;closeAdminModal();}};
+  function openAdminModal(html){document.getElementById('adminModalContent').innerHTML=html;document.getElementById('adminModalOverlay').classList.add('show');}
+  window.closeAdminModal=()=>document.getElementById('adminModalOverlay').classList.remove('show');
+  document.getElementById('adminModalOverlay').onclick=(e)=>{if(e.target===document.getElementById('adminModalOverlay'))closeAdminModal();};
+}
+
+// ==================== 初始化 ====================
+(function(){
+  try{const s=JSON.parse(localStorage.getItem('community_theme'));if(s){if(s.name==='custom'&&s.vars)Object.entries(s.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));else if(s.name&&s.name!=='light')document.documentElement.setAttribute('data-theme',s.name);}}catch(e){}
+  Router.go(location.hash);
+})();
+</script>
+</body>
+</html>
