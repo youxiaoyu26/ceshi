@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>几何射击 - 外挂版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-paper: #f4f4f4; --bg-grid: #e0e0e0; --ink-black: #2c2c2c;
+            --ink-gray: #888888; --pencil-light: #d1d1d1;
+            --accent-red: #e74c3c; --accent-blue: #3498db;
+            --accent-green: #27ae60; --accent-orange: #e67e22;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-paper); color: var(--ink-black); overflow: hidden; height: 100vh; height: 100dvh; user-select: none; touch-action: none; }
+        .font-display { font-family: 'Caveat', cursive; }
+
+        .paper-bg { position: fixed; inset: 0; background-color: var(--bg-paper); background-image: linear-gradient(var(--bg-grid) 1px, transparent 1px), linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px); background-size: 25px 25px; z-index: 0; }
+        #gameCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        .top-ui { position: fixed; top: 0; left: 0; right: 0; padding: 12px 16px; background: rgba(244, 244, 244, 0.85); backdrop-filter: blur(2px); border-bottom: 1px solid var(--ink-gray); z-index: 10; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start; }
+        .ui-left { flex: 1; }
+        .player-label { font-size: 16px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; font-family: 'Caveat', cursive; }
+        .health-bar { height: 12px; background: var(--pencil-light); border-radius: 0; overflow: hidden; border: 1px solid var(--ink-black); max-width: 200px; }
+        .health-bar-fill { height: 100%; transition: width 0.3s ease; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px); background-color: #333; }
+        .ui-right { text-align: right; }
+        .score-display { font-size: 20px; font-weight: 700; font-family: 'Caveat', cursive; }
+
+        #controlLayer { position: fixed; inset: 0; z-index: 20; pointer-events: auto; }
+        #uiCanvas { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+
+        .action-btn {
+            position: fixed; pointer-events: none;
+            border: 2px dashed var(--ink-gray);
+            border-radius: 50%; background: transparent;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--ink-gray); font-weight: 700; font-family: 'Caveat', cursive;
+            transition: all 0.2s; z-index: 40;
+            flex-direction: column; line-height: 1;
+        }
+        .action-btn.active { border-style: solid; transform: scale(0.95); background: rgba(0,0,0,0.03); }
+
+        .p-shoot { right: 20px; bottom: 30px; width: 80px; height: 80px; font-size: 18px; }
+        .p-ult { right: 20px; bottom: 130px; width: 70px; height: 70px; font-size: 16px; border-color: var(--accent-blue); color: var(--accent-blue); }
+
+        .overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); display: flex; align-items: center; justify-content: center; z-index: 200; pointer-events: auto; }
+        .overlay.hidden { display: none; }
+        .overlay-content { text-align: center; padding: 24px; max-width: 420px; width: 90%; }
+        .game-title { font-size: clamp(40px, 10vw, 64px); font-weight: 700; color: var(--ink-black); margin-bottom: 8px; font-family: 'Caveat', cursive; text-shadow: 2px 2px 0px var(--pencil-light); }
+        .game-subtitle { color: var(--ink-gray); font-size: 16px; margin-bottom: 32px; }
+
+        .mode-selector { display: flex; gap: 12px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+        .mode-btn {
+            background: transparent; border: 2px solid var(--ink-black); color: var(--ink-black); 
+            padding: 10px 16px; font-size: 16px; font-weight: 700; border-radius: 0; 
+            cursor: pointer; transition: all 0.2s; font-family: 'Caveat', cursive;
+            box-shadow: 3px 3px 0 var(--pencil-light);
+            min-width: 100px;
+        }
+        .mode-btn:hover { background: var(--ink-black); color: white; }
+        .mode-btn.selected { background: var(--ink-black); color: white; }
+
+        .start-btn { background: var(--ink-black); border: none; color: white; padding: 12px 30px; font-size: 18px; font-weight: 700; border-radius: 0; cursor: pointer; margin-bottom: 28px; font-family: 'Caveat', cursive; box-shadow: 4px 4px 0 var(--ink-gray); }
+        .start-btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink-gray); }
+
+        .instructions { text-align: left; background: transparent; padding: 16px; border: 1px dashed var(--ink-gray); font-family: 'Caveat', cursive; font-size: 14px; }
+        .instructions h4 { font-size: 18px; margin-bottom: 8px; border-bottom: 1px solid var(--ink-gray); }
+        .instructions p { margin-bottom: 4px; color: var(--ink-black); }
+
+        .result-title { font-size: clamp(28px, 6vw, 40px); font-weight: 900; margin-bottom: 16px; font-family: 'Caveat', cursive; }
+        .result-title.win { color: var(--accent-green); }
+        .result-title.lose { color: var(--accent-red); }
+        .final-score { font-size: 20px; margin-bottom: 24px; color: var(--ink-gray); font-family: 'Caveat', cursive; }
+        .final-score span { font-weight: 700; font-size: 32px; }
+
+        .kill-feed { position: fixed; top: 60px; right: 16px; z-index: 15; pointer-events: none; font-family: 'Caveat', cursive; font-size: 14px; color: var(--accent-red); text-align: right; }
+        .kill-feed-item { opacity: 0; animation: fadeInOut 2s ease forwards; margin-bottom: 2px; }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateX(20px); } 10% { opacity: 1; transform: translateX(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(-10px); } }
+
+        .wave-info { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; pointer-events: none; font-family: 'Caveat', cursive; font-size: 48px; font-weight: 700; color: var(--ink-black); text-shadow: 3px 3px 0 var(--pencil-light); opacity: 0; }
+        .wave-info.show { animation: wavePop 2s ease forwards; }
+        @keyframes wavePop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 40% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+
+        .timer-display { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none; font-family: 'Caveat', cursive; font-size: 28px; font-weight: 700; color: var(--ink-black); }
+        .timer-display.warning { color: var(--accent-red); animation: pulse 0.5s ease infinite alternate; }
+        @keyframes pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.1); } }
+
+        .enemy-count { position: fixed; top: 60px; left: 16px; z-index: 15; pointer-events: none; font-family: 'Caveat', cursive; font-size: 14px; color: var(--ink-gray); }
+
+        .survival-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none; width: 200px; height: 8px; background: var(--pencil-light); border: 1px solid var(--ink-black); }
+        .survival-bar-fill { height: 100%; background: var(--accent-green); transition: width 0.5s linear; }
+        .survival-label { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none; font-family: 'Caveat', cursive; font-size: 12px; color: var(--ink-gray); }
+
+        .combo-display { position: fixed; top: 100px; right: 16px; z-index: 15; pointer-events: none; font-family: 'Caveat', cursive; font-size: 24px; font-weight: 700; color: var(--accent-orange); opacity: 0; transition: opacity 0.3s; }
+        .combo-display.show { opacity: 1; animation: comboBounce 0.3s ease; }
+        @keyframes comboBounce { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+    <div class="paper-bg"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="top-ui">
+        <div class="ui-left">
+            <div class="player-label" id="playerLabel">■ 你 (外挂模式)</div>
+            <div class="health-bar"><div class="health-bar-fill" id="playerHealth" style="width: 100%"></div></div>
+        </div>
+        <div class="ui-right">
+            <div class="score-display">击杀: <span id="playerScore">0</span> / 剩余: <span id="enemyScore">100</span></div>
+        </div>
+    </div>
+
+    <div class="timer-display" id="timerDisplay">03:00</div>
+    <div class="enemy-count" id="enemyCount">第1波: 50人</div>
+    <div class="kill-feed" id="killFeed"></div>
+    <div class="wave-info" id="waveInfo"></div>
+    <div class="combo-display" id="comboDisplay">连击 x0</div>
+
+    <div class="survival-label" id="survivalLabel">生存进度</div>
+    <div class="survival-bar" id="survivalBar"><div class="survival-bar-fill" id="survivalFill" style="width: 0%"></div></div>
+
+    <div id="controlLayer"></div>
+    <canvas id="uiCanvas"></canvas>
+
+    <div class="action-btn p-shoot" id="pShoot">FIRE</div>
+    <div class="action-btn p-ult" id="pUlt">ULT<br><span style="font-size:10px">∞</span></div>
+
+    <div class="overlay" id="startOverlay">
+        <div class="overlay-content">
+            <h1 class="game-title">几何射击</h1>
+            <p class="game-subtitle">外挂版 · 1人 VS 100人</p>
+
+            <div class="mode-selector">
+                <button class="mode-btn selected" id="mode100" data-mode="wave">1 VS 100 (波次)</button>
+                <button class="mode-btn" id="modeEndless" data-mode="endless">无尽模式 (3分钟)</button>
+            </div>
+
+            <button class="start-btn" id="startBtn">开始屠杀</button>
+
+            <div class="instructions" id="instructions">
+                <h4>外挂功能</h4>
+                <p>ULT: 自动追踪激光，拐弯，百发百中，无CD</p>
+                <p>第1波: 50个敌人 | 第2波: 50个敌人</p>
+                <p>左侧屏幕：拖动移动</p>
+                <p>右下按钮：射击 | 右上按钮：外挂激光</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay hidden" id="endOverlay">
+        <div class="overlay-content">
+            <h2 class="result-title win" id="resultTitle">屠杀完成!</h2>
+            <div class="final-score" id="finalScore">击杀数 <span id="finalPScore">100</span> / 阵亡 <span id="finalEScore">0</span></div>
+            <button class="start-btn" id="restartBtn" style="margin-bottom: 0;">返回大厅</button>
+        </div>
+    </div>
+
+    <script>
+        const gameCanvas = document.getElementById('gameCanvas');
+        const gameCtx = gameCanvas.getContext('2d');
+        const uiCanvas = document.getElementById('uiCanvas');
+        const uiCtx = uiCanvas.getContext('2d');
+        const controlLayer = document.getElementById('controlLayer');
+
+        const CONFIG = {
+            PLAYER_SPEED: 10, AI_SPEED: 3, BULLET_SPEED: 12,
+            SHOOT_COOLDOWN: 80, AI_SHOOT_COOLDOWN: 400,
+            MAX_HEALTH: 9999, BULLET_DAMAGE: 100,
+            PLAYER_SIZE: 14, BULLET_SIZE: 5,
+            IDEAL_DISTANCE: 300,
+            JOYSTICK_MAX_RADIUS: 60, JOYSTICK_DEADZONE: 5,
+            RESPAWN_DELAY: 0,
+            WAVE1_COUNT: 50, WAVE2_COUNT: 50,
+            LASER_TURN_SPEED: 0.15,
+            LASER_LIFE: 40,
+            // 无尽模式配置
+            ENDLESS_DURATION: 180, // 3分钟 = 180秒
+            ENDLESS_SPAWN_INTERVAL: 800, // 每800ms刷一波敌人
+            ENDLESS_SPAWN_PER_WAVE: 5, // 每波5个
+            ENDLESS_MAX_ENEMIES: 80, // 场上最多80个
+        };
+
+        const COLORS = { ink: '#2c2c2c', pencil: '#888888', accent: '#e74c3c', grid: '#d1d1d1', ult: '#3498db', green: '#27ae60', orange: '#e67e22' };
+
+        let currentMode = 'wave'; // 'wave' 或 'endless'
+        let gameState = { running: false, time: 0, pScore: 0, eScore: 0, wave: 1, waveComplete: false };
+        let player = null;
+        let enemies = [];
+        let pBullets = [], eBullets = [], effects = [], lasers = [];
+        let lastTime = 0, animationId = null;
+        let endlessTimer = 0; // 无尽模式倒计时
+        let endlessSpawnTimer = 0; // 刷怪计时器
+        let combo = 0;
+        let comboTimer = null;
+
+        let joystick = { active: false, id: -1, startX: 0, startY: 0, moveX: 0, moveY: 0 };
+        let shootTouchId = -1;
+        let ultTouchId = -1;
+
+        const elPHealth = document.getElementById('playerHealth');
+        const elPScore = document.getElementById('playerScore');
+        const elEScore = document.getElementById('enemyScore');
+        const elPShoot = document.getElementById('pShoot');
+        const elPUlt = document.getElementById('pUlt');
+        const elEnemyCount = document.getElementById('enemyCount');
+        const elKillFeed = document.getElementById('killFeed');
+        const elWaveInfo = document.getElementById('waveInfo');
+        const elTimerDisplay = document.getElementById('timerDisplay');
+        const elSurvivalFill = document.getElementById('survivalFill');
+        const elSurvivalLabel = document.getElementById('survivalLabel');
+        const elComboDisplay = document.getElementById('comboDisplay');
+        const elPlayerLabel = document.getElementById('playerLabel');
+        const elInstructions = document.getElementById('instructions');
+
+        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+        const distance = (x1, y1, x2, y2) => Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        const normalize = (x, y) => { const len = Math.sqrt(x * x + y * y); return len === 0 ? { x: 0, y: 0 } : { x: x / len, y: y / len }; };
+        const angleBetween = (x1, y1, x2, y2) => Math.atan2(y2 - y1, x2 - x1);
+        const lerpAngle = (a, b, t) => { let diff = b - a; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2; return a + diff * t; };
+        const isInsideCircle = (px, py, cx, cy, r) => distance(px, py, cx, cy) < r;
+
+        // ============ 特效类 ============
+
+        class Shockwave {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.radius = 2; this.maxRadius = 25; this.alpha = 1; this.active = true;
+                this.particles = [];
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI * 2 / 8) * i + Math.random() * 0.5;
+                    this.particles.push({ x, y, vx: Math.cos(angle) * (2 + Math.random() * 3), vy: Math.sin(angle) * (2 + Math.random() * 3), life: 1, size: 2 + Math.random() * 2 });
+                }
+            }
+            update() {
+                this.radius += 1.2; this.alpha -= 0.06;
+                if (this.alpha <= 0) this.active = false;
+                this.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.05; p.vx *= 0.95; p.vy *= 0.95; });
+                this.particles = this.particles.filter(p => p.life > 0);
+            }
+            draw(ctx) {
+                if (!this.active) return;
+                ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = COLORS.ink;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                this.particles.forEach(p => { ctx.globalAlpha = p.life * this.alpha; ctx.fillStyle = COLORS.ink; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); });
+                ctx.restore();
+            }
+        }
+
+        class HitEffect {
+            constructor(x, y, color = COLORS.ink) {
+                this.x = x; this.y = y; this.radius = 3; this.alpha = 1; this.active = true; this.color = color;
+                this.particles = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    this.particles.push({ x, y, vx: Math.cos(angle) * (1.5 + Math.random() * 2), vy: Math.sin(angle) * (1.5 + Math.random() * 2), life: 1, size: 1.5 + Math.random() * 1.5 });
+                }
+            }
+            update() {
+                this.radius += 0.8; this.alpha -= 0.05;
+                if (this.alpha <= 0) this.active = false;
+                this.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.04; p.vx *= 0.92; p.vy *= 0.92; });
+                this.particles = this.particles.filter(p => p.life > 0);
+            }
+            draw(ctx) {
+                if (!this.active) return;
+                ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                this.particles.forEach(p => { ctx.globalAlpha = p.life * this.alpha; ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); });
+                ctx.restore();
+            }
+        }
+
+        // ============ 外挂追踪激光 ============
+        class HomingLaser {
+            constructor(owner) {
+                this.owner = owner; this.x = owner.x; this.y = owner.y; this.angle = 0;
+                this.width = 0; this.maxWidth = 20; this.maxLength = 2000;
+                this.active = true; this.life = CONFIG.LASER_LIFE; this.maxLife = CONFIG.LASER_LIFE;
+                this.phase = 'expand'; this.expandProgress = 0;
+                this.hasHit = new Set(); this.particles = []; this.spawnTimer = 0;
+                this.target = null; this.trail = [];
+            }
+            findTarget() {
+                let closest = null, minDist = Infinity;
+                enemies.forEach(e => { if (e.isAlive() && !e.isRespawning && !this.hasHit.has(e)) { const d = distance(this.x, this.y, e.x, e.y); if (d < minDist) { minDist = d; closest = e; } } });
+                return closest;
+            }
+            update() {
+                this.life--;
+                const lifeRatio = this.life / this.maxLife;
+                if (lifeRatio > 0.7) { this.phase = 'expand'; this.expandProgress = (1 - lifeRatio) / 0.3; this.width = this.maxWidth * this.expandProgress; }
+                else if (lifeRatio > 0.3) { this.phase = 'sustain'; this.width = this.maxWidth; }
+                else { this.phase = 'fade'; this.width = this.maxWidth * (lifeRatio / 0.3); }
+
+                this.target = this.findTarget();
+                if (this.target) { const targetAngle = angleBetween(this.x, this.y, this.target.x, this.target.y); this.angle = lerpAngle(this.angle, targetAngle, CONFIG.LASER_TURN_SPEED); }
+                this.x = this.owner.x; this.y = this.owner.y;
+
+                this.trail.push({ x: this.x, y: this.y, angle: this.angle, width: this.width });
+                if (this.trail.length > 20) this.trail.shift();
+
+                this.spawnTimer++;
+                if (this.spawnTimer % 2 === 0 && this.width > 2) {
+                    for (let i = 0; i < 3 + Math.floor(this.width / 4); i++) {
+                        const side = Math.random() > 0.5 ? 1 : -1;
+                        const offsetAngle = this.angle + side * (Math.PI / 2 + (Math.random() - 0.5) * 0.8);
+                        this.particles.push({ x: this.x + Math.cos(this.angle) * (Math.random() * 150), y: this.y + Math.sin(this.angle) * (Math.random() * 150), vx: Math.cos(offsetAngle) * (1 + Math.random() * 3), vy: Math.sin(offsetAngle) * (1 + Math.random() * 3), life: 1, size: 1 + Math.random() * 2, alpha: 0.6 + Math.random() * 0.4 });
+                    }
+                }
+                this.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.04; p.vx *= 0.96; p.vy *= 0.96; });
+                this.particles = this.particles.filter(p => p.life > 0);
+                if (this.life <= 0) this.active = false;
+            }
+            draw(ctx) {
+                if (!this.active || this.width <= 0) return;
+                ctx.save();
+                this.trail.forEach((t, i) => {
+                    const alpha = (i / this.trail.length) * 0.3;
+                    ctx.globalAlpha = alpha; ctx.fillStyle = COLORS.ult;
+                    ctx.translate(t.x, t.y); ctx.rotate(t.angle);
+                    ctx.fillRect(0, -t.width / 4, this.maxLength, t.width / 2);
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                });
+                ctx.restore();
+
+                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+                ctx.fillStyle = COLORS.ult; ctx.fillRect(0, -this.width / 2, this.maxLength, this.width);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(0, -this.width / 6, this.maxLength, this.width / 3);
+                if (this.target) { ctx.fillStyle = 'rgba(231, 76, 60, 0.8)'; ctx.beginPath(); ctx.arc(this.maxLength * 0.3, 0, 3, 0, Math.PI * 2); ctx.fill(); }
+                ctx.restore();
+
+                this.particles.forEach(p => { ctx.save(); ctx.globalAlpha = p.life * p.alpha * (this.life / this.maxLife); ctx.fillStyle = COLORS.ult; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); ctx.restore(); });
+            }
+            checkHit(target) {
+                if (!this.active || this.width < 3) return false;
+                if (this.hasHit.has(target)) return false;
+                const dx = target.x - this.x, dy = target.y - this.y;
+                const proj = dx * Math.cos(this.angle) + dy * Math.sin(this.angle);
+                if (proj > 0 && proj < this.maxLength) {
+                    const dist = Math.abs(dy * Math.cos(this.angle) - dx * Math.sin(this.angle));
+                    if (dist < this.width / 2 + target.size) { this.hasHit.add(target); return true; }
+                }
+                return false;
+            }
+        }
+
+        // ============ 实体类 ============
+
+        class Entity {
+            constructor(x, y, size) { this.x = x; this.y = y; this.size = Math.max(1, size); this.health = CONFIG.MAX_HEALTH; this.vx = 0; this.vy = 0; this.lastShoot = 0; }
+            takeDamage(amount) { this.health = clamp(this.health - amount, 0, CONFIG.MAX_HEALTH); }
+            isAlive() { return this.health > 0; }
+        }
+
+        class Player extends Entity {
+            constructor(x, y) { super(x, y, CONFIG.PLAYER_SIZE); this.type = 'player'; this.aimAngle = 0; }
+            update(canvasWidth, canvasHeight, target) {
+                let inputX = 0, inputY = 0;
+                if (joystick.active) {
+                    const dx = joystick.moveX - joystick.startX, dy = joystick.moveY - joystick.startY, dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > CONFIG.JOYSTICK_DEADZONE) { const norm = normalize(dx, dy); inputX = norm.x; inputY = norm.y; }
+                }
+                const norm = normalize(inputX, inputY);
+                this.vx += (norm.x * CONFIG.PLAYER_SPEED - this.vx) * 0.8;
+                this.vy += (norm.y * CONFIG.PLAYER_SPEED - this.vy) * 0.8;
+                this.x = clamp(this.x + this.vx, this.size, canvasWidth - this.size);
+                this.y = clamp(this.y + this.vy, this.size, canvasHeight - this.size);
+                if (target) this.aimAngle = angleBetween(this.x, this.y, target.x, target.y);
+                if (shootTouchId !== -1 && target) return this.shoot(target.x, target.y);
+                return null;
+            }
+            drawDirectionIndicator(ctx) {
+                const arcRadius = this.size + 8, arcSpan = (Math.PI * 2) / 5;
+                const arcStart = this.aimAngle - arcSpan / 2, arcEnd = this.aimAngle + arcSpan / 2;
+                const lineLen = 18;
+                const lineStartX = this.x + Math.cos(this.aimAngle) * this.size, lineStartY = this.y + Math.sin(this.aimAngle) * this.size;
+                const lineEndX = this.x + Math.cos(this.aimAngle) * (arcRadius + lineLen), lineEndY = this.y + Math.sin(this.aimAngle) * (arcRadius + lineLen);
+                ctx.save(); ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(this.x, this.y, arcRadius, arcStart, arcEnd); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(lineStartX, lineStartY); ctx.lineTo(lineEndX, lineEndY); ctx.stroke();
+                ctx.restore();
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.beginPath(); ctx.arc(this.x + 3, this.y + 3, this.size, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.stroke();
+                this.drawDirectionIndicator(ctx);
+                ctx.strokeStyle = COLORS.ult; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size + 20, 0, Math.PI * 2); ctx.stroke();
+                ctx.restore();
+            }
+            shoot(tx, ty) {
+                const now = Date.now();
+                if (now - this.lastShoot < CONFIG.SHOOT_COOLDOWN) return null;
+                this.lastShoot = now;
+                return new Bullet(this.x, this.y, angleBetween(this.x, this.y, tx, ty), this);
+            }
+        }
+
+        class AI extends Entity {
+            constructor(x, y, index) {
+                super(x, y, CONFIG.PLAYER_SIZE); this.type = 'ai'; this.behaviorTimer = 0;
+                this.strafeDir = 1; this.index = index; this.isRespawning = false; this.aimAngle = 0;
+            }
+            update(target, canvasWidth, canvasHeight) {
+                if (!target || !this.isAlive()) return;
+                this.aimAngle = angleBetween(this.x, this.y, target.x, target.y);
+                const dx = target.x - this.x, dy = target.y - this.y, dist = Math.max(1, distance(this.x, this.y, target.x, target.y));
+                let moveX = 0, moveY = 0;
+                const angleToPlayer = Math.atan2(dy, dx);
+                const surroundOffset = (this.index % 3) * (Math.PI * 2 / 3);
+                const targetAngle = angleToPlayer + surroundOffset;
+                const targetDist = 200 + (this.index % 2) * 100;
+                const targetX = target.x + Math.cos(targetAngle) * targetDist;
+                const targetY = target.y + Math.sin(targetAngle) * targetDist;
+                const toTargetX = targetX - this.x, toTargetY = targetY - this.y;
+                const toTargetDist = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY);
+                if (toTargetDist > 30) { moveX = toTargetX / toTargetDist; moveY = toTargetY / toTargetDist; }
+                const norm = normalize(moveX, moveY);
+                this.vx += (norm.x * CONFIG.AI_SPEED - this.vx) * 0.2;
+                this.vy += (norm.y * CONFIG.AI_SPEED - this.vy) * 0.2;
+                this.x = clamp(this.x + this.vx, this.size, canvasWidth - this.size);
+                this.y = clamp(this.y + this.vy, this.size, canvasHeight - this.size);
+            }
+            drawDirectionIndicator(ctx) {
+                const arcRadius = this.size + 8, arcSpan = (Math.PI * 2) / 5;
+                const arcStart = this.aimAngle - arcSpan / 2, arcEnd = this.aimAngle + arcSpan / 2;
+                const lineLen = 18;
+                const lineStartX = this.x + Math.cos(this.aimAngle) * this.size, lineStartY = this.y + Math.sin(this.aimAngle) * this.size;
+                const lineEndX = this.x + Math.cos(this.aimAngle) * (arcRadius + lineLen), lineEndY = this.y + Math.sin(this.aimAngle) * (arcRadius + lineLen);
+                ctx.save(); ctx.strokeStyle = COLORS.accent; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(this.x, this.y, arcRadius, arcStart, arcEnd); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(lineStartX, lineStartY); ctx.lineTo(lineEndX, lineEndY); ctx.stroke();
+                ctx.restore();
+            }
+            draw(ctx) {
+                if (!this.isAlive()) return;
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.beginPath(); ctx.moveTo(this.x + 3, this.y - this.size + 3); ctx.lineTo(this.x - this.size * 0.8 + 3, this.y + this.size * 0.6 + 3); ctx.lineTo(this.x + this.size * 0.8 + 3, this.y + this.size * 0.6 + 3); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.moveTo(this.x, this.y - this.size); ctx.lineTo(this.x - this.size * 0.8, this.y + this.size * 0.6); ctx.lineTo(this.x + this.size * 0.8, this.y + this.size * 0.6); ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = COLORS.accent; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(this.x, this.y - this.size); ctx.lineTo(this.x - this.size * 0.8, this.y + this.size * 0.6); ctx.lineTo(this.x + this.size * 0.8, this.y + this.size * 0.6); ctx.closePath(); ctx.stroke();
+                this.drawDirectionIndicator(ctx); this.drawHealthBar(ctx); ctx.restore();
+            }
+            drawHealthBar(ctx) {
+                const barWidth = 24, barHeight = 3, barX = this.x - barWidth / 2, barY = this.y - this.size - 10;
+                ctx.fillStyle = COLORS.pencil; ctx.fillRect(barX, barY, barWidth, barHeight);
+                const healthPercent = this.health / CONFIG.MAX_HEALTH;
+                ctx.fillStyle = healthPercent > 0.5 ? '#333' : COLORS.accent; ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+                ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 0.5; ctx.strokeRect(barX, barY, barWidth, barHeight);
+            }
+            shoot(target) {
+                if (!this.isAlive()) return null;
+                const now = Date.now();
+                if (now - this.lastShoot < CONFIG.AI_SHOOT_COOLDOWN) return null;
+                this.lastShoot = now;
+                return new Bullet(this.x, this.y, angleBetween(this.x, this.y, target.x, target.y) + (Math.random() - 0.5) * 0.15, this);
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, angle, owner) { this.x = x; this.y = y; this.angle = angle; this.owner = owner; this.speed = CONFIG.BULLET_SPEED; this.size = CONFIG.BULLET_SIZE; }
+            update() { this.x += Math.cos(this.angle) * this.speed; this.y += Math.sin(this.angle) * this.speed; }
+            draw(ctx) {
+                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+                ctx.strokeStyle = this.owner.type === 'player' ? COLORS.ink : COLORS.accent; ctx.lineWidth = 2; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-6, 0); ctx.moveTo(8, 0); ctx.lineTo(3, -4); ctx.moveTo(8, 0); ctx.lineTo(3, 4); ctx.stroke();
+                ctx.restore();
+            }
+            isOffScreen(w, h) { return this.x < -50 || this.x > w + 50 || this.y < -50 || this.y > h + 50; }
+        }
+
+        // ============ UI 辅助 ============
+
+        function addKillFeed(text) {
+            const item = document.createElement('div'); item.className = 'kill-feed-item'; item.textContent = text; elKillFeed.appendChild(item); setTimeout(() => item.remove(), 2000);
+        }
+
+        function showCombo() {
+            combo++;
+            elComboDisplay.textContent = `连击 x${combo}`;
+            elComboDisplay.classList.remove('show');
+            void elComboDisplay.offsetWidth;
+            elComboDisplay.classList.add('show');
+            if (comboTimer) clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => { combo = 0; elComboDisplay.classList.remove('show'); }, 2000);
+        }
+
+        function showWaveInfo(text) {
+            elWaveInfo.textContent = text; elWaveInfo.classList.remove('show'); void elWaveInfo.offsetWidth; elWaveInfo.classList.add('show');
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // ============ 生成敌人 ============
+
+        function spawnEnemy(canvasWidth, canvasHeight) {
+            const side = Math.floor(Math.random() * 4);
+            const margin = 80; let x, y;
+            switch (side) {
+                case 0: x = margin + Math.random() * (canvasWidth - margin * 2); y = -30; break;
+                case 1: x = canvasWidth + 30; y = margin + Math.random() * (canvasHeight - margin * 2); break;
+                case 2: x = margin + Math.random() * (canvasWidth - margin * 2); y = canvasHeight + 30; break;
+                case 3: x = -30; y = margin + Math.random() * (canvasHeight - margin * 2); break;
+            }
+            return new AI(x, y, enemies.length);
+        }
+
+        function spawnEnemies(count, canvasWidth, canvasHeight) {
+            const newEnemies = [];
+            for (let i = 0; i < count; i++) newEnemies.push(spawnEnemy(canvasWidth, canvasHeight));
+            return newEnemies;
+        }
+
+        // ============ 游戏初始化 ============
+
+        function initGame() {
+            gameCanvas.width = window.innerWidth; gameCanvas.height = window.innerHeight;
+            uiCanvas.width = window.innerWidth; uiCanvas.height = window.innerHeight;
+
+            player = new Player(gameCanvas.width * 0.5, gameCanvas.height * 0.5);
+            enemies = []; pBullets = []; eBullets = []; effects = []; lasers = [];
+            gameState.time = 0; gameState.pScore = 0; gameState.eScore = 0; gameState.wave = 1; gameState.waveComplete = false;
+            endlessTimer = CONFIG.ENDLESS_DURATION; endlessSpawnTimer = 0; combo = 0;
+
+            if (currentMode === 'wave') {
+                enemies = spawnEnemies(CONFIG.WAVE1_COUNT, gameCanvas.width, gameCanvas.height);
+                elEnemyCount.textContent = "第1波: 50人";
+                elSurvivalLabel.style.display = 'none';
+                document.getElementById('survivalBar').style.display = 'none';
+                elTimerDisplay.style.display = 'none';
+            } else {
+                // 无尽模式：初始刷一波
+                enemies = spawnEnemies(15, gameCanvas.width, gameCanvas.height);
+                elEnemyCount.textContent = "无尽模式 - 守住3分钟!";
+                elSurvivalLabel.style.display = 'block';
+                document.getElementById('survivalBar').style.display = 'block';
+                elTimerDisplay.style.display = 'block';
+                elTimerDisplay.textContent = formatTime(endlessTimer);
+                elTimerDisplay.classList.remove('warning');
+            }
+
+            updateHealthBars(); updateUI();
+            if (currentMode === 'wave') showWaveInfo("第1波: 50人!");
+            else showWaveInfo("无尽模式开始! 守住3分钟!");
+        }
+
+        function updateHealthBars() { elPHealth.style.width = '100%'; }
+
+        function updateUI() {
+            elPScore.innerText = gameState.pScore;
+            const aliveEnemies = enemies.filter(e => e.isAlive()).length;
+            elEScore.innerText = aliveEnemies;
+
+            if (currentMode === 'endless') {
+                const progress = ((CONFIG.ENDLESS_DURATION - endlessTimer) / CONFIG.ENDLESS_DURATION) * 100;
+                elSurvivalFill.style.width = `${progress}%`;
+                elSurvivalFill.style.backgroundColor = endlessTimer < 30 ? COLORS.accent : COLORS.green;
+            }
+        }
+
+        // ============ 游戏循环 ============
+
+        function gameLoop(timestamp) {
+            if (!gameState.running) return;
+            const dt = timestamp - lastTime; lastTime = timestamp;
+            update(dt); render(); drawJoystickUI();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            gameState.time += dt;
+
+            // 无尽模式计时
+            if (currentMode === 'endless') {
+                endlessTimer -= dt / 1000;
+                if (endlessTimer <= 0) {
+                    endlessTimer = 0;
+                    endGame(true);
+                    return;
+                }
+                elTimerDisplay.textContent = formatTime(endlessTimer);
+                if (endlessTimer < 30) elTimerDisplay.classList.add('warning');
+                else elTimerDisplay.classList.remove('warning');
+
+                // 持续刷怪
+                endlessSpawnTimer += dt;
+                if (endlessSpawnTimer >= CONFIG.ENDLESS_SPAWN_INTERVAL) {
+                    endlessSpawnTimer = 0;
+                    const aliveCount = enemies.filter(e => e.isAlive()).length;
+                    if (aliveCount < CONFIG.ENDLESS_MAX_ENEMIES) {
+                        const spawnCount = Math.min(CONFIG.ENDLESS_SPAWN_PER_WAVE, CONFIG.ENDLESS_MAX_ENEMIES - aliveCount);
+                        for (let i = 0; i < spawnCount; i++) {
+                            enemies.push(spawnEnemy(gameCanvas.width, gameCanvas.height));
+                        }
+                    }
+                }
+            }
+
+            let aliveEnemies = enemies.filter(e => e.isAlive());
+            let closestEnemy = aliveEnemies.sort((a, b) => distance(player.x, player.y, a.x, a.y) - distance(player.x, player.y, b.x, b.y))[0];
+
+            // 外挂ULT：无CD
+            if (ultTouchId !== -1) {
+                if (Math.random() < 0.3) lasers.push(new HomingLaser(player));
+            }
+
+            let pBullet = player.update(gameCanvas.width, gameCanvas.height, closestEnemy);
+            if (pBullet) pBullets.push(pBullet);
+
+            enemies.forEach(ai => {
+                if (ai.isAlive()) {
+                    ai.update(player, gameCanvas.width, gameCanvas.height);
+                    if (Math.random() < 0.015) { const b = ai.shoot(player); if (b) eBullets.push(b); }
+                }
+            });
+
+            pBullets.forEach(b => b.update()); eBullets.forEach(b => b.update());
+            pBullets = pBullets.filter(b => !b.isOffScreen(gameCanvas.width, gameCanvas.height));
+            eBullets = eBullets.filter(b => !b.isOffScreen(gameCanvas.width, gameCanvas.height));
+
+            lasers.forEach(l => l.update());
+            lasers.forEach(l => {
+                enemies.forEach(e => {
+                    if (e.isAlive() && l.checkHit(e)) {
+                        e.health = 0; gameState.pScore++; showCombo();
+                        addKillFeed("☠ 激光击杀!");
+                        effects.push(new HitEffect(e.x, e.y, COLORS.accent));
+                    }
+                });
+            });
+            lasers = lasers.filter(l => l.active);
+
+            if (currentMode === 'wave') checkWaveProgress();
+            checkCollisions(); updateUI();
+        }
+
+        function checkWaveProgress() {
+            const aliveEnemies = enemies.filter(e => e.isAlive()).length;
+            if (aliveEnemies === 0 && !gameState.waveComplete) {
+                if (gameState.wave === 1) {
+                    gameState.waveComplete = true;
+                    setTimeout(() => {
+                        gameState.wave = 2; gameState.waveComplete = false;
+                        const wave2 = spawnEnemies(CONFIG.WAVE2_COUNT, gameCanvas.width, gameCanvas.height);
+                        enemies = enemies.concat(wave2);
+                        showWaveInfo("第2波: 50人!"); elEnemyCount.textContent = "第2波: 50人"; updateUI();
+                    }, 2000);
+                } else {
+                    endGame(true);
+                }
+            }
+        }
+
+        function checkCollisions() {
+            // 玩家子弹打敌人
+            for (let i = pBullets.length - 1; i >= 0; i--) {
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    if (!enemies[j].isAlive()) continue;
+                    if (distance(pBullets[i].x, pBullets[i].y, enemies[j].x, enemies[j].y) < enemies[j].size + pBullets[i].size) {
+                        enemies[j].takeDamage(CONFIG.BULLET_DAMAGE);
+                        effects.push(new HitEffect(pBullets[i].x, pBullets[i].y, COLORS.accent));
+                        pBullets.splice(i, 1);
+                        if (!enemies[j].isAlive()) { gameState.pScore++; showCombo(); addKillFeed("☠ 击杀!"); }
+                        break;
+                    }
+                }
+            }
+            // 敌人子弹打玩家（外挂：玩家无敌）
+            for (let i = eBullets.length - 1; i >= 0; i--) {
+                if (distance(eBullets[i].x, eBullets[i].y, player.x, player.y) < player.size + eBullets[i].size) {
+                    effects.push(new HitEffect(eBullets[i].x, eBullets[i].y, COLORS.ult));
+                    eBullets.splice(i, 1);
+                }
+            }
+            // 子弹互撞
+            for (let i = pBullets.length - 1; i >= 0; i--) {
+                for (let j = eBullets.length - 1; j >= 0; j--) {
+                    if (distance(pBullets[i].x, pBullets[i].y, eBullets[j].x, eBullets[j].y) < pBullets[i].size + eBullets[j].size) {
+                        effects.push(new Shockwave((pBullets[i].x + eBullets[j].x) / 2, (pBullets[i].y + eBullets[j].y) / 2));
+                        pBullets.splice(i, 1); eBullets.splice(j, 1); break;
+                    }
+                }
+            }
+        }
+
+        function render() {
+            gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            lasers.forEach(l => l.draw(gameCtx));
+            enemies.forEach(e => { if (e.isAlive()) e.draw(gameCtx); });
+            player.draw(gameCtx);
+            pBullets.forEach(b => b.draw(gameCtx)); eBullets.forEach(b => b.draw(gameCtx));
+            effects.forEach(e => e.draw(gameCtx)); effects.forEach(e => e.update());
+            effects = effects.filter(e => e.active);
+        }
+
+        // ============ 触控处理 ============
+
+        function drawJoystickUI() {
+            uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+            if (joystick.active) {
+                const dx = joystick.moveX - joystick.startX, dy = joystick.moveY - joystick.startY;
+                const dist = Math.sqrt(dx * dx + dy * dy), angle = Math.atan2(dy, dx);
+                const clampedDist = Math.min(dist, CONFIG.JOYSTICK_MAX_RADIUS);
+                const endX = joystick.startX + Math.cos(angle) * clampedDist, endY = joystick.startY + Math.sin(angle) * clampedDist;
+                uiCtx.save(); uiCtx.strokeStyle = COLORS.ink; uiCtx.lineWidth = 2;
+                uiCtx.beginPath(); uiCtx.arc(joystick.startX, joystick.startY, 4, 0, Math.PI * 2); uiCtx.fillStyle = COLORS.ink; uiCtx.fill();
+                uiCtx.beginPath(); uiCtx.moveTo(joystick.startX, joystick.startY); uiCtx.lineTo(endX, endY); uiCtx.stroke();
+                uiCtx.beginPath(); uiCtx.arc(endX, endY, 5, 0, Math.PI * 2); uiCtx.stroke();
+                const arcRadius = clampedDist + 10, arcSpan = (Math.PI * 2) / 5;
+                uiCtx.beginPath(); uiCtx.arc(joystick.startX, joystick.startY, arcRadius, angle - arcSpan / 2, angle + arcSpan / 2); uiCtx.stroke();
+                uiCtx.restore();
+            }
+        }
+
+        controlLayer.addEventListener('touchstart', (e) => { e.preventDefault(); handleTouch(e, true); }, { passive: false });
+        controlLayer.addEventListener('touchmove', (e) => { e.preventDefault(); handleTouch(e, false); }, { passive: false });
+        controlLayer.addEventListener('touchend', (e) => { handleTouchEnd(e); });
+        controlLayer.addEventListener('touchcancel', (e) => { handleTouchEnd(e); });
+
+        function handleTouch(e, isStart) {
+            const rectS = elPShoot.getBoundingClientRect(), rectU = elPUlt.getBoundingClientRect();
+            for (let touch of e.changedTouches) {
+                const x = touch.clientX, y = touch.clientY, id = touch.identifier;
+                if (x < window.innerWidth / 2) {
+                    if (isStart) { joystick.active = true; joystick.id = id; joystick.startX = x; joystick.startY = y; joystick.moveX = x; joystick.moveY = y; }
+                    else { if (joystick.active && joystick.id === id) { joystick.moveX = x; joystick.moveY = y; } }
+                } else {
+                    if (isStart) {
+                        if (isInsideCircle(x, y, rectS.left + rectS.width / 2, rectS.top + rectS.height / 2, rectS.width / 2)) { shootTouchId = id; elPShoot.classList.add('active'); }
+                        else if (isInsideCircle(x, y, rectU.left + rectU.width / 2, rectU.top + rectU.height / 2, rectU.width / 2)) { ultTouchId = id; elPUlt.classList.add('active'); }
+                    }
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            for (let touch of e.changedTouches) {
+                const id = touch.identifier;
+                if (joystick.id === id) { joystick.active = false; }
+                if (shootTouchId === id) { shootTouchId = -1; elPShoot.classList.remove('active'); }
+                if (ultTouchId === id) { ultTouchId = -1; elPUlt.classList.remove('active'); }
+            }
+        }
+
+        // ============ 模式选择 ============
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                currentMode = btn.dataset.mode;
+
+                // 更新说明文字
+                if (currentMode === 'wave') {
+                    elInstructions.innerHTML = `
+                        <h4>外挂功能</h4>
+                        <p>ULT: 自动追踪激光，拐弯，百发百中，无CD</p>
+                        <p>第1波: 50个敌人 | 第2波: 50个敌人</p>
+                        <p>左侧屏幕：拖动移动</p>
+                        <p>右下按钮：射击 | 右上按钮：外挂激光</p>
+                    `;
+                } else {
+                    elInstructions.innerHTML = `
+                        <h4>无尽模式 - 守住3分钟!</h4>
+                        <p>敌人会从四面八方疯狂涌入</p>
+                        <p>拼命守住自己，撑过3分钟即可胜利</p>
+                        <p>ULT: 自动追踪激光，拐弯，百发百中，无CD</p>
+                        <p>左侧屏幕：拖动移动 | 右下射击 | 右上激光</p>
+                    `;
+                }
+            });
+        });
+
+        // ============ 开始/结束 ============
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            document.getElementById('startOverlay').classList.add('hidden');
+            initGame();
+            gameState.running = true; lastTime = performance.now();
+            animationId = requestAnimationFrame(gameLoop);
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('endOverlay').classList.add('hidden');
+            document.getElementById('startOverlay').classList.remove('hidden');
+            gameState.pScore = 0; gameState.eScore = 0; updateUI();
+        });
+
+        function endGame(victory) {
+            gameState.running = false;
+            const title = document.getElementById('resultTitle');
+            const scoreText = document.getElementById('finalScore');
+
+            if (currentMode === 'endless') {
+                if (victory) {
+                    title.textContent = "守住3分钟! 胜利!";
+                    title.className = 'result-title win';
+                } else {
+                    title.textContent = "防线崩溃...";
+                    title.className = 'result-title lose';
+                }
+                scoreText.innerHTML = `总击杀 <span id="finalPScore">${gameState.pScore}</span> / 存活时间 ${formatTime(CONFIG.ENDLESS_DURATION - endlessTimer)}`;
+            } else {
+                title.textContent = victory ? "屠杀完成!" : "战斗结束";
+                title.className = 'result-title win';
+                scoreText.innerHTML = `击杀数 <span id="finalPScore">${gameState.pScore}</span> / 阵亡 <span id="finalEScore">${gameState.eScore}</span>`;
+            }
+
+            document.getElementById('endOverlay').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
