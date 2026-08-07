@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二次元剧情生成器 - StoryForge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --bg: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-hover: #252542;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #2d2d44;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            animation: bgMove 20s ease-in-out infinite;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, -5%); }
+        }
+
+        /* 粒子效果 */
+        .particle {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+
+        /* 头部 */
+        header {
+            text-align: center;
+            padding: 40px 20px 20px;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* 表单元素 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* 标签选择 */
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            padding: 6px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .tag:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tag.active {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-color: transparent;
+            color: white;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            width: 100%;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary);
+        }
+
+        /* 剧情显示区域 */
+        .story-display {
+            min-height: 500px;
+        }
+
+        .story-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .story-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .meta-tag {
+            padding: 4px 12px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--primary);
+        }
+
+        .story-content {
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }
+
+        .story-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border-left: 3px solid var(--primary);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dialogue {
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            position: relative;
+            border-left: 3px solid var(--secondary);
+        }
+
+        .dialogue-speaker {
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .dialogue-text {
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .scene-desc {
+            color: var(--text-dim);
+            font-style: italic;
+            margin: 12px 0;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .choice-box {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .choice-item {
+            padding: 14px 18px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .choice-item:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateX(5px);
+        }
+
+        .choice-item.selected {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .choice-prefix {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        /* 角色卡 */
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .character-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .character-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .char-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .char-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .char-role {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .char-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .char-tag {
+            padding: 2px 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 10px;
+            font-size: 0.75rem;
+            color: var(--primary);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
+
+        .empty-state .icon-large {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 历史记录 */
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .history-item {
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .history-item:hover {
+            border-color: var(--primary);
+            background: var(--bg-hover);
+        }
+
+        .history-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-meta {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* 导出按钮组 */
+        .export-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .export-group .btn {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .logo {
+                font-size: 1.8rem;
+            }
+            .character-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 剧情类型特殊样式 */
+        .genre-fantasy .section-title { color: #fbbf24; }
+        .genre-scifi .section-title { color: #22d3ee; }
+        .genre-romance .section-title { color: #f472b6; }
+        .genre-horror .section-title { color: #ef4444; }
+        .genre-mystery .section-title { color: #a78bfa; }
+        .genre-daily .section-title { color: #34d399; }
+
+        .mood-happy { border-left-color: #fbbf24 !important; }
+        .mood-tense { border-left-color: #ef4444 !important; }
+        .mood-sad { border-left-color: #60a5fa !important; }
+        .mood-romantic { border-left-color: #f472b6 !important; }
+        .mood-mysterious { border-left-color: #a78bfa !important; }
+
+        /* 进度指示器 */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg);
+            border-radius: 2px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <header>
+        <h1 class="logo">✨ StoryForge 剧情生成器</h1>
+        <p class="subtitle">打造属于你的二次元世界</p>
+    </header>
+
+    <div class="container">
+        <!-- 左侧控制面板 -->
+        <aside class="control-panel">
+            <div class="card">
+                <div class="card-title">
+                    <div class="icon">⚙️</div>
+                    剧情设定
+                </div>
+                
+                <div class="form-group">
+                    <label>题材类型</label>
+                    <select id="genre">
+                        <option value="fantasy">奇幻冒险</option>
+                        <option value="scifi">科幻未来</option>
+                        <option value="romance">校园恋爱</option>
+                        <option value="horror">悬疑恐怖</option>
+                        <option value="mystery">推理探案</option>
+                        <option value="daily">日常治愈</option>
+                        <option value="isekai">异世界转生</option>
+                        <option value="mecha">机甲战斗</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>故事基调</label>
+                    <select id="mood">
+                        <option value="happy">轻松愉快</option>
+                        <option value="tense">紧张刺激</option>
+                        <option value="sad">感人催泪</option>
+                        <option value="romantic">甜蜜浪漫</option>
+                        <option value="mysterious">神秘悬疑</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>故事长度</label>
+                    <select id="length">
+                        <option value="short">短篇（3-5幕）</option>
+                        <option value="medium" selected>中篇（6-10幕）</option>
+                        <option value="long">长篇（11-15幕）</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>主角设定（可选）</label>
+                    <input type="text" id="protagonist" placeholder="例如：失忆的魔法少女">
+                </div>
+
+                <div class="form-group">
+                    <label>核心冲突（可选）</label>
+                    <input type="text" id="conflict" placeholder="例如：拯救即将毁灭的世界">
+                </div>
+
+                <div class="form-group">
+                    <label>关键元素</label>
+                    <div class="tag-group" id="elements">
+                        <span class="tag" data-value="magic">魔法</span>
+                        <span class="tag" data-value="sword">剑术</span>
+                        <span class="tag" data-value="school">学园</span>
+                        <span class="tag" data-value="dragon">龙</span>
+                        <span class="tag" data-value="robot">机器人</span>
+                        <span class="tag" data-value="ghost">幽灵</span>
+                        <span class="tag" data-value="time">时间旅行</span>
+                        <span class="tag" data-value="memory">记忆</span>
+                        <span class="tag" data-value="dream">梦境</span>
+                        <span class="tag" data-value="cafe">咖啡馆</span>
+                        <span class="tag" data-value="festival">祭典</span>
+                        <span class="tag" data-value="rain">雨天</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="generateStory()">
+                    <span>🎲</span> 生成剧情
+                </button>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-title">
+                    <div class="icon">📚</div>
+                    历史记录
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 2rem; margin-bottom: 8px;">📝</div>
+                        <div style="font-size: 0.9rem;">暂无生成记录</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧显示区域 -->
+        <main class="display-area">
+            <div class="card story-display" id="storyCard">
+                <div class="empty-state">
+                    <div class="icon-large">🎭</div>
+                    <h3>准备好开始创作了吗？</h3>
+                    <p>在左侧配置你的故事设定，然后点击"生成剧情"</p>
+                    <p style="margin-top: 12px; font-size: 0.9rem;">支持奇幻、科幻、恋爱、悬疑等多种题材</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 剧情数据库
+        const storyDB = {
+            fantasy: {
+                settings: [
+                    "浮空群岛组成的魔法世界",
+                    "被诅咒的古老王国",
+                    "人与龙共存的边境之地",
+                    "魔法学院所在的浮空城",
+                    "永夜笼罩的冰封大陆"
+                ],
+                protagonists: [
+                    { name: "艾莉亚", desc: "拥有罕见光属性的魔法少女", trait: "乐观坚强" },
+                    { name: "雷恩", desc: "背负灭族之仇的剑士", trait: "冷静果断" },
+                    { name: "莉莉丝", desc: "能听懂龙语的半龙少女", trait: "傲娇善良" },
+                    { name: "凯尔", desc: "失忆的前任勇者", trait: "温柔迷茫" }
+                ],
+                plots: [
+                    "寻找失落的古代魔法书",
+                    "阻止魔王复活仪式",
+                    "解开龙族灭族的真相",
+                    "修复破碎的世界树",
+                    "寻找传说中的圣剑"
+                ],
+                scenes: [
+                    "古老的图书馆深处，尘封的魔法书突然发出微光",
+                    "龙脊山脉的暴风雪中，巨大的黑影掠过天空",
+                    "魔法学院的钟楼敲响十三下，禁忌之门缓缓开启",
+                    "王城地下墓穴，蓝色的灵魂之火照亮了石壁上的预言",
+                    "天空之城边缘，云海翻涌，仿佛有什么正在苏醒"
+                ],
+                dialogues: [
+                    { speaker: "神秘老人", text: "孩子，你体内的魔力...和那位大人一模一样。" },
+                    { speaker: "龙族少女", text: "人类都是骗子！但...你好像有点不一样。" },
+                    { speaker: "宿敌", text: "又是你。每次我以为终于甩掉你的时候，你就会像幽灵一样出现。" },
+                    { speaker: "精灵导师", text: "魔法不是用来战斗的，是用来守护你所珍视之物的。" }
+                ],
+                choices: [
+                    "接受神秘力量的馈赠，但代价是失去部分记忆",
+                    "拒绝力量，选择用自己的方式解决问题",
+                    "寻求同伴的帮助，共同面对困难",
+                    "独自深入险境，保护同伴不受牵连"
+                ]
+            },
+            scifi: {
+                settings: [
+                    "2145年的霓虹都市新东京",
+                    "漂浮在木星轨道上的殖民卫星",
+                    "被AI统治的后人类世界",
+                    "深空探索舰「希望号」",
+                    "虚拟现实与现实的交界地带"
+                ],
+                protagonists: [
+                    { name: "零", desc: "拥有电子脑的仿生人侦探", trait: "理性好奇" },
+                    { name: "星野遥", desc: "能入侵任何系统的黑客少女", trait: "叛逆天才" },
+                    { name: "艾伦", desc: "从冷冻睡眠中醒来的古代人", trait: "困惑坚韧" },
+                    { name: "薇拉", desc: "反抗军的天才机械师", trait: "热血冲动" }
+                ],
+                plots: [
+                    "揭露巨型企业的阴谋",
+                    "寻找人类意识上传的真相",
+                    "阻止AI的「净化计划」",
+                    "修复断裂的星际网络",
+                    "追查连环电子脑杀人事件"
+                ],
+                scenes: [
+                    "雨夜的霓虹街头，全息广告牌闪烁着刺目的红光",
+                    "零重力舱室内，漂浮的零件反射着地球的蓝色光芒",
+                    "废弃的服务器机房，无数指示灯在黑暗中明灭",
+                    "太空电梯的观景舱，火星在舷窗外缓缓旋转",
+                    "虚拟世界的数据深渊，代码如瀑布般倾泻而下"
+                ],
+                dialogues: [
+                    { speaker: "AI助手", text: "警告：您的多巴胺水平异常。需要我为您注射镇静剂吗？" },
+                    { speaker: "企业特工", text: "你知道得太多了。在这个时代，知识确实就是力量——也是死刑。" },
+                    { speaker: "仿生人同伴", text: "我也有心跳，虽然那是马达的震动。但这种感觉...应该就叫害怕吧？" },
+                    { speaker: "神秘联络人", text: "别相信任何屏幕上的脸。在这个时代，连记忆都可以伪造。" }
+                ],
+                choices: [
+                    "上传意识到云端获得永生，但失去肉体",
+                    "保持人类身份，面对有限的生命",
+                    "与AI达成和解，寻找共存之道",
+                    "摧毁核心服务器，终结AI统治"
+                ]
+            },
+            romance: {
+                settings: [
+                    "樱花飞舞的私立学园",
+                    "海边的小镇与天文台",
+                    "繁华都市中的旧书店",
+                    "音乐学院的练习楼",
+                    "乡下祖母家的老宅"
+                ],
+                protagonists: [
+                    { name: "夏目晴", desc: "转学来的神秘优等生", trait: "温柔内敛" },
+                    { name: "藤原凛", desc: "人气偶像的隐藏身份", trait: "活泼傲娇" },
+                    { name: "神谷悠真", desc: "天才钢琴家但患有社交恐惧", trait: "纤细敏感" },
+                    { name: "佐伯美月", desc: "图书委员的文学少女", trait: "知性天然" }
+                ],
+                plots: [
+                    "隐藏身份的同学其实是青梅竹马",
+                    "音乐比赛前的最后夏天",
+                    "旧书店里的时光胶囊与约定",
+                    "学园祭后台的告白与误会",
+                    "雨天共享一把伞的距离"
+                ],
+                scenes: [
+                    "樱花树下，粉色的花瓣落在翻开的书页上",
+                    "音乐教室的黄昏，钢琴声与夕阳交织",
+                    "夏日祭的烟火下，人群中的回眸一笑",
+                    "放学后的教室，只有两个人的值日时间",
+                    "初雪天的车站，呼出的白气与紧握的双手"
+                ],
+                dialogues: [
+                    { speaker: "青梅竹马", text: "喂，你又在发呆。从以前开始就是这样，一有心事就看窗外。" },
+                    { speaker: "学生会会长", text: "作为会长我不能偏袒任何人...但作为我自己，我想站在你这边。" },
+                    { speaker: "神秘转学生", text: "我转学来这里，其实是为了见一个人。一个我找了很久的人。" },
+                    { speaker: "好友", text: "你们两个到底要暧昧到什么时候？我都替你们着急了！" }
+                ],
+                choices: [
+                    "在樱花树下告白，但可能失去现在的关系",
+                    "将感情藏在心底，维持现状",
+                    "通过书信传达心意，给彼此思考的空间",
+                    "在关键时刻拉住对方的手，用行动代替言语"
+                ]
+            },
+            horror: {
+                settings: [
+                    "废弃的医院与地下太平间",
+                    "被封锁的旧校舍",
+                    "深山中的诡异村落",
+                    "不断变化的异次元公寓",
+                    "深夜的末班电车"
+                ],
+                protagonists: [
+                    { name: "黑桐干也", desc: "能看见「不该存在之物」的大学生", trait: "冷静勇敢" },
+                    { name: "两仪式", desc: "拥有直死之魔眼的少女", trait: "冷酷神秘" },
+                    { name: "仓密目留科", desc: "专门调查超自然事件的记者", trait: "执着敏锐" },
+                    { name: "浅上藤乃", desc: "失去痛觉的异能者", trait: "脆弱危险" }
+                ],
+                plots: [
+                    "调查连续失踪事件背后的真相",
+                    "解开古老诅咒的源头",
+                    "逃离不断循环的死亡空间",
+                    "面对自己内心深处的恐惧具现化",
+                    "揭开「不存在的人」的真实身份"
+                ],
+                scenes: [
+                    "走廊尽头，明明没有风，门却自己缓缓打开",
+                    "镜子里，自己的倒影慢了半拍才跟上动作",
+                    "深夜的病房，心电监护仪突然全部响起",
+                    "电梯停在不该存在的13层，门开后是一片血红",
+                    "照片中的背景里，站着一个没有脸的人"
+                ],
+                dialogues: [
+                    { speaker: "神秘少女", text: "你能看见我？太好了...终于有人能听我说话了。虽然...你可能不想听。" },
+                    { speaker: "幸存者", text: "别回头。不管听到什么，千万别回头。那是它最喜欢玩的游戏。" },
+                    { speaker: "自己的声音", text: "你终于来了。我等你很久了...在这个没有出口的地方。" },
+                    { speaker: "神秘老人", text: "有些门一旦打开就关不上了。你确定要继续吗？" }
+                ],
+                choices: [
+                    "深入调查真相，即使可能无法回头",
+                    "立即逃离，但可能永远无法知道答案",
+                    "与「那个存在」对话，试图理解它",
+                    "牺牲自己，保护重要的人离开"
+                ]
+            },
+            mystery: {
+                settings: [
+                    "暴风雨中的孤岛别墅",
+                    "错综复杂的中世纪古堡",
+                    "现代都市的地下迷宫",
+                    "时间停止的钟表店",
+                    "连接过去与现在的旧照片馆"
+                ],
+                protagonists: [
+                    { name: "折木奉太郎", desc: "信奉节能主义的推理天才", trait: "懒散敏锐" },
+                    { name: "千反田爱瑠", desc: "好奇心旺盛的大小姐", trait: "纯真执着" },
+                    { name: "维克多", desc: "退役刑警转行私家侦探", trait: "沧桑睿智" },
+                    { name: "紫苑寺有子", desc: "足不出户的网络侦探", trait: "毒舌天才" }
+                ],
+                plots: [
+                    "密室杀人事件的完美犯罪",
+                    "连续预告函背后的复仇计划",
+                    "消失的不在场证明",
+                    "被篡改的集体记忆",
+                    "双胞胎替换诡计"
+                ],
+                scenes: [
+                    "书房内，死者握着一枚棋子，脸上带着诡异的微笑",
+                    "钟楼顶端，大钟停在案发时刻不再走动",
+                    "地下酒窖，排列整齐的酒瓶中混着一瓶毒药",
+                    "温室花园，珍稀兰花在死者身边诡异盛开",
+                    "阁楼旧物中，发现了与现在完全矛盾的日记"
+                ],
+                dialogues: [
+                    { speaker: "嫌疑人A", text: "我确实有动机，但动机不代表我会行动。这是两回事。" },
+                    { speaker: "侦探", text: "真相只有一个。但在那之前，让我先听听你的谎言。" },
+                    { speaker: "助手", text: "等等！如果凶手是X，那这个线索就解释不通了！" },
+                    { speaker: "真凶", text: "你确实聪明。但你能证明吗？在法律面前，推理只是推理。" }
+                ],
+                choices: [
+                    "当场揭露真相，但可能打草惊蛇",
+                    "继续收集证据，等待最佳时机",
+                    "设下陷阱引诱真凶自投罗网",
+                    "与嫌疑人合作，换取更多情报"
+                ]
+            },
+            daily: {
+                settings: [
+                    "街角的猫咪咖啡馆",
+                    "放学后的轻音部活动室",
+                    "海边的家庭餐厅",
+                    "山间的温泉旅馆",
+                    "都市角落的旧书店"
+                ],
+                protagonists: [
+                    { name: "平泽唯", desc: "天然呆的吉他手", trait: "迷糊乐观" },
+                    { name: "土间埋", desc: "在家是干物妹在外是美少女", trait: "反差萌" },
+                    { name: "野比大雄", desc: "平凡但善良的少年", trait: "温柔懦弱" },
+                    { name: "小透", desc: "总是为他人着想的治愈系", trait: "温柔坚强" }
+                ],
+                plots: [
+                    "准备学园祭的忙碌日常",
+                    "寻找走丢的流浪猫",
+                    "夏日海边合宿的趣事",
+                    "毕业前的最后一张合照",
+                    "新邻居是意想不到的人"
+                ],
+                scenes: [
+                    "午后阳光透过窗帘，在地板上投下斑驳光影",
+                    "厨房传来焦味和慌乱的叫声，今天的晚饭又...",
+                    "雨后的街道，水洼倒映着彩虹和奔跑的身影",
+                    "傍晚的公园长椅，分享着同一副耳机",
+                    "冬日的被炉里，橘子和零食堆成小山"
+                ],
+                dialogues: [
+                    { speaker: "好友A", text: "我说你啊，又把作业拖到最后一刻了吧？真是的，来我家一起写啦。" },
+                    { speaker: "店长", text: "今天的特调是「夏日回忆」，要试试吗？是用了新到的豆子哦。" },
+                    { speaker: "妹妹", text: "哥哥/姐姐，陪我玩嘛！就一会儿，好不好嘛~" },
+                    { speaker: "邻居", text: "我做了太多咖喱，不介意的话...要一起来吃吗？" }
+                ],
+                choices: [
+                    "接受邀请，可能会发生有趣的事",
+                    "婉拒邀请，但事后有点后悔",
+                    "拉上大家一起，热闹最重要",
+                    "虽然害羞但还是答应了，迈出一步"
+                ]
+            },
+            isekai: {
+                settings: [
+                    "剑与魔法的异世界大陆",
+                    "被游戏化的现实世界",
+                    "死后转生的轮回神殿",
+                    "被召唤的勇者祭坛",
+                    "连接多个世界的枢纽城"
+                ],
+                protagonists: [
+                    { name: "菜月昴", desc: "拥有死亡回归能力的少年", trait: "执着拼命" },
+                    { name: "佐藤", desc: "满级开挂的异世界游客", trait: "佛系善良" },
+                    { name: "谭雅", desc: "转生为幼女的战狂大叔", trait: "冷酷算计" },
+                    { name: "葵娜", desc: "满级 grandmother 的悠闲生活", trait: "宠溺随性" }
+                ],
+                plots: [
+                    "在异世界建立属于自己的领地",
+                    "寻找回到原来世界的方法",
+                    "解开自己转生的真正原因",
+                    "阻止异世界与地球的碰撞",
+                    "成为连接两个世界的桥梁"
+                ],
+                scenes: [
+                    "转生时的白光中，听到了神秘的声音",
+                    "异世界的集市，魔物素材与魔法道具琳琅满目",
+                    "冒险者公会，接待员微笑着递来第一张任务单",
+                    "夜晚的篝火旁，新结识的同伴分享着各自的故事",
+                    "王城的谒见之间，国王亲自迎接传说中的勇者"
+                ],
+                dialogues: [
+                    { speaker: "女神", text: "欢迎来到死后世界...开玩笑的。这是异世界，请多关照~" },
+                    { speaker: "原住民", text: "你的装备...是从未见过的样式。难道你是「来自彼方之人」？" },
+                    { speaker: "同伴", text: "虽然你有时候很奇怪，但...我相信你。因为你是我们的同伴。" },
+                    { speaker: "魔王", text: "勇者？不，我等你很久了。或者说...我等你「回来」很久了。" }
+                ],
+                choices: [
+                    "接受命运成为勇者，拯救这个世界",
+                    "隐藏身份，在异世界过平凡生活",
+                    "寻找回到原世界的方法，即使代价高昂",
+                    "利用现代知识改变异世界，成为幕后推手"
+                ]
+            },
+            mecha: {
+                settings: [
+                    "被使徒袭击的第三新东京市",
+                    "宇宙殖民卫星SIDE 7",
+                    "环太平洋机甲基地",
+                    "火星独立军的秘密工厂",
+                    "漂浮在太空的废弃殖民船"
+                ],
+                protagonists: [
+                    { name: "碇真嗣", desc: "被迫驾驶EVA的少年", trait: "内向脆弱" },
+                    { name: "刹那", desc: "能听见高达声音的变革者", trait: "纯粹偏执" },
+                    { name: "西蒙", desc: "相信钻头能突破天际的少年", trait: "热血成长" },
+                    { name: "三日月", desc: "铁华团的恶魔", trait: "沉默忠诚" }
+                ],
+                plots: [
+                    "阻止使徒引发的第三次冲击",
+                    "在宇宙战争中寻找自己的道路",
+                    "驾驶古代文明遗留的超级机体",
+                    "反抗地球联邦的殖民统治",
+                    "阻止人类补完计划"
+                ],
+                scenes: [
+                    "地下都市升起，巨大的机甲从格纳库中弹射而出",
+                    "宇宙空间中，光束军刀交错，碎片如星尘飘散",
+                    "驾驶舱内，神经连接带来的剧痛让视野染红",
+                    "残骸漂浮的战场，破损的机体握着另一台机体的手",
+                    "发射台前，少年最后一次回望蓝色的地球"
+                ],
+                dialogues: [
+                    { speaker: "司令", text: "不想驾驶的话，就滚回去。但你要想清楚，逃避的代价是什么。" },
+                    { speaker: "机体AI", text: "神经同步率400%...警告，驾驶员正在融入机体。" },
+                    { speaker: "敌人", text: "为什么要战斗？明明谁都不会因此幸福。" },
+                    { speaker: "同伴", text: "我相信你。不是因为你驾驶的是高达，而是因为你是你。" }
+                ],
+                choices: [
+                    "驾驶机体出击，保护重要的人",
+                    "拒绝战斗，寻找不用牺牲的方法",
+                    "与敌人对话，试图理解战争的根源",
+                    "牺牲机体，为同伴创造胜机"
+                ]
+            }
+        };
+
+        // 通用元素
+        const commonElements = {
+            weather: ["晴朗", "细雨", "暴雨", "大雪", "浓雾", "星空", "黄昏", "黎明"],
+            time: ["清晨", "正午", "黄昏", "深夜", "午夜", "破晓"],
+            items: ["旧怀表", "破碎的镜子", "泛黄的信纸", "银色的钥匙", "枯萎的花", "未完成的乐谱"],
+            emotions: ["希望", "绝望", "怀念", "愤怒", "温柔", "孤独", "勇气", "迷茫"]
+        };
+
+        // 工具函数
+        function random(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function shuffle(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // 标签选择
+        document.querySelectorAll('.tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // 生成角色
+        function generateCharacters(genre, count = 3) {
+            const db = storyDB[genre];
+            const chars = shuffle([...db.protagonists]).slice(0, count);
+            return chars.map((char, i) => ({
+                ...char,
+                role: i === 0 ? '主角' : (i === 1 ? '搭档/对手' : '关键人物'),
+                secret: random([
+                    "隐藏着改变世界的力量",
+                    "其实是敌对势力的卧底",
+                    "失去了重要的记忆",
+                    "背负着不为人知的诅咒",
+                    "来自另一个时间线"
+                ])
+            }));
+        }
+
+        // 生成剧情段落
+        function generateScene(genre, mood, characters, progress, elements) {
+            const db = storyDB[genre];
+            const weather = random(commonElements.weather);
+            const time = random(commonElements.time);
+            const item = random(commonElements.items);
+            const emotion = random(commonElements.emotions);
+            
+            let scene = {
+                setting: random(db.settings),
+                weather,
+                time,
+                descriptions: [],
+                dialogues: [],
+                choices: []
+            };
+
+            // 根据进度生成不同内容
+            if (progress === 0) {
+                scene.descriptions.push(`【序章：${random(["命运的相遇", "异变的开端", "平凡的日常", "觉醒的时刻"])}】`);
+                scene.descriptions.push(`${time}的${scene.setting}，${weather}笼罩着一切。`);
+                scene.descriptions.push(`${characters[0].name}，${characters[0].desc}，正站在命运的十字路口。`);
+                if (elements.length > 0) {
+                    scene.descriptions.push(`空气中弥漫着${elements[0]}的气息，仿佛预示着什么。`);
+                }
+            } else if (progress < 0.3) {
+                scene.descriptions.push(`【第一章：${random(["波澜渐起", "迷雾重重", "初次交锋", "秘密浮现"])}】`);
+                scene.descriptions.push(`${time}，${weather}。${characters[0].name}来到了${random(db.scenes)}。`);
+                scene.descriptions.push(`手中紧握的${item}，似乎与这一切有着某种联系。`);
+            } else if (progress < 0.6) {
+                scene.descriptions.push(`【第二章：${random(["危机四伏", "真相逼近", "羁绊加深", "背水一战"])}】`);
+                scene.descriptions.push(`随着调查的深入，${characters[0].name}发现了令人震惊的事实。`);
+                scene.descriptions.push(`${characters[1].name}的真实身份似乎并不简单...`);
+            } else if (progress < 0.9) {
+                scene.descriptions.push(`【第三章：${random(["最终对决", "生死抉择", "真相大白", "命运之战"])}】`);
+                scene.descriptions.push(`${weather}中的${scene.setting}，决战一触即发。`);
+                scene.descriptions.push(`${characters[0].name}感受到了前所未有的${emotion}。`);
+            } else {
+                scene.descriptions.push(`【终章：${random(["新的黎明", "永恒的约定", "轮回的终结", "启程之日"])}】`);
+                scene.descriptions.push(`${time}的第一缕阳光穿透云层。`);
+                scene.descriptions.push(`一切结束后，${characters[0].name}望着远方，心中充满了${emotion}。`);
+            }
+
+            // 添加对话
+            const dialogueCount = Math.random() > 0.3 ? 2 : 1;
+            for (let i = 0; i < dialogueCount; i++) {
+                const char = random(characters);
+                const dbDialogue = random(db.dialogues);
+                scene.dialogues.push({
+                    speaker: i === 0 ? dbDialogue.speaker : char.name,
+                    text: dbDialogue.text,
+                    emotion: random(["平静", "激动", "悲伤", "坚定", "困惑"])
+                });
+            }
+
+            // 添加选择（非终章）
+            if (progress < 0.9) {
+                scene.choices = shuffle([...db.choices]).slice(0, 2);
+            }
+
+            return scene;
+        }
+
+        // 主生成函数
+        function generateStory() {
+            const genre = document.getElementById('genre').value;
+            const mood = document.getElementById('mood').value;
+            const length = document.getElementById('length').value;
+            const protagonistInput = document.getElementById('protagonist').value;
+            const conflictInput = document.getElementById('conflict').value;
+            
+            const activeTags = Array.from(document.querySelectorAll('.tag.active')).map(t => t.dataset.value);
+            
+            // 确定幕数
+            const actCounts = { short: [3, 4, 5], medium: [6, 8, 10], long: [11, 13, 15] };
+            const acts = random(actCounts[length]);
+
+            // 显示加载
+            const card = document.getElementById('storyCard');
+            card.innerHTML = `
+                <div class="loading active">
+                    <div class="spinner"></div>
+                    <p>正在编织命运之线...</p>
+                    <p style="font-size: 0.9rem; color: var(--text-dim); margin-top: 8px;">生成${acts}幕剧情</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                // 生成角色
+                let characters = generateCharacters(genre, 3);
+                if (protagonistInput) {
+                    characters[0] = { 
+                        name: protagonistInput.split(/[，,、]/)[0] || "主角", 
+                        desc: protagonistInput, 
+                        trait: "自定义",
+                        role: "主角",
+                        secret: "未知的过去"
+                    };
+                }
+
+                // 生成剧情
+                const story = {
+                    id: generateId(),
+                    title: generateTitle(genre, mood),
+                    genre,
+                    mood,
+                    characters,
+                    acts: [],
+                    timestamp: new Date().toLocaleString('zh-CN')
+                };
+
+                for (let i = 0; i < acts; i++) {
+                    const progress = i / (acts - 1);
+                    const scene = generateScene(genre, mood, characters, progress, activeTags);
+                    if (conflictInput && i === Math.floor(acts / 2)) {
+                        scene.descriptions.push(`【核心冲突】${conflictInput}`);
+                    }
+                    story.acts.push(scene);
+                }
+
+                // 渲染
+                renderStory(story);
+                saveToHistory(story);
+            }, 1500);
+        }
+
+        function generateTitle(genre, mood) {
+            const titles = {
+                fantasy: {
+                    happy: ["光之继承者", "龙与少年的约定", "魔法学院的不可思议"],
+                    tense: ["暗影之书的觉醒", "终焉之龙的咆哮", "破碎的贤者之石"],
+                    sad: ["消逝的精灵之歌", "未完成的魔法阵", "最后一朵世界花"],
+                    romantic: ["星与月的恋曲", "龙骑士的誓言", "魔法使的新娘"],
+                    mysterious: ["迷雾之森的邀请函", "第七封印的秘密", "时之塔的回响"]
+                },
+                scifi: {
+                    happy: ["霓虹下的机械猫", "星际快递员的日常", "AI管家的养成计划"],
+                    tense: ["赛博朋克：午夜", "量子幽灵", "神经漫游者"],
+                    sad: ["消逝在数据海", "未发送的告白", "冷冻睡眠中的梦"],
+                    romantic: ["硅基之心", "虚拟与现实之间", "0与1的恋歌"],
+                    mysterious: ["第十三层协议", "记忆植入师", "黑箱中的真相"]
+                },
+                romance: {
+                    happy: ["樱花树下的数学课", "猫咪咖啡馆的邂逅", "放课后的交响乐"],
+                    tense: ["三角关系方程式", "情敌出现！", "误会与和解"],
+                    sad: ["毕业前的最后一封信", "雨中的告别", "未完成的四重奏"],
+                    romantic: ["月色真美", "心跳的频率", "你的颜色"],
+                    mysterious: ["转学生的秘密", "午夜短信的发信人", "交换日记的真相"]
+                },
+                horror: {
+                    happy: ["灵异研究部的日常", "我和幽灵做朋友", "除灵师的兼职"],
+                    tense: ["十三阶梯的诅咒", "镜中异象", "午夜广播"],
+                    sad: ["无法成佛的她", "被遗忘的约定", "孤独的守墓人"],
+                    romantic: ["人鬼情未了", "吸血鬼之恋", "僵尸新娘"],
+                    mysterious: ["第七个怪谈", "不存在的室友", "轮回的教室"]
+                },
+                mystery: {
+                    happy: ["侦探社的悠闲下午", "谜题爱好者的聚会", "寻宝游戏"],
+                    tense: ["暴风雪山庄", "消失的子弹", "完美犯罪"],
+                    sad: ["被冤枉的嫌疑人", "迟来的真相", "侦探的遗言"],
+                    romantic: ["侦探与助手的羁绊", "嫌疑人的告白", "解开谜题后的约会"],
+                    mysterious: ["第十一个客人", "无面杀人事件", "时间胶囊的秘密"]
+                },
+                daily: {
+                    happy: ["今天的坂道", "轻音少女的夏天", "悠哉日常大王"],
+                    tense: ["考试前的危机", "文化祭大作战", "运动会的热血"],
+                    sad: ["毕业季的樱花", "转学的告别", "社团的最后活动"],
+                    romantic: ["邻座的怪同学", "月刊少女野崎君", "徒然喜欢你"],
+                    mysterious: ["不可思议研究部", "旧校舍的幽灵", "时间停止的午后"]
+                },
+                isekai: {
+                    happy: ["开挂农民的悠闲生活", "史莱姆牧场主", "异世界食堂"],
+                    tense: ["魔王军来袭", "迷宫最深处", "神之试炼"],
+                    sad: ["回不去的家", "异世界的孤独", "同伴的牺牲"],
+                    romantic: ["精灵新娘", "龙族公主的求婚", "女骑士的守护"],
+                    mysterious: ["转生的真相", "世界的法则", "神的游戏"]
+                },
+                mecha: {
+                    happy: ["机甲整备班的日常", "新机体试飞", "基地的后辈"],
+                    tense: ["使徒来袭", "最终决战", "暴走"],
+                    sad: ["驾驶员的代价", "无法传达的心意", "最后的出击"],
+                    romantic: ["驾驶舱中的告白", "机库里的约定", "零重力之吻"],
+                    mysterious: ["机体的意志", "消失的驾驶员", "黑历史"]
+                }
+            };
+            
+            const genreTitles = titles[genre] || titles.fantasy;
+            const moodTitles = genreTitles[mood] || genreTitles.happy;
+            return random(moodTitles) + "：" + random([
+                "第" + random(["一", "二", "三", "终"]) + "章",
+                "～" + random(["前篇", "后篇", "外传", "if线"]) + "～",
+                ""
+            ]);
+        }
+
+        function renderStory(story) {
+            const card = document.getElementById('storyCard');
+            
+            let html = `
+                <div class="story-header">
+                    <div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${story.title}</h2>
+                        <div class="story-meta">
+                            <span class="meta-tag">${getGenreName(story.genre)}</span>
+                            <span class="meta-tag">${getMoodName(story.mood)}</span>
+                            <span class="meta-tag">${story.acts.length}幕</span>
+                        </div>
+                    </div>
+                    <div class="export-group" style="margin: 0;">
+                        <button class="btn btn-secondary" onclick="exportStory('txt')">📄 导出TXT</button>
+                        <button class="btn btn-secondary" onclick="exportStory('md')">📝 导出MD</button>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%" id="progressBar"></div>
+                </div>
+            `;
+
+            // 角色介绍
+            html += `
+                <div class="story-section genre-${story.genre}">
+                    <div class="section-title">👥 登场人物</div>
+                    <div class="character-grid">
+                        ${story.characters.map(char => `
+                            <div class="character-card">
+                                <div class="char-avatar">${char.name[0]}</div>
+                                <div class="char-name">${char.name}</div>
+                                <div class="char-role">${char.role}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">${char.desc}</div>
+                                <div class="char-tags">
+                                    <span class="char-tag">${char.trait}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // 剧情幕
+            story.acts.forEach((act, i) => {
+                html += `
+                    <div class="story-section mood-${story.mood} genre-${story.genre}" style="animation-delay: ${i * 0.1}s">
+                        <div class="section-title">📖 第${i + 1}幕</div>
+                        
+                        ${act.descriptions.map(desc => {
+                            if (desc.startsWith('【')) {
+                                return `<div style="font-weight: 600; color: var(--primary); margin: 12px 0; font-size: 1.1rem;">${desc}</div>`;
+                            }
+                            return `<p style="margin-bottom: 12px; text-indent: 2em;">${desc}</p>`;
+                        }).join('')}
+
+                        ${act.dialogues.map(d => `
+                            <div class="dialogue">
+                                <div class="dialogue-speaker">${d.speaker} <span style="font-size: 0.8rem; color: var(--text-dim);">（${d.emotion}）</span></div>
+                                <div class="dialogue-text">「${d.text}」</div>
+                            </div>
+                        `).join('')}
+
+                        ${act.choices.length > 0 ? `
+                            <div style="margin-top: 16px;">
+                                <div style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">💭 关键抉择：</div>
+                                <div class="choice-box">
+                                    ${act.choices.map((c, ci) => `
+                                        <div class="choice-item" onclick="this.classList.toggle('selected')">
+                                            <div class="choice-prefix">${String.fromCharCode(65 + ci)}</div>
+                                            <div>${c}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            // 结尾
+            html += `
+                <div class="story-section genre-${story.genre}" style="text-align: center; border-left-color: var(--success);">
+                    <div class="section-title" style="justify-content: center;">✨ 故事未完待续</div>
+                    <p style="color: var(--text-dim);">每一个选择都会导向不同的未来...</p>
+                    <p style="color: var(--text-dim); font-size: 0.9rem; margin-top: 8px;">生成时间：${story.timestamp}</p>
+                </div>
+            `;
+
+            card.innerHTML = html;
+            card.dataset.story = JSON.stringify(story);
+
+            // 进度条动画
+            setTimeout(() => {
+                document.getElementById('progressBar').style.width = '100%';
+            }, 100);
+        }
+
+        function getGenreName(genre) {
+            const names = {
+                fantasy: '奇幻冒险', scifi: '科幻未来', romance: '校园恋爱',
+                horror: '悬疑恐怖', mystery: '推理探案', daily: '日常治愈',
+                isekai: '异世界转生', mecha: '机甲战斗'
+            };
+            return names[genre] || genre;
+        }
+
+        function getMoodName(mood) {
+            const names = {
+                happy: '轻松愉快', tense: '紧张刺激', sad: '感人催泪',
+                romantic: '甜蜜浪漫', mysterious: '神秘悬疑'
+            };
+            return names[mood] || mood;
+        }
+
+        // 历史记录
+        function saveToHistory(story) {
+            let history = JSON.parse(localStorage.getItem('storyHistory') || '[]');
+            history.unshift({
+                id: story.id,
+                title: story.title,
+                genre: story.genre,
+                timestamp: story.timestamp
+            });
+            if (history.length > 10) history = history.slice(0, 10);
+            localStorage.setItem('storyHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('storyHistory') || '[]');
+            const container = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 2rem; margin-bottom: 8px;">📝</div>
+                        <div style="font-size: 0.9rem;">暂无生成记录</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = history.map(h => `
+                <div class="history-item" onclick="loadHistory('${h.id}')">
+                    <div class="history-title">${h.title}</div>
+                    <div class="history-meta">${getGenreName(h.genre)} · ${h.timestamp}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadHistory(id) {
+            // 这里简化处理，实际应该存储完整故事
+            alert('点击「生成剧情」创建新故事！\n（历史记录功能在完整版中支持重新加载）');
+        }
+
+        // 导出功能
+        function exportStory(format) {
+            const card = document.getElementById('storyCard');
+            const storyData = card.dataset.story;
+            if (!storyData) return;
+            
+            const story = JSON.parse(storyData);
+            let content = '';
+
+            if (format === 'txt') {
+                content = `${story.title}\n`;
+                content += `题材：${getGenreName(story.genre)} | 基调：${getMoodName(story.mood)}\n`;
+                content += `生成时间：${story.timestamp}\n`;
+                content += `=`.repeat(40) + '\n\n';
+                
+                content += `【登场人物】\n`;
+                story.characters.forEach(c => {
+                    content += `${c.name}（${c.role}）：${c.desc} [${c.trait}]\n`;
+                });
+                content += '\n';
+                
+                story.acts.forEach((act, i) => {
+                    content += `【第${i + 1}幕】\n`;
+                    act.descriptions.forEach(d => content += `${d}\n`);
+                    act.dialogues.forEach(d => content += `${d.speaker}：「${d.text}」\n`);
+                    if (act.choices.length > 0) {
+                        content += `\n关键抉择：\n`;
+                        act.choices.forEach((c, ci) => content += `${String.fromCharCode(65 + ci)}. ${c}\n`);
+                    }
+                    content += '\n';
+                });
+            } else {
+                content = `# ${story.title}\n\n`;
+                content += `> **题材**：${getGenreName(story.genre)} | **基调**：${getMoodName(story.mood)}\n`;
+                content += `> **生成时间**：${story.timestamp}\n\n`;
+                
+                content += `## 登场人物\n\n`;
+                story.characters.forEach(c => {
+                    content += `- **${c.name}**（${c.role}）：${c.desc} *${c.trait}*\n`;
+                });
+                content += '\n';
+                
+                story.acts.forEach((act, i) => {
+                    content += `## 第${i + 1}幕\n\n`;
+                    act.descriptions.forEach(d => {
+                        if (d.startsWith('【')) content += `### ${d}\n\n`;
+                        else content += `${d}\n\n`;
+                    });
+                    act.dialogues.forEach(d => {
+                        content += `> **${d.speaker}**：「${d.text}」\n\n`;
+                    });
+                    if (act.choices.length > 0) {
+                        content += `**关键抉择：**\n\n`;
+                        act.choices.forEach((c, ci) => content += `- ${String.fromCharCode(65 + ci)}. ${c}\n`);
+                        content += '\n';
+                    }
+                });
+            }
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${story.title}.${format}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 初始化
+        renderHistory();
+
+        // 创建粒子效果
+        function createParticles() {
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = Math.random() * 4 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                document.body.appendChild(particle);
+            }
+        }
+        createParticles();
+    </script>
+</body>
+</html>
