@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 足球 - Three.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #info h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }
+        .btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+        }
+        .btn.active {
+            background: rgba(255,255,255,0.35);
+            border-color: #4fc3f7;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 18px;
+            z-index: 20;
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="canvas-container">
+        <div id="loading">加载中...</div>
+        <div id="info">
+            <h1>⚽ 3D 足球</h1>
+            <p>鼠标拖拽旋转 · 滚轮缩放 · 双击重置</p>
+        </div>
+        <div id="controls">
+            <button class="btn active" id="btn-spin">自动旋转</button>
+            <button class="btn" id="btn-wireframe">线框模式</button>
+            <button class="btn" id="btn-bounce">弹跳动画</button>
+            <button class="btn" id="btn-reset">重置视角</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 场景设置
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 6);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // 控制器
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 15;
+        controls.enablePan = false;
+
+        // 灯光系统
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        mainLight.position.set(5, 10, 7);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        scene.add(mainLight);
+
+        const fillLight = new THREE.DirectionalLight(0x4fc3f7, 0.5);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+
+        const rimLight = new THREE.PointLight(0xff6b6b, 0.8, 20);
+        rimLight.position.set(-3, 5, 3);
+        scene.add(rimLight);
+
+        const bottomLight = new THREE.PointLight(0x4fc3f7, 0.3, 15);
+        bottomLight.position.set(0, -3, 0);
+        scene.add(bottomLight);
+
+        // 地面
+        const groundGeometry = new THREE.PlaneGeometry(30, 30);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0f0f23,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1.5;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 地面网格
+        const gridHelper = new THREE.GridHelper(30, 30, 0x2a2a4a, 0x1a1a3a);
+        gridHelper.position.y = -1.49;
+        scene.add(gridHelper);
+
+        // 创建足球纹理 - 使用Canvas绘制五边形/六边形图案
+        function createSoccerTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2048;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            
+            // 白色背景（六边形区域）
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 2048, 1024);
+            
+            // 绘制黑色五边形
+            ctx.fillStyle = '#111111';
+            
+            // 五边形位置（基于截角二十面体的UV映射）
+            const pentagons = [
+                {x: 512, y: 256, r: 120},
+                {x: 1536, y: 256, r: 120},
+                {x: 256, y: 768, r: 120},
+                {x: 1024, y: 768, r: 120},
+                {x: 1792, y: 768, r: 120},
+                {x: 768, y: 512, r: 100},
+                {x: 1280, y: 512, r: 100},
+                {x: 0, y: 512, r: 100},
+                {x: 2048, y: 512, r: 100},
+                {x: 384, y: 128, r: 80},
+                {x: 1664, y: 128, r: 80},
+                {x: 640, y: 896, r: 80},
+            ];
+            
+            pentagons.forEach(p => {
+                drawPentagon(ctx, p.x, p.y, p.r);
+            });
+            
+            // 添加缝线效果
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 3]);
+            
+            // 绘制缝线连接
+            const stitches = [
+                [[512, 256], [768, 512]],
+                [[512, 256], [256, 768]],
+                [[1536, 256], [1280, 512]],
+                [[1536, 256], [1792, 768]],
+                [[1024, 768], [768, 512]],
+                [[1024, 768], [1280, 512]],
+            ];
+            
+            stitches.forEach(([start, end]) => {
+                ctx.beginPath();
+                ctx.moveTo(start[0], start[1]);
+                ctx.lineTo(end[0], end[1]);
+                ctx.stroke();
+            });
+            
+            // 添加皮革纹理噪点
+            addLeatherTexture(ctx, 2048, 1024);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+        
+        function drawPentagon(ctx, cx, cy, r) {
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 * i / 5) - Math.PI / 2;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // 五边形边框
+            ctx.strokeStyle = '#222222';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+            ctx.stroke();
+        }
+        
+        function addLeatherTexture(ctx, w, h) {
+            // 添加微妙的噪点模拟皮革质感
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 8;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+                data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // 创建凹凸贴图
+        function createBumpMap() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, 1024, 512);
+            
+            // 五边形凸起
+            ctx.fillStyle = '#ffffff';
+            const pentagons = [
+                {x: 256, y: 128, r: 60},
+                {x: 768, y: 128, r: 60},
+                {x: 128, y: 384, r: 60},
+                {x: 512, y: 384, r: 60},
+                {x: 896, y: 384, r: 60},
+            ];
+            
+            pentagons.forEach(p => {
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 * i / 5) - Math.PI / 2;
+                    const x = p.x + p.r * Math.cos(angle);
+                    const y = p.y + p.r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+            
+            // 缝线凹陷
+            ctx.strokeStyle = '#404040';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([3, 2]);
+            
+            const stitches = [
+                [[256, 128], [384, 256]],
+                [[768, 128], [640, 256]],
+                [[512, 384], [384, 256]],
+            ];
+            
+            stitches.forEach(([start, end]) => {
+                ctx.beginPath();
+                ctx.moveTo(start[0], start[1]);
+                ctx.lineTo(end[0], end[1]);
+                ctx.stroke();
+            });
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        // 创建足球
+        const soccerTexture = createSoccerTexture();
+        const bumpTexture = createBumpMap();
+        
+        // 使用 IcosahedronGeometry (截角二十面体) 来模拟足球结构
+        const geometry = new THREE.IcosahedronGeometry(1.2, 3);
+        
+        const material = new THREE.MeshStandardMaterial({
+            map: soccerTexture,
+            bumpMap: bumpTexture,
+            bumpScale: 0.05,
+            roughness: 0.4,
+            metalness: 0.1,
+            envMapIntensity: 0.5
+        });
+        
+        const soccerBall = new THREE.Mesh(geometry, material);
+        soccerBall.castShadow = true;
+        soccerBall.receiveShadow = true;
+        soccerBall.position.y = 0.5;
+        scene.add(soccerBall);
+
+        // 创建环境贴图（简单的立方体贴图）
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        // 粒子效果
+        const particleCount = 100;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        const particleSpeeds = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            particlePositions[i * 3] = (Math.random() - 0.5) * 10;
+            particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+            particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+            particleSpeeds.push({
+                x: (Math.random() - 0.5) * 0.01,
+                y: (Math.random() - 0.5) * 0.01,
+                z: (Math.random() - 0.5) * 0.01
+            });
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0x4fc3f7,
+            size: 0.05,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
+
+        // 状态变量
+        let autoSpin = true;
+        let wireframeMode = false;
+        let bounceAnimation = false;
+        let bounceTime = 0;
+        let originalY = 0.5;
+
+        // 按钮事件
+        document.getElementById('btn-spin').addEventListener('click', () => {
+            autoSpin = !autoSpin;
+            document.getElementById('btn-spin').classList.toggle('active');
+        });
+
+        document.getElementById('btn-wireframe').addEventListener('click', () => {
+            wireframeMode = !wireframeMode;
+            material.wireframe = wireframeMode;
+            document.getElementById('btn-wireframe').classList.toggle('active');
+        });
+
+        document.getElementById('btn-bounce').addEventListener('click', () => {
+            bounceAnimation = !bounceAnimation;
+            if (!bounceAnimation) {
+                soccerBall.position.y = originalY;
+                soccerBall.scale.set(1, 1, 1);
+            }
+            document.getElementById('btn-bounce').classList.toggle('active');
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            camera.position.set(0, 2, 6);
+            controls.target.set(0, 0, 0);
+            soccerBall.rotation.set(0, 0, 0);
+            soccerBall.position.y = originalY;
+            bounceAnimation = false;
+            document.getElementById('btn-bounce').classList.remove('active');
+        });
+
+        // 双击重置
+        renderer.domElement.addEventListener('dblclick', () => {
+            camera.position.set(0, 2, 6);
+            controls.target.set(0, 0, 0);
+        });
+
+        // 隐藏加载
+        document.getElementById('loading').style.display = 'none';
+
+        // 动画循环
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // 自动旋转
+            if (autoSpin) {
+                soccerBall.rotation.y += delta * 0.5;
+                soccerBall.rotation.x += delta * 0.2;
+            }
+
+            // 弹跳动画
+            if (bounceAnimation) {
+                bounceTime += delta * 3;
+                const bounceHeight = Math.abs(Math.sin(bounceTime)) * 2;
+                soccerBall.position.y = originalY + bounceHeight;
+                
+                // 落地时的挤压效果
+                const squash = 1 + Math.sin(bounceTime * 2) * 0.1;
+                soccerBall.scale.set(1/squash, squash, 1/squash);
+            }
+
+            // 粒子动画
+            const positions = particles.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] += particleSpeeds[i].x;
+                positions[i * 3 + 1] += particleSpeeds[i].y + Math.sin(time + i) * 0.002;
+                positions[i * 3 + 2] += particleSpeeds[i].z;
+                
+                // 边界重置
+                if (Math.abs(positions[i * 3]) > 5) particleSpeeds[i].x *= -1;
+                if (Math.abs(positions[i * 3 + 1]) > 5) particleSpeeds[i].y *= -1;
+                if (Math.abs(positions[i * 3 + 2]) > 5) particleSpeeds[i].z *= -1;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+            particles.rotation.y += delta * 0.1;
+
+            // 灯光动态
+            rimLight.position.x = Math.sin(time * 0.5) * 5;
+            rimLight.position.z = Math.cos(time * 0.5) * 5;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // 窗口调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
