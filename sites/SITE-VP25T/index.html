@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>斗地主 - 经典棋牌</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Serif SC','Microsoft YaHei',serif; background: #0a0a0f; min-height: 100vh; overflow: hidden; color: #fff; }
+.page { position: fixed; inset: 0; display: none; }
+.page.active { display: block; }
+
+#homePage { z-index: 10; }
+#homePage .bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 50%, rgba(26,95,42,0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 30%, rgba(139,90,43,0.2) 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, rgba(26,95,42,0.3) 0%, transparent 50%), linear-gradient(180deg, #0a0a0f 0%, #0d1f0d 40%, #0a0a0f 100%); }
+#homePage .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(212,175,55,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,0.03) 1px, transparent 1px); background-size: 60px 60px; }
+#homePage canvas { position: absolute; inset: 0; pointer-events: none; }
+#homePage .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.15; animation: orbFloat 12s ease-in-out infinite; }
+#homePage .orb:nth-child(1) { width: 400px; height: 400px; background: #d4af37; top: 10%; left: 15%; }
+#homePage .orb:nth-child(2) { width: 300px; height: 300px; background: #1a5f2a; top: 60%; right: 10%; animation-delay: -4s; }
+#homePage .orb:nth-child(3) { width: 250px; height: 250px; background: #8b5a2b; bottom: 10%; left: 40%; animation-delay: -8s; }
+@keyframes orbFloat { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-20px) scale(1.1); } 66% { transform: translate(-20px,15px) scale(0.95); } }
+
+#homePage .dcard { position: fixed; z-index: 1; pointer-events: none; }
+#homePage .dcard .cv { width: 100px; height: 140px; background: linear-gradient(145deg, #f8f8f8, #e8e8e8); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 10px 40px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.1); display: flex; flex-direction: column; justify-content: space-between; padding: 8px; font-weight: bold; position: relative; overflow: hidden; }
+#homePage .dcard .cv::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%); animation: shine 4s ease-in-out infinite; }
+@keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
+#homePage .dcard .ct { font-size: 18px; line-height: 1; }
+#homePage .dcard .cc { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 48px; }
+#homePage .dcard .cb { font-size: 18px; line-height: 1; transform: rotate(180deg); text-align: right; }
+#homePage .dcard.red { color: #e74c3c; }
+#homePage .dcard.black { color: #2c3e50; }
+
+#homePage .main { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+#homePage .badge { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+#homePage .badge .line { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, #d4af37, transparent); }
+#homePage .badge .txt { font-size: 13px; letter-spacing: 6px; color: #d4af37; text-transform: uppercase; }
+#homePage .title { text-align: center; margin-bottom: 50px; }
+#homePage .title h1 { font-size: 80px; font-weight: 900; letter-spacing: 20px; background: linear-gradient(180deg, #f1c40f, #d4af37 40%, #b8860b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 4px 20px rgba(212,175,55,0.3)); position: relative; }
+#homePage .title h1::after { content: '斗地主'; position: absolute; left: 0; top: 0; width: 100%; background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent 60%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+#homePage .title .sub { font-size: 18px; color: rgba(212,175,55,0.6); letter-spacing: 12px; margin-top: 12px; }
+#homePage .title .div { width: 120px; height: 2px; background: linear-gradient(90deg, transparent, #d4af37, transparent); margin: 20px auto 0; }
+#homePage .menu { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 20px; }
+#homePage .mbtn { position: relative; padding: 16px 60px; font-size: 18px; font-family: inherit; font-weight: 700; letter-spacing: 4px; border: none; background: transparent; color: #d4af37; cursor: pointer; overflow: hidden; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#homePage .mbtn::before { content: ''; position: absolute; inset: 0; border: 1.5px solid rgba(212,175,55,0.3); border-radius: 4px; transition: all 0.4s; }
+#homePage .mbtn::after { content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 2px; background: #d4af37; transition: all 0.4s; transform: translateX(-50%); }
+#homePage .mbtn:hover { color: #f1c40f; transform: translateY(-3px); letter-spacing: 6px; }
+#homePage .mbtn:hover::before { border-color: rgba(212,175,55,0.8); box-shadow: 0 0 30px rgba(212,175,55,0.15), inset 0 0 30px rgba(212,175,55,0.05); }
+#homePage .mbtn:hover::after { width: 80%; }
+#homePage .mbtn.pri { background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05)); }
+#homePage .mbtn.pri::before { border-color: rgba(212,175,55,0.5); }
+#homePage .footer { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 10; }
+#homePage .footer p { font-size: 12px; color: rgba(255,255,255,0.25); letter-spacing: 2px; }
+#homePage .footer .ver { color: rgba(212,175,55,0.4); margin-top: 4px; }
+
+.modal-o { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+.modal-o.on { opacity: 1; pointer-events: all; }
+.modal-b { background: linear-gradient(145deg, #14141a, #0d0d12); border: 1px solid rgba(212,175,55,0.2); border-radius: 16px; padding: 40px; max-width: 520px; width: 90%; max-height: 80vh; overflow-y: auto; transform: translateY(30px) scale(0.95); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(212,175,55,0.1); }
+.modal-o.on .modal-b { transform: translateY(0) scale(1); }
+.modal-b h2 { font-size: 24px; color: #d4af37; text-align: center; margin-bottom: 24px; letter-spacing: 4px; }
+.modal-b .sec { margin-bottom: 20px; }
+.modal-b .sec h3 { font-size: 15px; color: rgba(212,175,55,0.8); margin-bottom: 8px; letter-spacing: 2px; }
+.modal-b .sec p, .modal-b .sec li { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.8; }
+.modal-b .sec ul { padding-left: 20px; }
+.modal-b .sec li { margin-bottom: 4px; }
+.mclose { display: block; margin: 30px auto 0; padding: 12px 40px; background: linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.1)); border: 1px solid rgba(212,175,55,0.4); border-radius: 4px; color: #d4af37; font-family: inherit; font-size: 15px; letter-spacing: 4px; cursor: pointer; transition: all 0.3s; }
+.mclose:hover { background: linear-gradient(135deg, rgba(212,175,55,0.3), rgba(212,175,55,0.2)); transform: translateY(-2px); }
+
+@media (max-width: 768px) {
+  #homePage .title h1 { font-size: 48px; letter-spacing: 10px; }
+  #homePage .title .sub { font-size: 14px; letter-spacing: 6px; }
+  #homePage .dcard .cv { width: 60px; height: 84px; }
+  #homePage .dcard .cc { font-size: 28px; }
+  #homePage .mbtn { padding: 14px 40px; font-size: 16px; }
+}
+@media (max-width: 480px) {
+  #homePage .title h1 { font-size: 36px; letter-spacing: 6px; }
+
+#gamePage { z-index: 20; background: linear-gradient(135deg, #1a5f2a, #0d3b1a); overflow: hidden; user-select: none; }
+#gamePage .table { position: relative; width: 100vw; height: 100vh; }
+#gamePage .topbar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; align-items: center; z-index: 100; }
+#gamePage .sboard { background: rgba(0,0,0,0.6); border: 2px solid #d4af37; border-radius: 12px; padding: 8px 20px; color: #d4af37; font-size: 16px; font-weight: bold; }
+#gamePage .parea { position: absolute; display: flex; flex-direction: column; align-items: center; }
+#gamePage .parea.l { left: 20px; top: 50%; transform: translateY(-50%); }
+#gamePage .parea.r { right: 20px; top: 50%; transform: translateY(-50%); }
+#gamePage .parea.b { bottom: 10px; left: 50%; transform: translateX(-50%); }
+#gamePage .avt { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #d4af37; display: flex; align-items: center; justify-content: center; font-size: 28px; background: #2a2a2a; color: #fff; margin-bottom: 5px; position: relative; }
+#gamePage .avt.lz::after { content: "地主"; position: absolute; bottom: -8px; background: #e74c3c; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 8px; border: 1px solid #fff; }
+#gamePage .pname { color: #fff; font-size: 14px; margin-bottom: 5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+#gamePage .ccnt { background: rgba(0,0,0,0.7); color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 13px; border: 1px solid #d4af37; }
+#gamePage .hbox { display: flex; justify-content: center; align-items: flex-end; height: 120px; position: relative; }
+#gamePage .hbox.b { margin-top: 5px; }
+#gamePage .hbox.l, #gamePage .hbox.r { width: 100px; height: 300px; flex-direction: column; align-items: center; justify-content: center; }
+#gamePage .pcard { width: 80px; height: 110px; background: #fff; border-radius: 8px; border: 1px solid #ccc; position: relative; cursor: pointer; transition: transform 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; padding: 4px 6px; font-weight: bold; margin-left: -50px; }
+#gamePage .pcard:first-child { margin-left: 0; }
+#gamePage .pcard:hover { transform: translateY(-15px); z-index: 10; }
+#gamePage .pcard.sel { transform: translateY(-25px); border: 2px solid #f1c40f; box-shadow: 0 0 15px rgba(241,196,15,0.5); }
+#gamePage .pcard.bk { background: linear-gradient(135deg, #1e5799, #2989d8 50%, #207cca 51%, #7db9e8); border: 2px solid #fff; }
+#gamePage .pcard.bk::after { content: ""; position: absolute; inset: 8px; border: 2px dashed rgba(255,255,255,0.4); border-radius: 4px; }
+#gamePage .pcard.rd { color: #e74c3c; }
+#gamePage .pcard.bk2 { color: #2c3e50; }
+#gamePage .pcard .pt { font-size: 18px; line-height: 1; }
+#gamePage .pcard .ps { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 36px; }
+#gamePage .pcard .pb { font-size: 18px; line-height: 1; transform: rotate(180deg); text-align: right; }
+#gamePage .playa { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; gap: 15px; }
+#gamePage .pcd { display: flex; justify-content: center; align-items: center; min-height: 120px; gap: 5px; }
+#gamePage .pcd .pcard { margin-left: -40px; cursor: default; pointer-events: none; }
+#gamePage .pcd .pcard:first-child { margin-left: 0; }
+#gamePage .lpi { color: #fff; font-size: 14px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); background: rgba(0,0,0,0.5); padding: 4px 15px; border-radius: 15px; }
+#gamePage .dzc { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 10px; border: 1px solid #d4af37; }
+#gamePage .dzc .pcard { margin-left: 0; width: 60px; height: 82px; font-size: 14px; }
+#gamePage .dzc .pcard .ps { font-size: 24px; }
+#gamePage .gbtn { padding: 10px 28px; border: none; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+#gamePage .gbtn.pri { background: linear-gradient(135deg, #f1c40f, #f39c12); color: #333; box-shadow: 0 4px 15px rgba(243,156,18,0.4); }
+#gamePage .gbtn.pri:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(243,156,18,0.6); }
+#gamePage .gbtn.sec { background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: #fff; box-shadow: 0 4px 15px rgba(127,140,141,0.4); }
+#gamePage .gbtn.sec:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(127,140,141,0.6); }
+#gamePage .gbtn.dan { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; box-shadow: 0 4px 15px rgba(231,76,60,0.4); }
+#gamePage .gbtn.dan:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(231,76,60,0.6); }
+#gamePage .apan { position: absolute; bottom: 310px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 100; flex-wrap: wrap; justify-content: center; }
+#gamePage .msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%); font-size: 48px; font-weight: bold; color: #f1c40f; text-shadow: 2px 2px 10px rgba(0,0,0,0.8); animation: popIn 0.5s ease-out; pointer-events: none; z-index: 200; }
+@keyframes popIn { 0% { transform: translate(-50%,-50%) scale(0.3); opacity: 0; } 50% { transform: translate(-50%,-50%) scale(1.2); } 100% { transform: translate(-50%,-50%) scale(1); opacity: 1; } }
+#gamePage .ghid { display: none !important; }
+#gamePage .backbtn { position: absolute; top: 10px; left: 15px; z-index: 200; padding: 8px 18px; background: rgba(0,0,0,0.5); border: 1px solid rgba(212,175,55,0.4); border-radius: 20px; color: #d4af37; font-family: inherit; font-size: 14px; cursor: pointer; transition: all 0.3s; letter-spacing: 2px; }
+#gamePage .backbtn:hover { background: rgba(212,175,55,0.2); transform: translateY(-2px); }
+
+.card-tracker { position: absolute; top: 50px; right: 15px; z-index: 150; background: rgba(0,0,0,0.7); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 12px 15px; width: 200px; backdrop-filter: blur(8px); transition: all 0.3s; }
+.card-tracker.collapsed { width: auto; padding: 8px 15px; }
+.card-tracker .tk-title { font-size: 13px; color: #d4af37; text-align: center; margin-bottom: 8px; letter-spacing: 2px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.card-tracker .tk-title .tk-arrow { font-size: 10px; transition: transform 0.3s; }
+.card-tracker.collapsed .tk-title .tk-arrow { transform: rotate(-90deg); }
+.card-tracker .tk-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; transition: all 0.3s; }
+.card-tracker.collapsed .tk-grid { display: none; }
+.card-tracker .tk-item { text-align: center; padding: 4px 2px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s; }
+.card-tracker .tk-item:hover { background: rgba(212,175,55,0.1); border-color: rgba(212,175,55,0.3); }
+.card-tracker .tk-item .tk-rank { font-size: 13px; font-weight: bold; color: #fff; margin-bottom: 2px; }
+.card-tracker .tk-item .tk-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 3px; }
+.card-tracker .tk-item .tk-bar-inner { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+.card-tracker .tk-item .tk-count { font-size: 11px; color: rgba(255,255,255,0.5); }
+.card-tracker .tk-item.all-out .tk-rank { color: rgba(255,255,255,0.25); text-decoration: line-through; }
+.card-tracker .tk-item.all-out .tk-count { color: rgba(255,255,255,0.2); }
+.card-tracker .tk-item.all-out .tk-bar-inner { background: rgba(255,255,255,0.1) !important; }
+
+@media (max-width: 900px) {
+  .card-tracker { width: 160px; padding: 8px 10px; top: 45px; right: 8px; }
+  .card-tracker .tk-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .card-tracker .tk-item .tk-rank { font-size: 11px; }
+  .card-tracker .tk-item .tk-count { font-size: 9px; }
+  #gamePage .pcard { width: 60px; height: 82px; margin-left: -35px; font-size: 12px; }
+  #gamePage .pcard .ps { font-size: 24px; }
+  #gamePage .hbox { height: 110px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page active" id="homePage">
+  <div class="bg"></div>
+  <div class="grid"></div>
+  <canvas id="pCanvas"></canvas>
+  <div class="orb"></div>
+  <div class="orb"></div>
+  <div class="orb"></div>
+
+  <div class="dcard red" style="top:8%;left:8%;transform:rotate(-15deg);">
+    <div class="cv"><div class="ct">A<br>&#9829;</div><div class="cc">&#9829;</div><div class="cb">A<br>&#9829;</div></div>
+  </div>
+  <div class="dcard black" style="top:12%;right:10%;transform:rotate(12deg);">
+    <div class="cv"><div class="ct">K<br>&#9824;</div><div class="cc">&#9824;</div><div class="cb">K<br>&#9824;</div></div>
+  </div>
+  <div class="dcard red" style="bottom:15%;left:12%;transform:rotate(8deg);">
+    <div class="cv"><div class="ct">Q<br>&#9830;</div><div class="cc">&#9830;</div><div class="cb">Q<br>&#9830;</div></div>
+  </div>
+  <div class="dcard black" style="bottom:10%;right:8%;transform:rotate(-10deg);">
+    <div class="cv"><div class="ct">J<br>&#9827;</div><div class="cc">&#9827;</div><div class="cb">J<br>&#9827;</div></div>
+  </div>
+  <div class="dcard red" style="top:40%;left:3%;transform:rotate(-5deg);">
+    <div class="cv"><div class="ct">10<br>&#9829;</div><div class="cc">&#9829;</div><div class="cb">10<br>&#9829;</div></div>
+  </div>
+  <div class="dcard black" style="top:45%;right:5%;transform:rotate(5deg);">
+    <div class="cv"><div class="ct">2<br>&#9824;</div><div class="cc">&#9824;</div><div class="cb">2<br>&#9824;</div></div>
+  </div>
+
+  <div class="main">
+    <div class="badge">
+      <div class="line"></div>
+      <div class="txt">经典棋牌</div>
+      <div class="line"></div>
+    </div>
+    <div class="title">
+      <h1>斗地主</h1>
+      <div class="div"></div>
+      <p class="sub">三人博弈 &middot; 智取天下</p>
+    </div>
+    <div class="menu">
+      <button class="mbtn pri" onclick="startGame()">&#9654; 开始游戏</button>
+      <button class="mbtn" onclick="openRules()">&#128203; 游戏规则</button>
+      <button class="mbtn" onclick="openSettings()">&#9881; 游戏设置</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>点击开始，与 AI 一决高下</p>
+    <p class="ver">v1.0</p>
+  </div>
+
+  <div class="modal-o" id="rulesModal">
+    <div class="modal-b">
+      <h2>游戏规则</h2>
+      <div class="sec"><h3>基本玩法</h3><p>三人游戏，一人为地主，两人为农民。抢地主阶段每人可叫1/2/3分或不叫，最高分者成为地主。</p></div>
+      <div class="sec"><h3>叫分规则</h3><ul><li>每人可选择 <strong>1分 / 2分 / 3分 / 不叫</strong></li><li>必须比当前最高分高才能叫分</li><li>3分为封顶，叫3分直接成为地主</li><li>若都不叫，重新发牌</li></ul></div>
+      <div class="sec"><h3>牌型大小</h3><ul><li><strong>单张</strong>：任意一张牌</li><li><strong>对子</strong>：两张相同点数的牌</li><li><strong>三张</strong>：三张相同点数的牌</li><li><strong>三带一 / 三带二</strong>：三张 + 单张 / 对子</li><li><strong>顺子</strong>：五张及以上连续点数的单牌</li><li><strong>连对</strong>：三对及以上连续点数的对子</li><li><strong>飞机</strong>：两组及以上连续点数的三张</li><li><strong>炸弹</strong>：四张相同点数的牌</li><li><strong>王炸</strong>：大王 + 小王（最大牌型）</li></ul></div>
+      <div class="sec"><h3>计分规则</h3><p>基础倍数 = 叫分分数。炸弹和王炸额外翻倍。</p></div>
+      <button class="mclose" onclick="closeRules()">我知道了</button>
+    </div>
+  </div>
+
+  <div class="modal-o" id="settingsModal">
+    <div class="modal-b">
+      <h2>游戏设置</h2>
+      <div class="sec"><h3>音效</h3><p>当前版本暂未支持音效，后续更新将加入。</p></div>
+      <div class="sec"><h3>操作提示</h3><ul><li><strong>Enter</strong> &mdash; 出牌</li><li><strong>空格</strong> &mdash; 不要</li><li><strong>H</strong> &mdash; 提示</li></ul></div>
+      <button class="mclose" onclick="closeSettings()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="gamePage">
+  <div class="table">
+    <button class="backbtn" onclick="backHome()">&#9664; 返回首页</button>
+
+    <div class="card-tracker" id="cardTracker">
+      <div class="tk-title" onclick="toggleTracker()">
+        <span>&#128220; 记牌器</span>
+        <span class="tk-arrow">&#9662;</span>
+      </div>
+      <div class="tk-grid" id="trackerGrid"></div>
+    </div>
+
+    <div class="topbar">
+      <div class="sboard">局数: <span id="roundCount">1</span></div>
+      <div class="sboard">倍数: <span id="multiplier">1</span></div>
+    </div>
+    <div class="dzc" id="dizhuCards"></div>
+    <div class="parea l">
+      <div class="avt" id="leftAvatar">&#129302;</div>
+      <div class="pname">电脑左</div>
+      <div class="ccnt" id="leftCount">17张</div>
+      <div class="hbox l" id="leftHand"></div>
+    </div>
+    <div class="parea r">
+      <div class="avt" id="rightAvatar">&#129302;</div>
+      <div class="pname">电脑右</div>
+      <div class="ccnt" id="rightCount">17张</div>
+      <div class="hbox r" id="rightHand"></div>
+    </div>
+    <div class="playa">
+      <div class="lpi" id="lastPlayInfo">等待开始...</div>
+      <div class="pcd" id="playedCards"></div>
+    </div>
+    <div class="apan" id="actionPanel"></div>
+    <div class="parea b">
+      <div class="hbox b" id="bottomHand"></div>
+      <div class="avt" id="bottomAvatar">&#128526;</div>
+      <div class="pname">你</div>
+      <div class="ccnt" id="bottomCount">17张</div>
+    </div>
+    <div class="msg ghid" id="message"></div>
+  </div>
+</div>
+
+<script>
+
+function startGame() {
+  document.getElementById('homePage').classList.remove('active');
+  document.getElementById('gamePage').classList.add('active');
+  setTimeout(initRound, 100);
+}
+function backHome() {
+  document.getElementById('gamePage').classList.remove('active');
+  document.getElementById('homePage').classList.add('active');
+  GS.ph = 'idle';
+  document.getElementById('actionPanel').innerHTML = '';
+  document.getElementById('playedCards').innerHTML = '';
+  document.getElementById('lastPlayInfo').textContent = '等待开始...';
+  document.getElementById('message').classList.add('ghid');
+}
+
+(function() {
+  var cvs = document.getElementById('pCanvas');
+  var c = cvs.getContext('2d');
+  var W, H, pts = [];
+  function resize() { W = cvs.width = window.innerWidth; H = cvs.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  function Pt() { this.reset(); }
+  Pt.prototype.reset = function() { this.x = Math.random()*W; this.y = Math.random()*H; this.s = Math.random()*2+0.5; this.vx = (Math.random()-0.5)*0.3; this.vy = (Math.random()-0.5)*0.3; this.op = Math.random()*0.5+0.1; this.life = Math.random()*200+100; this.max = this.life; this.col = Math.random()>0.5 ? '212,175,55' : '100,180,100'; };
+  Pt.prototype.update = function() { this.x += this.vx; this.y += this.vy; this.life--; if (this.life <= 0 || this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset(); };
+  Pt.prototype.draw = function() { var a = (this.life/this.max)*this.op; c.beginPath(); c.arc(this.x, this.y, this.s, 0, Math.PI*2); c.fillStyle = 'rgba('+this.col+','+a+')'; c.fill(); };
+  for (var i = 0; i < 60; i++) pts.push(new Pt());
+  function loop() { c.clearRect(0, 0, W, H); pts.forEach(function(p) { p.update(); p.draw(); }); requestAnimationFrame(loop); }
+  loop();
+})();
+
+document.querySelectorAll('#homePage .dcard').forEach(function(card, idx) {
+  var base = card.style.transform, fy = 0, sp = 0.3 + Math.random()*0.4, off = Math.random()*Math.PI*2;
+  function float() { fy = Math.sin(Date.now()*0.001*sp+off)*8; card.style.transform = base + ' translateY('+fy+'px)'; requestAnimationFrame(float); }
+  setTimeout(float, idx*200);
+});
+
+function openRules() { document.getElementById('rulesModal').classList.add('on'); }
+function closeRules() { document.getElementById('rulesModal').classList.remove('on'); }
+function openSettings() { document.getElementById('settingsModal').classList.add('on'); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('on'); }
+document.querySelectorAll('.modal-o').forEach(function(m) { m.addEventListener('click', function(e) { if (e.target === m) m.classList.remove('on'); }); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') document.querySelectorAll('.modal-o').forEach(function(m) { m.classList.remove('on'); }); });
+
+var SUITS = ['♠','♥','♣','♦'];
+var RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
+var T = {SINGLE:1,PAIR:2,TRIPLE:3,TRIPLE1:4,TRIPLE2:5,STRAIGHT:6,DSTRAIGHT:7,TSTRAIGHT:8,BOMB:9,ROCKET:10};
+var GS = {deck:[],P:[[],[],[]],dz:[],ld:-1,cp:-1,lp:null,pc:0,ph:'idle',m:1,r:1,sel:new Set(),mb:0,mbp:-1};
+
+var TRACKER_RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2','小王','大王'];
+var TRACKER_MAX = [4,4,4,4,4,4,4,4,4,4,4,4,4,1,1];
+var trackerData = {};
+
+function initTracker() {
+  trackerData = {};
+  for (var i = 0; i < TRACKER_RANKS.length; i++) {
+    trackerData[TRACKER_RANKS[i]] = { total: TRACKER_MAX[i], remain: TRACKER_MAX[i] };
+  }
+  renderTracker();
+}
+function updateTracker(cards) {
+  if (!cards || cards.length === 0) return;
+  cards.forEach(function(card) {
+    var rank = card.rank;
+    if (trackerData[rank] && trackerData[rank].remain > 0) {
+      trackerData[rank].remain--;
+    }
+  });
+  renderTracker();
+}
+function renderTracker() {
+  var grid = document.getElementById('trackerGrid');
+  var html = '';
+  for (var i = 0; i < TRACKER_RANKS.length; i++) {
+    var rank = TRACKER_RANKS[i];
+    var data = trackerData[rank];
+    var pct = data.remain / data.total * 100;
+    var barColor = pct > 50 ? '#2ecc71' : (pct > 25 ? '#f1c40f' : '#e74c3c');
+    var allOut = data.remain === 0 ? 'all-out' : '';
+    html += '<div class="tk-item '+allOut+'">';
+    html += '<div class="tk-rank">'+rank+'</div>';
+    html += '<div class="tk-bar"><div class="tk-bar-inner" style="width:'+pct+'%;background:'+barColor+'"></div></div>';
+    html += '<div class="tk-count">'+data.remain+'/'+data.total+'</div>';
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+function toggleTracker() {
+  document.getElementById('cardTracker').classList.toggle('collapsed');
+}
+
+function createDeck() {
+  var d=[],id=0;
+  for(var s=0;s<4;s++)for(var r=0;r<13;r++)d.push({id:id++,rank:RANKS[r],suit:SUITS[s],value:r+3,color:(s===1||s===3)?'rd':'bk2'});
+  d.push({id:id++,rank:'小王',suit:'JOK',value:16,color:'rd'});
+  d.push({id:id++,rank:'大王',suit:'JOK',value:17,color:'rd'});
+  return d;
+}
+function shuffle(a) { for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+function sc(c) { return c.slice().sort(function(a,b){return b.value-a.value;}); }
+
+function cv(v) { var c={}; v.forEach(function(x){c[x]=(c[x]||0)+1;}); return c; }
+function ah(cards) {
+  if(cards.length===0)return null;
+  var s=sc(cards),v=s.map(function(c){return c.value;});
+  if(cards.length===2&&v.indexOf(16)!==-1&&v.indexOf(17)!==-1)return{type:T.ROCKET,value:17,cards:s};
+  if(cards.length===4&&new Set(v).size===1)return{type:T.BOMB,value:v[0],cards:s};
+  if(cards.length===1)return{type:T.SINGLE,value:v[0],cards:s};
+  if(cards.length===2&&v[0]===v[1])return{type:T.PAIR,value:v[0],cards:s};
+  if(cards.length===3&&v[0]===v[1]&&v[1]===v[2])return{type:T.TRIPLE,value:v[0],cards:s};
+  if(cards.length===4){var co=cv(v),e=Object.entries(co);if(e.length===2&&(e[0][1]===3||e[1][1]===3)){var t=e.find(function(x){return x[1]===3;})[0];return{type:T.TRIPLE1,value:parseInt(t),cards:s};}}
+  if(cards.length===5){var co=cv(v),e=Object.entries(co);if(e.length===2&&((e[0][1]===3&&e[1][1]===2)||(e[0][1]===2&&e[1][1]===3))){var t=e.find(function(x){return x[1]===3;});return{type:T.TRIPLE2,value:parseInt(t[0]),cards:s};}}
+  if(cards.length>=5){var u=[];v.forEach(function(x){if(u.indexOf(x)===-1)u.push(x);});u.sort(function(a,b){return b-a;});if(u.length===cards.length&&u[0]<=14){var ok=true;for(var i=0;i<u.length-1;i++)if(u[i]-u[i+1]!==1){ok=false;break;}if(ok)return{type:T.STRAIGHT,value:u[0],cards:s,len:cards.length};}}
+  if(cards.length>=6&&cards.length%2===0){var co=cv(v),p=[];Object.entries(co).forEach(function(e){if(e[1]===2)p.push(parseInt(e[0]));});p.sort(function(a,b){return b-a;});if(p.length===cards.length/2&&p[0]<=14){var ok=true;for(var i=0;i<p.length-1;i++)if(p[i]-p[i+1]!==1){ok=false;break;}if(ok)return{type:T.DSTRAIGHT,value:p[0],cards:s,len:cards.length};}}
+  if(cards.length>=6){var co=cv(v),t=[];Object.entries(co).forEach(function(e){if(e[1]>=3)t.push(parseInt(e[0]));});t.sort(function(a,b){return b-a;});if(t.length>=2&&t[0]<=14){var ok=true;for(var i=0;i<t.length-1;i++)if(t[i]-t[i+1]!==1){ok=false;break;}if(ok){var m=[];t.forEach(function(v){var a=0;s.forEach(function(c){if(c.value===v&&a<3){m.push(c);a++;}});});var w=cards.length-m.length;if(w===0||w===t.length||w===t.length*2)return{type:T.TSTRAIGHT,value:t[0],cards:s,len:t.length,wt:w===0?0:(w===t.length?1:2)};}}}
+  return null;
+}
+function cb(h1,h2) {
+  if(!h2)return true; if(h1.type===T.ROCKET)return true; if(h2.type===T.ROCKET)return false;
+  if(h1.type===T.BOMB){if(h2.type!==T.BOMB)return true;return h1.value>h2.value;} if(h2.type===T.BOMB)return false;
+  if(h1.type!==h2.type)return false;
+  if(h1.type===T.STRAIGHT||h1.type===T.DSTRAIGHT||h1.type===T.TSTRAIGHT)if(h1.len!==h2.len)return false;
+  return h1.value>h2.value;
+}
+
+function ehs(c) {
+  var s=0,co=cv(c.map(function(x){return x.value;}));
+  Object.values(co).forEach(function(x){if(x===4)s+=40;});
+  if(c.some(function(x){return x.value===16;})&&c.some(function(x){return x.value===17;}))s+=50;
+  c.forEach(function(x){if(x.value===15)s+=5;if(x.value===16)s+=8;if(x.value===17)s+=10;});
+  var u=[];c.forEach(function(x){if(x.value<=14&&u.indexOf(x.value)===-1)u.push(x.value);});u.sort(function(a,b){return a-b;});
+  var sl=1,ms=1; for(var i=1;i<u.length;i++){if(u[i]-u[i-1]===1){sl++;ms=Math.max(ms,sl);}else sl=1;} s+=ms*2; return s;
+}
+
+// AI 叫分: 返回 0(不叫) 1 2 3，必须比当前最高分高
+function aib(c, mb) {
+  var s = ehs(c);
+  var maxCan = 3;
+  // 根据牌力决定最高愿意叫多少分
+  var willing = 0;
+  if (s > 55) willing = 3;
+  else if (s > 40) willing = 2;
+  else if (s > 25) willing = 1;
+  else willing = Math.random() > 0.7 ? 1 : 0;
+
+  // 必须比当前最高分高
+  var minNeed = mb + 1;
+  if (minNeed > maxCan) return 0; // 无法更高，不叫
+  if (willing < minNeed) return 0; // 不愿意叫这么高
+
+  // 在 minNeed 到 willing 之间随机选一个（倾向于叫最低能赢的分）
+  var choices = [];
+  for (var i = minNeed; i <= willing && i <= maxCan; i++) choices.push(i);
+  if (choices.length === 0) return 0;
+  // 70%概率叫最低分，30%概率叫更高分
+  if (Math.random() < 0.7 || choices.length === 1) return choices[0];
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+function aip(c,lp,il,tl) {
+  var s=sc(c); if(!lp)return afp(s,il);
+  var ca=fbh(s,lp); if(ca.length===0)return null;
+  if(tl===false&&!il)return null;
+  ca.sort(function(a,b){return a.value-b.value;});
+  var nb=ca.filter(function(x){return x.type!==T.BOMB&&x.type!==T.ROCKET;});
+  if(nb.length>0){if(c.length<=3)return nb[0]; return nb[0];}
+  if(il||c.length<=4)return ca[0]; return null;
+}
+function afp(c,il) {
+  var h=[];
+  for(var i=c.length-1;i>=0;i--)h.push(ah([c[i]]));
+  for(var i=0;i<c.length-1;i++)if(c[i].value===c[i+1].value)h.push(ah([c[i],c[i+1]]));
+  for(var i=0;i<c.length-2;i++)if(c[i].value===c[i+1].value&&c[i+1].value===c[i+2].value)h.push(ah([c[i],c[i+1],c[i+2]]));
+  h=h.filter(function(x){return x!==null;}); h.sort(function(a,b){return a.value-b.value;});
+  if(h.length>0)return h[0]; return ah([c[c.length-1]]);
+}
+function fbh(c,lp) {
+  var r=[],n=c.length;
+  function ts(idx){var sb=idx.map(function(i){return c[i];}),h=ah(sb);if(h&&cb(h,lp))r.push(h);}
+  for(var i=0;i<n;i++)ts([i]);
+  for(var i=0;i<n-1;i++)for(var j=i+1;j<n;j++)ts([i,j]);
+  for(var i=0;i<n-2;i++)for(var j=i+1;j<n-1;j++)for(var k=j+1;k<n;k++)ts([i,j,k]);
+  for(var i=0;i<n-3;i++)for(var j=i+1;j<n-2;j++)for(var k=j+1;k<n-1;k++)for(var l=k+1;l<n;l++)ts([i,j,k,l]);
+  if(lp.type===T.STRAIGHT&&lp.len<=n){for(var st=3;st<=10;st++){var ne=[],ok=true;for(var v=st;v<st+lp.len;v++){var id=c.findIndex(function(x){return x.value===v;});if(id===-1){ok=false;break;}ne.push(id);}if(ok){var h=ah(ne.map(function(i){return c[i];}));if(h&&cb(h,lp))r.push(h);}}}
+  var se=new Set(); return r.filter(function(h){var k=h.cards.map(function(c){return c.id;}).sort().join(',');if(se.has(k))return false;se.add(k);return true;});
+}
+
+function rc(card,hidden){if(hidden)return'<div class="pcard bk"></div>';var rd=card.rank;if(card.rank==='10')rd='10';return'<div class="pcard '+card.color+'" data-id="'+card.id+'" onclick="tc('+card.id+')"><div class="pt">'+rd+'</div><div class="ps">'+card.suit+'</div><div class="pb">'+rd+'</div></div>';}
+function rh(cid,cards,hidden,sel){var el=document.getElementById(cid);el.innerHTML=cards.map(function(c,i){if(hidden)return rc(c,true);var sc=sel&&sel.has(c.id)?'sel':'';var rd=c.rank;if(c.rank==='10')rd='10';return'<div class="pcard '+c.color+' '+sc+'" data-id="'+c.id+'" onclick="tc('+c.id+')" style="margin-left:'+(i===0?0:-50)+'px"><div class="pt">'+rd+'</div><div class="ps">'+c.suit+'</div><div class="pb">'+rd+'</div></div>';}).join('');}
+function rlr(cid,cnt){var el=document.getElementById(cid),h='';for(var i=0;i<Math.min(cnt,10);i++)h+='<div class="pcard bk" style="margin-top:'+(i===0?0:-60)+'px"></div>';if(cnt>10)h+='<div style="color:#fff;margin-top:5px;font-size:12px;">+'+(cnt-10)+'</div>';el.innerHTML=h;}
+function uc(){document.getElementById('leftCount').textContent=GS.P[0].length+'张';document.getElementById('rightCount').textContent=GS.P[1].length+'张';document.getElementById('bottomCount').textContent=GS.P[2].length+'张';}
+function sm(t){var el=document.getElementById('message');el.textContent=t;el.classList.remove('ghid');setTimeout(function(){el.classList.add('ghid');},2000);}
+function spc(c){var el=document.getElementById('playedCards');if(!c||c.length===0){el.innerHTML='';return;}el.innerHTML=c.map(function(card,i){var rd=card.rank;if(card.rank==='10')rd='10';return'<div class="pcard '+card.color+'" style="margin-left:'+(i===0?0:-40)+'px"><div class="pt">'+rd+'</div><div class="ps">'+card.suit+'</div><div class="pb">'+rd+'</div></div>';}).join('');}
+
+function initRound() {
+  GS.deck=shuffle(createDeck()); GS.P=[[],[],[]]; GS.dz=[]; GS.ld=-1; GS.cp=-1; GS.lp=null; GS.pc=0; GS.ph='bid'; GS.sel.clear(); GS.mb=0; GS.mbp=-1;
+  for(var i=0;i<51;i++)GS.P[i%3].push(GS.deck[i]); GS.dz=GS.deck.slice(51); GS.P=GS.P.map(sc);
+  document.getElementById('dizhuCards').innerHTML='<div class="pcard bk" style="width:60px;height:82px;"></div><div class="pcard bk" style="width:60px;height:82px;"></div><div class="pcard bk" style="width:60px;height:82px;"></div>';
+  document.getElementById('leftAvatar').classList.remove('lz');document.getElementById('rightAvatar').classList.remove('lz');document.getElementById('bottomAvatar').classList.remove('lz');document.getElementById('playedCards').innerHTML='';
+  initTracker();
+  ui(); sb();
+}
+function ui(){rlr('leftHand',GS.P[0].length);rlr('rightHand',GS.P[1].length);rh('bottomHand',GS.P[2],false,GS.sel);uc();}
+
+// 开始叫分
+function sb(){GS.cp=Math.floor(Math.random()*3);sm('开始抢地主！');pb();}
+
+// 处理叫分回合
+function pb(){
+  if(GS.ph!=='bid')return;
+  var p=GS.cp,pa=document.getElementById('actionPanel');
+  var n=p===0?'电脑左':(p===1?'电脑右':'你');
+
+  if(p===2){
+    // 玩家叫分
+    var btns='';
+    if(GS.mb<1) btns+='<button class="gbtn pri" onclick="pbd(1)">1分</button>';
+    if(GS.mb<2) btns+='<button class="gbtn pri" onclick="pbd(2)">2分</button>';
+    if(GS.mb<3) btns+='<button class="gbtn pri" onclick="pbd(3)">3分</button>';
+    btns+='<button class="gbtn sec" onclick="pbd(0)">不叫</button>';
+    pa.innerHTML=btns;
+    document.getElementById('lastPlayInfo').textContent='你的回合，当前最高分'+GS.mb+'分';
+  }else{
+    // AI叫分
+    pa.innerHTML='';
+    setTimeout(function(){
+      var b=aib(GS.P[p],GS.mb);
+      var txt=b===0?' 不叫':' 叫'+b+'分';
+      document.getElementById('lastPlayInfo').textContent=n+txt;
+      if(b>GS.mb){GS.mb=b;GS.mbp=p;}
+      // 如果有人叫了3分，直接结束叫分
+      if(b===3){eb();return;}
+      nb();
+    },1200);
+  }
+}
+
+// 玩家叫分
+function pbd(b){
+  var n='你';
+  if(b===0){
+    document.getElementById('lastPlayInfo').textContent=n+' 不叫';
+    nb();
+  }else{
+    document.getElementById('lastPlayInfo').textContent=n+' 叫'+b+'分';
+    GS.mb=b;GS.mbp=2;
+    if(b===3){eb();return;}
+    nb();
+  }
+}
+
+// 下一个叫分者
+function nb(){
+  GS.cp=(GS.cp+1)%3;
+  // 如果转了一圈回到叫分起点
+  if(GS.cp===(GS.mbp+1)%3 && GS.mbp!==-1){
+    // 有人叫了分，且所有人都轮了一圈，最高分成为地主
+    eb();
+    return;
+  }
+  // 如果转了一圈都没人叫分
+  if(GS.cp===(GS.cp+2)%3 && GS.mb===0){
+    // 检查是否所有人都轮过了（通过计数）
+    // 简化处理：如果当前玩家是起始玩家且mb还是0，说明都没叫
+    // 实际上用passCount来跟踪
+  }
+  // 如果连续3个人不叫（mb=0且转了一圈）
+  // 这里简化：如果当前玩家是起始玩家且mb=0，说明没人叫
+  // 但由于随机起始，需要更精确的判断
+  // 改用：如果所有人都pass了（通过检查是否回到起始点且mb仍为0）
+
+  // 更简单的逻辑：记录起始点，如果回到起始点
+  // 实际上我们在sb中设置了GS.cp，如果转了一圈mb还是0，重新发牌
+  // 这里用一个简单的方法：如果当前玩家是起始玩家且已经轮过至少一次
+  // 由于我们每次nb都+1，如果mbp=-1（没人叫）且cp回到起始点，说明都没叫
+
+  // 重新设计：用passCount记录连续不叫次数
+  // 但为了不改动太多，这里简化：如果mb=0且当前是起始玩家（我们通过一个标记判断）
+  // 实际上更好的方式是：如果mbp=-1且cp===startPlayer且已经轮过
+  // 这里用另一种方式：如果mb===0且cp已经轮过所有人（通过检查是否回到最初随机选的那个人）
+  // 由于无法确定，改用：如果mb===0且cp===0（假设0是起点）
+  // 这不够健壮。改用passCount方式
+
+  // 由于代码结构限制，我们用另一种方式：
+  // 如果mb===0，继续让所有人叫一轮，如果回到起点还是0，重新发牌
+
+  // 由于sb中cp是随机的，我们记录startPlayer
+  if(typeof GS.sp==='undefined') GS.sp=GS.cp; // 记录起始玩家（第一次进入nb时）
+  // 不对，sb中cp已经被设了，nb中cp已经被+1了
+  // 重新设计：在sb中记录startPlayer
+  pb();
+}
+
+// 开始叫分
+function sb(){
+  GS.sp=Math.floor(Math.random()*3); // 记录起始玩家
+  GS.cp=GS.sp;
+  GS.mb=0;GS.mbp=-1;
+  sm('开始抢地主！');
+  pb();
+}
+
+// 处理叫分回合
+function pb(){
+  if(GS.ph!=='bid')return;
+  var p=GS.cp,pa=document.getElementById('actionPanel');
+  var n=p===0?'电脑左':(p===1?'电脑右':'你');
+
+  if(p===2){
+    var btns='';
+    if(GS.mb<1) btns+='<button class="gbtn pri" onclick="pbd(1)">1分</button>';
+    if(GS.mb<2) btns+='<button class="gbtn pri" onclick="pbd(2)">2分</button>';
+    if(GS.mb<3) btns+='<button class="gbtn pri" onclick="pbd(3)">3分</button>';
+    btns+='<button class="gbtn sec" onclick="pbd(0)">不叫</button>';
+    pa.innerHTML=btns;
+    document.getElementById('lastPlayInfo').textContent='你的回合，当前最高分'+GS.mb+'分';
+  }else{
+    pa.innerHTML='';
+    setTimeout(function(){
+      var b=aib(GS.P[p],GS.mb);
+      var txt=b===0?' 不叫':' 叫'+b+'分';
+      document.getElementById('lastPlayInfo').textContent=n+txt;
+      if(b>GS.mb){GS.mb=b;GS.mbp=p;}
+      if(b===3){eb();return;}
+      nb();
+    },1200);
+  }
+}
+
+// 玩家叫分
+function pbd(b){
+  if(b===0){
+    document.getElementById('lastPlayInfo').textContent='你 不叫';
+    nb();
+  }else{
+    document.getElementById('lastPlayInfo').textContent='你 叫'+b+'分';
+    GS.mb=b;GS.mbp=2;
+    if(b===3){eb();return;}
+    nb();
+  }
+}
+
+// 下一个叫分者
+function nb(){
+  GS.cp=(GS.cp+1)%3;
+  // 如果回到起始玩家
+  if(GS.cp===GS.sp){
+    if(GS.mb>0){
+      // 有人叫了分，结束叫分
+      eb();
+    }else{
+      // 没人叫分，重新发牌
+      sm('无人叫分，重新发牌！');
+      setTimeout(function(){initRound();},1500);
+    }
+    return;
+  }
+  pb();
+}
+
+// 结束叫分，确定地主
+function eb(){
+  GS.ph='play';
+  GS.ld=GS.mbp;
+  GS.m=GS.mb; // 基础倍数 = 叫分
+  document.getElementById('multiplier').textContent=GS.m;
+  var n=GS.ld===2?'你':(GS.ld===0?'电脑左':'电脑右');
+  sm(n+' 以'+GS.mb+'分成为地主！');
+
+  document.getElementById('dizhuCards').innerHTML=GS.dz.map(function(c){var rd=c.rank;if(c.rank==='10')rd='10';return'<div class="pcard '+c.color+'" style="width:60px;height:82px;font-size:14px;"><div class="pt" style="font-size:14px;">'+rd+'</div><div class="ps" style="font-size:24px;">'+c.suit+'</div><div class="pb" style="font-size:14px;">'+rd+'</div></div>';}).join('');
+  GS.dz.forEach(function(c){GS.P[GS.ld].push(c);});
+  GS.P[GS.ld]=sc(GS.P[GS.ld]);
+  document.getElementById('leftAvatar').classList.toggle('lz',GS.ld===0);
+  document.getElementById('rightAvatar').classList.toggle('lz',GS.ld===1);
+  document.getElementById('bottomAvatar').classList.toggle('lz',GS.ld===2);
+  ui();
+  GS.cp=GS.ld;
+  setTimeout(sp,1500);
+}
+
+function sp(){if(GS.ph!=='play')return;for(var i=0;i<3;i++){if(GS.P[i].length===0){eg(i);return;}}var p=GS.cp,pa=document.getElementById('actionPanel');if(p===2){var cp=GS.lp!==null&&GS.lp.player!==2;pa.innerHTML='<button class="gbtn pri" onclick="pp()">出牌</button>'+(cp?'<button class="gbtn sec" onclick="pps()">不要</button>':'')+'<button class="gbtn dan" onclick="rs()">重选</button>';document.getElementById('lastPlayInfo').textContent='你的回合，请选择牌';}else{pa.innerHTML='';setTimeout(function(){at(p);},1200);}}
+function gtn(t){var n={};n[T.SINGLE]='单张';n[T.PAIR]='对子';n[T.TRIPLE]='三张';n[T.TRIPLE1]='三带一';n[T.TRIPLE2]='三带二';n[T.STRAIGHT]='顺子';n[T.DSTRAIGHT]='连对';n[T.TSTRAIGHT]='飞机';n[T.BOMB]='炸弹';n[T.ROCKET]='王炸';return n[t]||'牌型';}
+function at(p){if(GS.ph!=='play')return;var c=GS.P[p],il=p===GS.ld,tl=GS.lp?GS.lp.player===GS.ld:null,h=aip(c,GS.lp,il,tl),n=p===0?'电脑左':'电脑右';if(!h){document.getElementById('lastPlayInfo').textContent=n+' 不要';GS.pc++;if(GS.pc>=2){GS.lp=null;GS.pc=0;spc([]);document.getElementById('lastPlayInfo').textContent='新一轮，自由出牌';}}else{var pc=h.cards;GS.P[p]=c.filter(function(x){return !pc.find(function(y){return y.id===x.id;});});GS.lp={player:p,cards:pc,type:h.type,value:h.value};GS.pc=0;document.getElementById('lastPlayInfo').textContent=n+' 出了 '+gtn(h.type);spc(pc);updateTracker(pc);if(h.type===T.BOMB||h.type===T.ROCKET){GS.m*=2;document.getElementById('multiplier').textContent=GS.m;sm('炸弹！倍数 x2');}}ui();if(GS.P[p].length===0){setTimeout(function(){eg(p);},500);return;}GS.cp=(p+1)%3;setTimeout(sp,800);}
+function tc(id){if(GS.cp!==2||GS.ph!=='play')return;if(GS.sel.has(id))GS.sel.delete(id);else GS.sel.add(id);ui();}
+function rs(){GS.sel.clear();ui();}
+function pp(){if(GS.sel.size===0){alert('请先选择要出的牌！');return;}var se=GS.P[2].filter(function(c){return GS.sel.has(c.id);}),h=ah(se);if(!h){alert('无效的牌型！');return;}if(!cb(h,GS.lp)){alert('打不过上家的牌！');return;}GS.P[2]=GS.P[2].filter(function(c){return !GS.sel.has(c.id);});GS.lp={player:2,cards:se,type:h.type,value:h.value};GS.pc=0;GS.sel.clear();document.getElementById('lastPlayInfo').textContent='你 出了 '+gtn(h.type);spc(se);updateTracker(se);if(h.type===T.BOMB||h.type===T.ROCKET){GS.m*=2;document.getElementById('multiplier').textContent=GS.m;sm('炸弹！倍数 x2');}ui();document.getElementById('actionPanel').innerHTML='';if(GS.P[2].length===0){setTimeout(function(){eg(2);},500);return;}GS.cp=0;setTimeout(sp,800);}
+function pps(){if(GS.lp&&GS.lp.player===2){alert('你必须出牌！');return;}GS.sel.clear();document.getElementById('lastPlayInfo').textContent='你 不要';document.getElementById('actionPanel').innerHTML='';GS.pc++;if(GS.pc>=2){GS.lp=null;GS.pc=0;spc([]);document.getElementById('lastPlayInfo').textContent='新一轮，自由出牌';}ui();GS.cp=0;setTimeout(sp,800);}
+function eg(w){GS.ph='end';var pw=w===2,pl=GS.ld===2,pw2=pw||(!pl&&w!==GS.ld),wn=w===2?'你':(w===0?'电脑左':'电脑右'),rt=pw2?'[胜] 你赢了！':'[负] 你输了...';sm(rt);document.getElementById('lastPlayInfo').textContent=pw2?'[你获胜] '+wn+' 赢了！':'[你输了] '+wn+' 赢了';document.getElementById('actionPanel').innerHTML='<button class="gbtn pri" onclick="nr()">再来一局</button><button class="gbtn sec" onclick="backHome()">返回菜单</button>';}
+function nr(){GS.r++;document.getElementById('roundCount').textContent=GS.r;GS.m=1;document.getElementById('multiplier').textContent='1';document.getElementById('leftAvatar').classList.remove('lz');document.getElementById('rightAvatar').classList.remove('lz');document.getElementById('bottomAvatar').classList.remove('lz');spc([]);initRound();}
+function gh(){if(GS.cp!==2)return;var c=GS.P[2],lp=GS.lp;if(!lp){if(c.length>0){GS.sel=new Set([c[c.length-1].id]);ui();}}else{var ca=fbh(c,lp);if(ca.length>0){ca.sort(function(a,b){return a.value-b.value;});GS.sel=new Set(ca[0].cards.map(function(x){return x.id;}));ui();}}}
+document.addEventListener('keydown',function(e){if(e.key==='Enter'){var pa=document.getElementById('actionPanel');if(pa.querySelector('.gbtn.pri')&&GS.ph==='play')pp();}if(e.key===' '){e.preventDefault();if(GS.ph==='play'&&GS.cp===2){var pa=document.getElementById('actionPanel');if(pa.querySelector('.gbtn.sec'))pps();}}if(e.key==='h'||e.key==='H')gh();});
+</script>
+</body>
+</html>
