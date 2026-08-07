@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pollinations 图像生成器</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #EADDFF;
+      --md-on-primary-container: #21005D;
+      --md-secondary: #625B71;
+      --md-surface: #FFFBFE;
+      --md-surface-variant: #E7E0EC;
+      --md-on-surface: #1C1B1F;
+      --md-on-surface-variant: #49454F;
+      --md-outline: #79747E;
+      --md-outline-variant: #CAC4D0;
+      --md-error: #B3261E;
+      --md-error-container: #F9DEDC;
+      --md-elevation-1: 0px 1px 3px 1px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.3);
+      --md-elevation-2: 0px 2px 6px 2px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.3);
+      --md-elevation-3: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans SC', -apple-system, sans-serif;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .sketch-deco {
+      position: fixed;
+      pointer-events: none;
+      opacity: 0.06;
+      z-index: 0;
+      color: var(--md-on-surface);
+    }
+    .sketch-deco.tr { top: -30px; right: -30px; width: 180px; height: 180px; }
+    .sketch-deco.bl { bottom: -40px; left: -40px; width: 220px; height: 220px; }
+
+    .app-header {
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 1;
+    }
+    .app-header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--md-on-surface);
+      letter-spacing: -0.5px;
+    }
+    .app-header p {
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
+      margin-top: 4px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 640px;
+      background: var(--md-surface);
+      border-radius: 28px;
+      box-shadow: var(--md-elevation-1);
+      padding: 24px;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 24px;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 30px;
+      border: 2px solid var(--md-outline-variant);
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .input-group { margin-bottom: 20px; }
+    .input-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .md-input {
+      width: 100%;
+      padding: 16px;
+      border: 1.5px solid var(--md-outline);
+      border-radius: 16px;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      resize: vertical;
+      min-height: 120px;
+    }
+    .md-input:focus {
+      border-color: var(--md-primary);
+      box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.12);
+    }
+    .md-input::placeholder { color: var(--md-outline); }
+
+    .params-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .param-item { display: flex; flex-direction: column; }
+    .param-item label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+    .param-item input {
+      padding: 12px 14px;
+      border: 1.5px solid var(--md-outline);
+      border-radius: 12px;
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .param-item input:focus { border-color: var(--md-primary); }
+
+    .seed-row { display: flex; gap: 8px; align-items: stretch; }
+    .seed-row input { flex: 1; }
+    .icon-btn {
+      width: 44px;
+      border: 1.5px solid var(--md-outline);
+      border-radius: 12px;
+      background: var(--md-surface);
+      color: var(--md-on-surface-variant);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      padding: 0;
+    }
+    .icon-btn:hover {
+      background: var(--md-surface-variant);
+      border-color: var(--md-primary);
+      color: var(--md-primary);
+    }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    .toggles-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .md-switch {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .md-switch input { display: none; }
+    .switch-track {
+      width: 52px;
+      height: 32px;
+      background: var(--md-surface-variant);
+      border-radius: 16px;
+      position: relative;
+      transition: background 0.3s;
+      border: 2px solid var(--md-outline);
+      flex-shrink: 0;
+    }
+    .switch-thumb {
+      width: 24px;
+      height: 24px;
+      background: var(--md-outline);
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s, background 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .md-switch input:checked + .switch-track {
+      background: var(--md-primary-container);
+      border-color: var(--md-primary);
+    }
+    .md-switch input:checked + .switch-track .switch-thumb {
+      transform: translateX(20px);
+      background: var(--md-primary);
+    }
+    .switch-label { font-size: 14px; color: var(--md-on-surface); }
+
+    .generate-btn {
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 20px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      font-size: 16px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: var(--md-elevation-1);
+      transition: box-shadow 0.2s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    .generate-btn:hover { box-shadow: var(--md-elevation-2); }
+    .generate-btn:active { transform: scale(0.98); }
+    .generate-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .result-area {
+      width: 100%;
+      max-width: 640px;
+      display: none;
+      position: relative;
+      z-index: 1;
+    }
+    .result-area.visible {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-wrapper {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--md-elevation-2);
+      background: var(--md-surface-variant);
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .result-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 26px;
+      border: 2px solid var(--md-outline-variant);
+      pointer-events: none;
+      opacity: 0.5;
+      z-index: 2;
+    }
+    .result-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: relative;
+      z-index: 1;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 3;
+    }
+    .loading-overlay.hidden { display: none; }
+    .loading-text {
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
+      font-weight: 500;
+    }
+
+    .image-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      justify-content: center;
+    }
+    .action-btn {
+      padding: 10px 20px;
+      border: 1.5px solid var(--md-outline);
+      border-radius: 20px;
+      background: var(--md-surface);
+      color: var(--md-primary);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .action-btn:hover {
+      background: var(--md-primary-container);
+      border-color: var(--md-primary);
+    }
+
+    .history-section {
+      width: 100%;
+      max-width: 640px;
+      margin-top: 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .history-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--md-on-surface-variant);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .history-item {
+      aspect-ratio: 1;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      box-shadow: var(--md-elevation-1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      background: var(--md-surface-variant);
+    }
+    .history-item:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--md-elevation-2);
+    }
+    .history-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .history-item .hp {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: white;
+      font-size: 11px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .history-item:hover .hp { opacity: 1; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 12px 24px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--md-elevation-3);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 100;
+      max-width: 90%;
+      text-align: center;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.error { background: var(--md-error-container); color: var(--md-error); }
+    .toast.success { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+
+    @media (max-width: 480px) {
+      .params-grid { grid-template-columns: 1fr 1fr; }
+      .app-header h1 { font-size: 22px; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 手绘装饰 SVG -->
+  <svg class="sketch-deco tr" viewBox="0 0 180 180" fill="none">
+    <path d="M140 15C150 35 160 75 150 110C140 145 115 165 90 160C65 155 40 135 30 100C20 65 35 35 55 20C75 5 110 0 135 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <circle cx="130" cy="40" r="7" stroke="currentColor" stroke-width="2" fill="none"/>
+    <path d="M45 125C55 115 75 110 95 115C115 120 130 130 135 140" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  </svg>
+
+  <svg class="sketch-deco bl" viewBox="0 0 220 220" fill="none">
+    <path d="M15 180C25 155 45 125 75 105C105 85 140 80 170 95C200 110 215 140 210 170C205 200 180 215 150 220C120 225 85 215 55 195" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M75 165C85 155 105 150 125 155C145 160 160 170 165 180" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    <circle cx="55" cy="145" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
+  </svg>
+
+  <div class="app-header">
+    <h1>图像生成器</h1>
+    <p>基于 Pollinations AI，用想象力描绘世界</p>
+  </div>
+
+  <div class="card">
+    <div class="input-group">
+      <label class="input-label">描述你的画面</label>
+      <textarea class="md-input" id="prompt" placeholder="例如：一座漂浮在云端的图书馆，阳光透过彩色玻璃洒落..."></textarea>
+    </div>
+
+    <div class="params-grid">
+      <div class="param-item">
+        <label>宽度</label>
+        <input type="number" id="width" value="1024" min="256" max="2048" step="64">
+      </div>
+      <div class="param-item">
+        <label>高度</label>
+        <input type="number" id="height" value="1024" min="256" max="2048" step="64">
+      </div>
+      <div class="param-item">
+        <label>种子</label>
+        <div class="seed-row">
+          <input type="number" id="seed" value="12345" min="0">
+          <button class="icon-btn" id="randSeed" title="随机种子">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toggles-row">
+      <label class="md-switch">
+        <input type="checkbox" id="nologo" checked>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span class="switch-label">无水印</span>
+      </label>
+      <label class="md-switch">
+        <input type="checkbox" id="enhance" checked>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+        <span class="switch-label">画质增强</span>
+      </label>
+    </div>
+
+    <button class="generate-btn" id="generate">生成图像</button>
+  </div>
+
+  <div class="result-area" id="resultArea">
+    <div class="result-wrapper">
+      <div class="loading-overlay" id="loading">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" stroke="var(--md-outline-variant)" stroke-width="3" fill="none"/>
+          <path d="M24 4C35 4 44 13 44 24" stroke="var(--md-primary)" stroke-width="3" stroke-linecap="round" fill="none">
+            <animateTransform attributeName="transform" type="rotate" from="0 24 24" to="360 24 24" dur="1s" repeatCount="indefinite"/>
+          </path>
+        </svg>
+        <span class="loading-text">正在绘制中...</span>
+      </div>
+      <img id="resultImg" alt="生成的图像" style="display:none;">
+    </div>
+    <div class="image-actions">
+      <button class="action-btn" id="download">保存图片</button>
+      <button class="action-btn" id="copyUrl">复制链接</button>
+    </div>
+  </div>
+
+  <div class="history-section" id="historySection" style="display:none;">
+    <div class="history-title">历史记录</div>
+    <div class="history-grid" id="historyGrid"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function(){
+      const $ = id => document.getElementById(id);
+      const promptEl = $('prompt'), widthEl = $('width'), heightEl = $('height'), seedEl = $('seed');
+      const nologoEl = $('nologo'), enhanceEl = $('enhance'), genBtn = $('generate');
+      const resultArea = $('resultArea'), loading = $('loading'), resultImg = $('resultImg');
+      const downloadBtn = $('download'), copyBtn = $('copyUrl');
+      const toast = $('toast'), historySection = $('historySection'), historyGrid = $('historyGrid');
+
+      let currentUrl = '';
+      let history = JSON.parse(localStorage.getItem('ph') || '[]');
+
+      function showToast(msg, type){
+        toast.textContent = msg;
+        toast.className = 'toast ' + (type || 'success');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+      }
+
+      function esc(t){
+        const d = document.createElement('div');
+        d.textContent = t;
+        return d.innerHTML;
+      }
+
+      function renderHistory(){
+        if(!history.length){ historySection.style.display='none'; return; }
+        historySection.style.display='block';
+        historyGrid.innerHTML = history.slice(0,8).map((it,i)=>`
+          <div class="history-item" data-i="${i}">
+            <img src="${it.url}" alt="" loading="lazy">
+            <div class="hp">${esc(it.prompt)}</div>
+          </div>
+        `).join('');
+        historyGrid.querySelectorAll('.history-item').forEach(el=>{
+          el.addEventListener('click',()=>{
+            const it = history[parseInt(el.dataset.i)];
+            promptEl.value = it.prompt;
+            widthEl.value = it.w; heightEl.value = it.h; seedEl.value = it.seed;
+            nologoEl.checked = it.nl; enhanceEl.checked = it.en;
+            showResult(it.url);
+          });
+        });
+      }
+
+      function addHistory(url, prompt, w, h, seed, nl, en){
+        history.unshift({url, prompt, w, h, seed, nl, en, t:Date.now()});
+        if(history.length>20) history=history.slice(0,20);
+        localStorage.setItem('ph', JSON.stringify(history));
+        renderHistory();
+      }
+
+      function buildUrl(){
+        const p = promptEl.value.trim();
+        if(!p) return null;
+        const w=widthEl.value||1024, h=heightEl.value||1024, s=seedEl.value||12345;
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=${w}&height=${h}&seed=${s}&nologo=${nologoEl.checked}&enhance=${enhanceEl.checked}`;
+      }
+
+      function showResult(url){
+        currentUrl = url;
+        resultArea.classList.add('visible');
+        loading.classList.remove('hidden');
+        resultImg.style.display='none';
+        resultImg.src = url;
+        resultImg.onload = ()=>{ loading.classList.add('hidden'); resultImg.style.display='block'; };
+        resultImg.onerror = ()=>{ loading.classList.add('hidden'); showToast('图像加载失败','error'); };
+      }
+
+      genBtn.addEventListener('click', ()=>{
+        if(!promptEl.value.trim()){ showToast('请输入画面描述','error'); promptEl.focus(); return; }
+        const url = buildUrl();
+        if(!url) return;
+        showResult(url);
+        addHistory(url, promptEl.value, widthEl.value, heightEl.value, seedEl.value, nologoEl.checked, enhanceEl.checked);
+      });
+
+      $('randSeed').addEventListener('click', ()=> seedEl.value = Math.floor(Math.random()*999999));
+
+      downloadBtn.addEventListener('click', async ()=>{
+        if(!currentUrl) return;
+        try{
+          const r = await fetch(currentUrl);
+          const b = await r.blob();
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(b);
+          a.download = 'pollinations-' + Date.now() + '.png';
+          a.click();
+          URL.revokeObjectURL(a.href);
+          showToast('已保存到本地');
+        }catch{ showToast('保存失败','error'); }
+      });
+
+      copyBtn.addEventListener('click', async ()=>{
+        if(!currentUrl) return;
+        try{ await navigator.clipboard.writeText(currentUrl); showToast('链接已复制'); }
+        catch{ showToast('复制失败','error'); }
+      });
+
+      promptEl.addEventListener('keydown', e=>{
+        if(e.key==='Enter' && (e.ctrlKey||e.metaKey)) genBtn.click();
+      });
+
+      renderHistory();
+    })();
+  </script>
+</body>
+</html>
