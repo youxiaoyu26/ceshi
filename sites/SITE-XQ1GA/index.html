@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地球Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #0a0e1a;
+            color: #e0e6ed;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-title { font-family: 'Black Ops One', cursive; }
+
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(0,255,136,0.4), transparent);
+            animation: scan 3s linear infinite; pointer-events: none; z-index: 9999;
+        }
+        @keyframes scan { 0% { top: -5px; } 100% { top: 100vh; } }
+
+        .game-card {
+            background: rgba(15,23,42,0.9);
+            border: 1px solid rgba(0,255,136,0.2);
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+        .game-card:hover { border-color: rgba(0,255,136,0.5); transform: translateY(-2px); }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+        }
+        .btn:hover { transform: scale(1.05); }
+        .btn:active { transform: scale(0.95); }
+        .btn-green { background: linear-gradient(135deg, #00ff88, #00cc66); color: #000; }
+        .btn-blue { background: linear-gradient(135deg, #00ccff, #0088ff); color: #000; }
+        .btn-red { background: linear-gradient(135deg, #ff3366, #ff0066); color: #fff; }
+        .btn-yellow { background: linear-gradient(135deg, #ffaa00, #ff8800); color: #000; }
+        .btn-purple { background: linear-gradient(135deg, #aa66ff, #8844ff); color: #fff; }
+        .btn-pink { background: linear-gradient(135deg, #ff66aa, #ff4499); color: #fff; }
+        .btn-gray { background: #333; color: #888; cursor: not-allowed; }
+
+        .bar-bg { height: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+
+        .fade-in { animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .shake { animation: shake 0.4s ease; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 50%{transform:translateX(10px)} 75%{transform:translateX(-5px)} }
+
+        .pulse-red { animation: pulseRed 1s infinite; }
+        @keyframes pulseRed { 0%,100%{box-shadow:0 0 0 rgba(255,0,0,0)} 50%{box-shadow:0 0 20px rgba(255,0,0,0.5)} }
+
+        .log-entry {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .hidden { display: none !important; }
+
+        .death-screen {
+            position: fixed; inset: 0; background: #000; z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0e1a; }
+        ::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+
+    <!-- ==================== 登入畫面 ==================== -->
+    <div id="loginScreen" class="min-h-screen flex flex-col items-center justify-center px-4">
+        <div class="text-center mb-8">
+            <div class="text-green-400 text-sm font-mono mb-2">VER 2026.6 | SERVER: ONLINE | PLAYERS: 8,092,376,451</div>
+            <h1 class="game-title text-6xl md:text-8xl mb-4" style="background:linear-gradient(135deg,#00ff88,#00ccff,#ff0066);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">地球Online</h1>
+            <p class="text-gray-400 text-lg">無官方伺服器 · 永久單局 · 無存檔讀檔 · 永久死亡</p>
+        </div>
+        
+        <div class="game-card p-8 max-w-md w-full text-center">
+            <div class="text-6xl mb-4">🌍</div>
+            <h2 class="text-2xl font-bold mb-4">創建角色</h2>
+            <p class="text-gray-400 text-sm mb-6">警告：所有屬性隨機分配，不可自選。一旦開始，無法退出。</p>
+            <button class="btn btn-green w-full text-lg" onclick="createCharacter()">🎲 隨機開局</button>
+        </div>
+    </div>
+
+    <!-- ==================== 開局動畫 ==================== -->
+    <div id="rollScreen" class="hidden min-h-screen flex flex-col items-center justify-center px-4">
+        <div class="text-center">
+            <h2 class="text-3xl font-bold mb-8 text-yellow-400">正在隨機分配角色...</h2>
+            <div id="rollText" class="text-2xl font-mono text-green-400 mb-8" style="min-height:3rem;"></div>
+            <div class="w-64 h-2 bg-gray-800 rounded-full overflow-hidden mx-auto">
+                <div id="rollBar" class="h-full bg-green-400" style="width:0%;transition:width 0.1s;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 主遊戲畫面 ==================== -->
+    <div id="gameScreen" class="hidden min-h-screen">
+        
+        <!-- 頂部狀態欄 -->
+        <div class="bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3 sticky top-0 z-50">
+            <div class="max-w-4xl mx-auto flex justify-between items-center flex-wrap gap-2">
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="text-green-400 font-bold">Lv.<span id="levelDisplay">0</span></span>
+                    <span class="text-gray-400" id="ageDisplay">0歲</span>
+                    <span class="text-blue-400" id="dayDisplay">第1天</span>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                    <span class="text-yellow-400">💰 <span id="moneyDisplay">0</span></span>
+                    <button class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30" onclick="showHelp()">❓ 說明</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+            <!-- 角色資訊 -->
+            <div class="game-card p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div id="avatarEmoji" class="text-5xl">👶</div>
+                    <div>
+                        <h3 class="text-xl font-bold" id="charName">玩家</h3>
+                        <p class="text-gray-400 text-sm" id="charOrigin">出生地：???</p>
+                        <p class="text-gray-500 text-xs" id="charTalent">天賦：???</p>
+                    </div>
+                    <div class="ml-auto text-right">
+                        <div class="text-xs text-gray-500 mb-1">當前階段</div>
+                        <div class="text-green-400 font-bold" id="stageDisplay">新手保護期</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 狀態條 -->
+            <div class="game-card p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">❤️ 生存狀態</h3>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">生命值 (HP)</span><span class="text-red-400" id="hpText">100/100</span></div>
+                        <div class="bar-bg"><div id="hpBar" class="bar-fill bg-red-500" style="width:100%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">飢餓值</span><span class="text-orange-400" id="hungerText">80/100</span></div>
+                        <div class="bar-bg"><div id="hungerBar" class="bar-fill bg-orange-500" style="width:80%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">口渴值</span><span class="text-blue-400" id="thirstText">80/100</span></div>
+                        <div class="bar-bg"><div id="thirstBar" class="bar-fill bg-blue-500" style="width:80%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="text-gray-400">精力值</span><span class="text-purple-400" id="energyText">80/100</span></div>
+                        <div class="bar-bg"><div id="energyBar" class="bar-fill bg-purple-500" style="width:80%"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 屬性面板 -->
+            <div class="game-card p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">📊 屬性面板</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-3 bg-blue-500/10 rounded-lg">
+                        <div class="text-2xl mb-1">🧠</div>
+                        <div class="text-xs text-gray-400">智力</div>
+                        <div class="text-xl font-bold text-blue-400" id="statInt">??</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-500/10 rounded-lg">
+                        <div class="text-2xl mb-1">💪</div>
+                        <div class="text-xs text-gray-400">體力</div>
+                        <div class="text-xl font-bold text-green-400" id="statStr">??</div>
+                    </div>
+                    <div class="text-center p-3 bg-pink-500/10 rounded-lg">
+                        <div class="text-2xl mb-1">✨</div>
+                        <div class="text-xs text-gray-400">魅力</div>
+                        <div class="text-xl font-bold text-pink-400" id="statCha">??</div>
+                    </div>
+                    <div class="text-center p-3 bg-yellow-500/10 rounded-lg">
+                        <div class="text-2xl mb-1">🍀</div>
+                        <div class="text-xs text-gray-400">運氣</div>
+                        <div class="text-xl font-bold text-yellow-400" id="statLuck">??</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 每日任務 -->
+            <div class="game-card p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">📋 每日任務（消耗時間行動）</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="actionButtons">
+                    <button class="btn btn-green text-sm" onclick="doAction('eat')">🍽️ 進食<br><span class="text-xs opacity-70">-10💰 +飢餓 +HP</span></button>
+                    <button class="btn btn-blue text-sm" onclick="doAction('drink')">💧 飲水<br><span class="text-xs opacity-70">+口渴 +HP</span></button>
+                    <button class="btn btn-purple text-sm" onclick="doAction('sleep')">😴 睡眠<br><span class="text-xs opacity-70">+精力 +HP</span></button>
+                    <button class="btn btn-yellow text-sm" onclick="doAction('work')">💼 工作/學習<br><span class="text-xs opacity-70">-精力 +💰 +經驗</span></button>
+                </div>
+                <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button class="btn btn-green text-sm" onclick="doAction('exercise')">🏃 健身<br><span class="text-xs opacity-70">+體力 -精力</span></button>
+                    <button class="btn btn-blue text-sm" onclick="doAction('study')">📚 學習<br><span class="text-xs opacity-70">+智力 -精力</span></button>
+                    <button class="btn btn-purple text-sm" onclick="doAction('social')">🗣️ 社交<br><span class="text-xs opacity-70">+魅力 -精力</span></button>
+                    <button class="btn btn-red text-sm" onclick="doAction('explore')">🌍 探索<br><span class="text-xs opacity-70">-精力 隨機事件</span></button>
+                </div>
+            </div>
+
+            <!-- 階段特殊行動 -->
+            <div class="game-card p-6" id="stageActions">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">🎯 階段特殊行動</h3>
+                <div id="stageActionButtons" class="flex flex-wrap gap-3"></div>
+            </div>
+
+            <!-- 事件日誌 -->
+            <div class="game-card p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">📜 事件日誌</h3>
+                <div id="gameLog" class="max-h-64 overflow-y-auto space-y-1" style="font-size:0.9rem;">
+                    <div class="log-entry bg-green-500/10 text-green-400">🎮 歡迎來到地球Online！遊戲開始。</div>
+                </div>
+            </div>
+
+            <!-- 時間控制 -->
+            <div class="game-card p-6 text-center">
+                <button class="btn btn-red text-lg" onclick="nextDay()">⏭️ 結束今天，進入下一天</button>
+                <p class="text-gray-500 text-xs mt-2">每天自動消耗基礎資源，隨機觸發事件</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== 死亡畫面 ==================== -->
+    <div id="deathScreen" class="death-screen hidden">
+        <div class="text-8xl mb-6">💀</div>
+        <h1 class="game-title text-6xl text-red-500 mb-4">GAME OVER</h1>
+        <p class="text-gray-400 text-xl mb-2">角色已永久刪號</p>
+        <p class="text-gray-600 text-sm mb-8">無法復活 · 無法回檔 · 無法重開</p>
+        
+        <div class="game-card p-6 max-w-md w-full mx-4 mb-8">
+            <h3 class="text-lg font-bold mb-4 text-center">📊 人生總結</h3>
+            <div id="deathStats" class="space-y-2 text-sm"></div>
+        </div>
+        
+        <button class="btn btn-green text-lg" onclick="location.reload()">🔄 觀看其他玩家（刷新頁面）</button>
+    </div>
+
+    <!-- ==================== 說明彈窗 ==================== -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4" onclick="if(event.target===this)hideHelp()">
+        <div class="game-card p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4">❓ 遊戲說明</h3>
+            <div class="space-y-3 text-sm text-gray-400">
+                <p>🎲 <span class="text-white">開局</span>：所有屬性隨機，出生地決定難度</p>
+                <p>❤️ <span class="text-white">生存</span>：維持HP/飢餓/口渴/精力，歸零即死亡</p>
+                <p>⏱️ <span class="text-white">時間</span>：每天固定24小時，行動消耗時間</p>
+                <p>📈 <span class="text-white">成長</span>：0-3嬰兒期 → 3-7幼兒園 → 7-13小學 → 13-16國中 → 16-19高中 → 19-25大學/分支 → 25-60成年核心 → 60+養老</p>
+                <p>🎲 <span class="text-white">事件</span>：每天結束30%機率觸發好事/壞事</p>
+                <p>💀 <span class="text-white">死亡</span>：HP歸零或隨機意外，永久結束</p>
+            </div>
+            <button class="btn btn-blue w-full mt-6" onclick="hideHelp()">知道了</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 遊戲數據 ====================
+        const origins = [
+            { name: '北歐服（挪威）', diff: '簡單', bonus: { money: 500, luck: 5 } },
+            { name: '北美服（美國）', diff: '普通', bonus: { money: 300, luck: 3 } },
+            { name: '東亞服（中國）', diff: '困難', bonus: { money: 100, luck: 2 } },
+            { name: '東亞服（台灣）', diff: '簡單', bonus: { money: 500, luck: 7 } },
+            { name: '東亞服（日本）', diff: '困難', bonus: { money: 200, luck: 2 } },
+            { name: '東南亞服（越南）', diff: '困難', bonus: { money: 50, luck: 1 } },
+            { name: '非洲服（奈及利亞）', diff: '地獄', bonus: { money: 20, luck: 0 } },
+            { name: '南美服（巴西）', diff: '普通', bonus: { money: 80, luck: 2 } },
+            { name: '西歐服（法國）', diff: '簡單', bonus: { money: 350, luck: 4 } },
+            { name: '東歐服（俄羅斯）', diff: '普通', bonus: { money: 120, luck: 1 } },
+        ];
+
+        const talents = [
+            '天才兒童', '運動健將', '社交達人', '幸運兒', '普通人',
+            '藝術天賦', '商業嗅覺', '科技宅', '野外求生', '音樂天才'
+        ];
+
+        const randomEvents = [
+            { text: '🍀 撿到錢包！+50金幣', effect: { money: 50 }, type: 'good' },
+            { text: '🤕 不小心跌倒，-5HP', effect: { hp: -5 }, type: 'bad' },
+            { text: '📈 股票小漲！+30金幣', effect: { money: 30 }, type: 'good' },
+            { text: '😷 感冒發燒，-10HP', effect: { hp: -10 }, type: 'bad' },
+            { text: '🎁 收到禮物！心情變好', effect: { energy: 10 }, type: 'good' },
+            { text: '💔 失戀了，精力-15', effect: { energy: -15 }, type: 'bad' },
+            { text: '🏆 獲得小獎項！+20金幣', effect: { money: 20 }, type: 'good' },
+            { text: '🚗 交通意外！-20HP', effect: { hp: -20 }, type: 'bad' },
+            { text: '🍜 吃到美食！飢餓+20', effect: { hunger: 20 }, type: 'good' },
+            { text: '💼 加班地獄，精力-20', effect: { energy: -20 }, type: 'bad' },
+            { text: '🌟 遇到貴人！運氣+1', effect: { luck: 1 }, type: 'good' },
+            { text: '🐀 家裡有老鼠！心情-10', effect: { energy: -10 }, type: 'bad' },
+            { text: '💰 中發票！+100金幣', effect: { money: 100 }, type: 'good' },
+            { text: '🦷 牙痛！-8HP', effect: { hp: -8 }, type: 'bad' },
+            { text: '🎉 朋友請客！省下一餐錢', effect: { money: 10 }, type: 'good' },
+            { text: '📱 手機摔壞！-80金幣', effect: { money: -80 }, type: 'bad' },
+            { text: '🌈 看到彩虹！心情大好', effect: { energy: 15, hp: 5 }, type: 'good' },
+            { text: '☔ 淋雨生病，-12HP', effect: { hp: -12 }, type: 'bad' },
+        ];
+
+        const deathEvents = [
+            '心臟病發作', '車禍意外', '重病不治', '食物中毒', '高空墜落',
+            '溺水身亡', '火災罹難', '被雷劈中', '遭遇搶劫身亡', '年老壽終'
+        ];
+
+        // ==================== 遊戲狀態 ====================
+        let player = {
+            name: '玩家',
+            age: 0,
+            day: 1,
+            level: 0,
+            hp: 100, maxHp: 100,
+            hunger: 80, maxHunger: 100,
+            thirst: 80, maxThirst: 100,
+            energy: 80, maxEnergy: 100,
+            money: 0,
+            int: 0, str: 0, cha: 0, luck: 0,
+            origin: null,
+            talent: '',
+            alive: true,
+            totalMoney: 0,
+            totalDays: 0,
+            achievements: []
+        };
+
+        // ==================== 開局 ====================
+        function createCharacter() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('rollScreen').classList.remove('hidden');
+            
+            const rollText = document.getElementById('rollText');
+            const rollBar = document.getElementById('rollBar');
+            const steps = ['分配性別...', '隨機外貌...', '選擇出生地...', '抽取天賦...', '計算初始資源...'];
+            let step = 0;
+            
+            const interval = setInterval(() => {
+                if (step < steps.length) {
+                    rollText.textContent = steps[step];
+                    rollBar.style.width = ((step + 1) / steps.length * 100) + '%';
+                    step++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(finishCreate, 500);
+                }
+            }, 400);
+        }
+
+        function finishCreate() {
+            player.origin = origins[Math.floor(Math.random() * origins.length)];
+            player.talent = talents[Math.floor(Math.random() * talents.length)];
+            player.int = Math.floor(Math.random() * 20) + 5;
+            player.str = Math.floor(Math.random() * 20) + 5;
+            player.cha = Math.floor(Math.random() * 20) + 5;
+            player.luck = Math.floor(Math.random() * 20) + 5 + (player.origin.bonus.luck || 0);
+            player.money = player.origin.bonus.money || 0;
+            player.totalMoney = player.money;
+
+            if (player.talent === '天才兒童') player.int += 10;
+            if (player.talent === '運動健將') player.str += 10;
+            if (player.talent === '社交達人') player.cha += 10;
+            if (player.talent === '幸運兒') player.luck += 10;
+
+            document.getElementById('rollScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            updateUI();
+            addLog(`🎲 角色創建完成！出生地：${player.origin.name} [${player.origin.diff}]`, 'green');
+            addLog(`✨ 天賦：${player.talent}`, 'blue');
+            addLog(`💰 初始資金：${player.money}金幣`, 'yellow');
+        }
+
+        // ==================== UI更新 ====================
+        function updateUI() {
+            document.getElementById('levelDisplay').textContent = player.level;
+            document.getElementById('ageDisplay').textContent = player.age + '歲';
+            document.getElementById('dayDisplay').textContent = '第' + player.day + '天';
+            document.getElementById('moneyDisplay').textContent = player.money;
+            
+            document.getElementById('charName').textContent = '玩家 (Lv.' + player.level + ')';
+            document.getElementById('charOrigin').textContent = '出生地：' + player.origin.name + ' [' + player.origin.diff + ']';
+            document.getElementById('charTalent').textContent = '天賦：' + player.talent;
+            
+            let stageText = '新手保護期';
+            let emoji = '👶';
+            if (player.age >= 3 && player.age < 7) { stageText = '幼兒園副本'; emoji = '🧒'; }
+            else if (player.age >= 7 && player.age < 13) { stageText = '小學副本'; emoji = '📚'; }
+            else if (player.age >= 13 && player.age < 16) { stageText = '國中副本'; emoji = '📖'; }
+            else if (player.age >= 16 && player.age < 19) { stageText = '高中副本'; emoji = '🎓'; }
+            else if (player.age >= 19 && player.age < 23) { stageText = '大學/分支期'; emoji = '🏫'; }
+            else if (player.age >= 23 && player.age < 60) { stageText = '成年核心期'; emoji = '💼'; }
+            else if (player.age >= 60) { stageText = '養老階段'; emoji = '🦽'; }
+            
+            document.getElementById('stageDisplay').textContent = stageText;
+            document.getElementById('avatarEmoji').textContent = emoji;
+
+            updateBar('hp', player.hp, player.maxHp, 'red');
+            updateBar('hunger', player.hunger, player.maxHunger, 'orange');
+            updateBar('thirst', player.thirst, player.maxThirst, 'blue');
+            updateBar('energy', player.energy, player.maxEnergy, 'purple');
+
+            document.getElementById('statInt').textContent = player.int;
+            document.getElementById('statStr').textContent = player.str;
+            document.getElementById('statCha').textContent = player.cha;
+            document.getElementById('statLuck').textContent = player.luck;
+
+            updateStageActions();
+        }
+
+        function updateBar(id, val, max, color) {
+            const pct = Math.max(0, Math.min(100, (val / max) * 100));
+            document.getElementById(id + 'Bar').style.width = pct + '%';
+            document.getElementById(id + 'Text').textContent = Math.floor(val) + '/' + max;
+            if (pct < 20) {
+                document.getElementById(id + 'Bar').classList.add('pulse-red');
+            } else {
+                document.getElementById(id + 'Bar').classList.remove('pulse-red');
+            }
+        }
+
+        function updateStageActions() {
+            const container = document.getElementById('stageActionButtons');
+            container.innerHTML = '';
+            
+            if (player.age >= 7 && player.age < 19) {
+                container.innerHTML += `<button class="btn btn-blue text-sm" onclick="doSpecial('exam')">📝 考試<br><span class="text-xs">+智力經驗</span></button>`;
+            }
+            if (player.age >= 16 && player.age < 19) {
+                container.innerHTML += `<button class="btn btn-red text-sm" onclick="doSpecial('gaokao')">👹 高考BOSS<br><span class="text-xs">決定命運</span></button>`;
+            }
+            if (player.age >= 19 && player.age < 25) {
+                container.innerHTML += `<button class="btn btn-purple text-sm" onclick="doSpecial('college')">🎓 大學深造<br><span class="text-xs">+智力</span></button>`;
+                container.innerHTML += `<button class="btn btn-green text-sm" onclick="doSpecial('job')">💼 直接就業<br><span class="text-xs">+金幣</span></button>`;
+            }
+            if (player.age >= 25 && player.age < 60) {
+                container.innerHTML += `<button class="btn btn-yellow text-sm" onclick="doSpecial('career')">🚀 職業發展<br><span class="text-xs">+金幣+經驗</span></button>`;
+                container.innerHTML += `<button class="btn btn-pink text-sm" onclick="doSpecial('love')">💕 戀愛副本<br><span class="text-xs">+魅力</span></button>`;
+                container.innerHTML += `<button class="btn btn-red text-sm" onclick="doSpecial('startup')">🚀 創業<br><span class="text-xs">高風險高報酬</span></button>`;
+            }
+            if (player.age >= 60) {
+                container.innerHTML += `<button class="btn btn-gray text-sm" disabled>🦽 養老模式<br><span class="text-xs">屬性持續衰減</span></button>`;
+            }
+            
+            document.getElementById('stageActions').style.display = container.innerHTML === '' ? 'none' : 'block';
+        }
+
+        // ==================== 行動 ====================
+        function doAction(type) {
+            if (!player.alive) return;
+            
+            let msg = '', color = 'green';
+            
+            switch(type) {
+                case 'eat':
+                    if (player.money < 10) { addLog('❌ 金幣不足，無法進食！', 'red'); return; }
+                    player.money -= 10;
+                    player.hunger = Math.min(player.maxHunger, player.hunger + 25);
+                    player.hp = Math.min(player.maxHp, player.hp + 5);
+                    msg = '🍽️ 吃了一頓飯，飢餓+25 HP+5';
+                    color = 'green';
+                    break;
+                case 'drink':
+                    player.thirst = Math.min(player.maxThirst, player.thirst + 30);
+                    player.hp = Math.min(player.maxHp, player.hp + 3);
+                    msg = '💧 喝了水，口渴+30 HP+3';
+                    color = 'blue';
+                    break;
+                case 'sleep':
+                    player.energy = Math.min(player.maxEnergy, player.energy + 40);
+                    player.hp = Math.min(player.maxHp, player.hp + 10);
+                    msg = '😴 睡了一覺，精力+40 HP+10';
+                    color = 'purple';
+                    break;
+                case 'work':
+                    if (player.energy < 20) { addLog('❌ 精力不足，無法工作！', 'red'); return; }
+                    player.energy -= 20;
+                    const earn = Math.floor(20 + player.int * 0.5 + Math.random() * 10);
+                    player.money += earn;
+                    player.totalMoney += earn;
+                    player.level += 1;
+                    msg = `💼 工作/學習完成！+${earn}金幣 經驗+1`;
+                    color = 'yellow';
+                    break;
+                case 'exercise':
+                    if (player.energy < 25) { addLog('❌ 精力不足！', 'red'); return; }
+                    player.energy -= 25;
+                    player.str += 1;
+                    player.hp = Math.min(player.maxHp, player.hp + 5);
+                    msg = '🏃 健身完成！體力+1 HP+5';
+                    color = 'green';
+                    break;
+                case 'study':
+                    if (player.energy < 20) { addLog('❌ 精力不足！', 'red'); return; }
+                    player.energy -= 20;
+                    player.int += 1;
+                    msg = '📚 學習完成！智力+1';
+                    color = 'blue';
+                    break;
+                case 'social':
+                    if (player.energy < 15) { addLog('❌ 精力不足！', 'red'); return; }
+                    player.energy -= 15;
+                    player.cha += 1;
+                    msg = '🗣️ 社交完成！魅力+1';
+                    color = 'pink';
+                    break;
+                case 'explore':
+                    if (player.energy < 30) { addLog('❌ 精力不足！', 'red'); return; }
+                    player.energy -= 30;
+                    triggerRandomEvent();
+                    return;
+            }
+            
+            addLog(msg, color);
+            updateUI();
+            checkDeath();
+        }
+
+        function doSpecial(type) {
+            if (!player.alive) return;
+            
+            switch(type) {
+                case 'exam':
+                    player.int += 2;
+                    player.energy -= 15;
+                    addLog('📝 考試完成！智力+2', 'blue');
+                    break;
+                case 'gaokao':
+                    const score = Math.floor(player.int * 3 + player.luck + Math.random() * 50);
+                    let result = '';
+                    if (score > 600) { result = '頂尖大學！智力+20'; player.int += 20; player.achievements.push('高考狀元'); }
+                    else if (score > 500) { result = '普通大學，智力+10'; player.int += 10; }
+                    else if (score > 400) { result = '專科學校，智力+5'; player.int += 5; }
+                    else { result = '落榜...智力+1'; player.int += 1; }
+                    addLog(`👹 高考結束！分數：${score}，${result}`, score > 500 ? 'green' : 'yellow');
+                    player.energy -= 30;
+                    break;
+                case 'college':
+                    player.int += 5;
+                    player.energy -= 20;
+                    addLog('🎓 大學深造完成！智力+5', 'purple');
+                    break;
+                case 'job':
+                    player.money += 100;
+                    player.totalMoney += 100;
+                    addLog('💼 找到工作！+100金幣', 'green');
+                    break;
+                case 'career':
+                    const careerEarn = Math.floor(50 + player.int * 0.8 + player.str * 0.3);
+                    player.money += careerEarn;
+                    player.totalMoney += careerEarn;
+                    player.level += 2;
+                    addLog(`🚀 職業發展！+${careerEarn}金幣 等級+2`, 'yellow');
+                    break;
+                case 'love':
+                    if (Math.random() > 0.5) {
+                        player.cha += 3;
+                        addLog('💕 戀愛成功！魅力+3', 'pink');
+                    } else {
+                        player.energy -= 10;
+                        addLog('💔 被發好人卡...精力-10', 'red');
+                    }
+                    break;
+                case 'startup':
+                    if (Math.random() > 0.7) {
+                        const big = Math.floor(200 + Math.random() * 500);
+                        player.money += big;
+                        player.totalMoney += big;
+                        addLog(`🚀 創業大成功！+${big}金幣`, 'green');
+                        player.achievements.push('創業成功');
+                    } else {
+                        const loss = Math.floor(100 + Math.random() * 200);
+                        player.money = Math.max(0, player.money - loss);
+                        addLog(`💸 創業失敗！-${loss}金幣`, 'red');
+                    }
+                    break;
+            }
+            updateUI();
+            checkDeath();
+        }
+
+        // ==================== 下一天 ====================
+        function nextDay() {
+            if (!player.alive) return;
+            
+            player.day++;
+            player.totalDays++;
+            player.age = Math.floor(player.day / 365);
+            
+            player.hunger -= 15;
+            player.thirst -= 20;
+            player.energy -= 10;
+            player.hp -= 2;
+            
+            if (player.age >= 40) player.hp -= 1;
+            if (player.age >= 60) player.hp -= 2;
+            
+            if (player.hunger <= 0) { player.hp -= 10; player.hunger = 0; }
+            if (player.thirst <= 0) { player.hp -= 15; player.thirst = 0; }
+            if (player.energy <= 0) { player.hp -= 5; player.energy = 0; }
+            
+            addLog(`📅 第${player.day}天結束，你現在${player.age}歲了`, 'blue');
+            
+            if (Math.random() < 0.3) triggerRandomEvent();
+            
+            if (player.age === 3) addLog('🎉 3歲了！進入幼兒園副本', 'green');
+            if (player.age === 7) addLog('📚 7歲了！進入小學副本', 'green');
+            if (player.age === 13) addLog('📖 13歲了！進入國中副本', 'green');
+            if (player.age === 16) addLog('🎓 16歲了！進入高中副本，準備高考BOSS', 'yellow');
+            if (player.age === 19) addLog('🎉 成年了！脫離新手保護期，開放全部分支', 'green');
+            if (player.age === 25) addLog('💼 進入成年核心遊玩階段！選擇你的流派', 'yellow');
+            if (player.age === 60) addLog('🦽 進入養老階段，體質持續衰減', 'gray');
+            
+            updateUI();
+            checkDeath();
+        }
+
+        function triggerRandomEvent() {
+            const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+            
+            if (event.effect.money) {
+                player.money += event.effect.money;
+                if (event.effect.money > 0) player.totalMoney += event.effect.money;
+                if (player.money < 0) player.money = 0;
+            }
+            if (event.effect.hp) player.hp += event.effect.hp;
+            if (event.effect.hunger) player.hunger += event.effect.hunger;
+            if (event.effect.energy) player.energy += event.effect.energy;
+            if (event.effect.luck) player.luck += event.effect.luck;
+            
+            addLog(event.text, event.type === 'good' ? 'green' : 'red');
+        }
+
+        // ==================== 死亡檢查 ====================
+        function checkDeath() {
+            if (player.hp <= 0) { killPlayer('生命值歸零'); return; }
+            if (player.hunger <= 0 && player.day > 1) { killPlayer('飢餓過度'); return; }
+            if (player.thirst <= 0 && player.day > 1) { killPlayer('脫水身亡'); return; }
+            
+            let deathChance = 0.001;
+            if (player.age > 50) deathChance += 0.005;
+            if (player.age > 70) deathChance += 0.01;
+            if (player.age > 90) deathChance += 0.05;
+            if (player.hp < 30) deathChance += 0.02;
+            
+            if (Math.random() < deathChance) {
+                const cause = deathEvents[Math.floor(Math.random() * deathEvents.length)];
+                killPlayer(cause);
+            }
+        }
+
+        function killPlayer(cause) {
+            player.alive = false;
+            
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('deathScreen').classList.remove('hidden');
+            
+            const stats = document.getElementById('deathStats');
+            stats.innerHTML = `
+                <div class="flex justify-between"><span class="text-gray-400">存活天數</span><span class="text-white">${player.totalDays}天</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">享年</span><span class="text-white">${player.age}歲</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">死因</span><span class="text-red-400">${cause}</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">總資產</span><span class="text-yellow-400">${player.totalMoney}金幣</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">最終等級</span><span class="text-green-400">Lv.${player.level}</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">智力/體力/魅力/運氣</span><span class="text-blue-400">${player.int}/${player.str}/${player.cha}/${player.luck}</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">成就</span><span class="text-purple-400">${player.achievements.length > 0 ? player.achievements.join(', ') : '無'}</span></div>
+            `;
+        }
+
+        // ==================== 工具函數 ====================
+        function addLog(text, color) {
+            const log = document.getElementById('gameLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry bg-' + color + '-500/10 text-' + color + '-400';
+            entry.textContent = text;
+            log.insertBefore(entry, log.firstChild);
+            while (log.children.length > 50) log.removeChild(log.lastChild);
+        }
+
+        function showHelp() { document.getElementById('helpModal').classList.remove('hidden'); }
+        function hideHelp() { document.getElementById('helpModal').classList.add('hidden'); }
+    </script>
+</body>
+</html>
