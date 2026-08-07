@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精美 3D 陶瓷杯</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e8e4e0 0%, #d5cec7 50%, #c9c1b8 100%);
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .ui-overlay {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .ui-overlay h1 {
+            color: #4a4a4a;
+            font-size: 2.2rem;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .ui-overlay p {
+            color: #6a6a6a;
+            font-size: 0.95rem;
+            letter-spacing: 3px;
+            font-weight: 300;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        .color-picker {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+        
+        .color-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.8);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .color-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        }
+        
+        .color-btn.active::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border: 2px solid rgba(0,0,0,0.3);
+            border-radius: 50%;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div class="loading" id="loading">加载中...</div>
+        <div class="ui-overlay">
+            <h1>陶瓷艺术</h1>
+            <p>手工质感 · 3D 交互</p>
+        </div>
+        <div class="controls-hint">🖱️ 拖动旋转 &nbsp;|&nbsp; 🖱️ 滚轮缩放</div>
+        <div class="color-picker">
+            <div class="color-btn active" style="background: #f5f0e8;" data-color="0xf5f0e8" title="象牙白"></div>
+            <div class="color-btn" style="background: #2c3e50;" data-color="0x2c3e50" title="深海蓝"></div>
+            <div class="color-btn" style="background: #8b4513;" data-color="0x8b4513" title="陶土棕"></div>
+            <div class="color-btn" style="background: #e74c3c;" data-color="0xe74c3c" title="胭脂红"></div>
+            <div class="color-btn" style="background: #27ae60;" data-color="0x27ae60" title="青瓷绿"></div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 场景设置
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xe8e4e0);
+        scene.fog = new THREE.Fog(0xe8e4e0, 8, 25);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(4, 5, 6);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        document.getElementById('loading').style.display = 'none';
+
+        // 控制器
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 12;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.target.set(0, 1.5, 0);
+
+        // 光照系统
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xfff8f0, 2.0);
+        mainLight.position.set(5, 10, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 20;
+        mainLight.shadow.camera.left = -5;
+        mainLight.shadow.camera.right = 5;
+        mainLight.shadow.camera.top = 5;
+        mainLight.shadow.camera.bottom = -5;
+        mainLight.shadow.bias = -0.0005;
+        mainLight.shadow.radius = 4;
+        scene.add(mainLight);
+
+        const fillLight = new THREE.DirectionalLight(0xe8f4ff, 0.8);
+        fillLight.position.set(-5, 6, -3);
+        scene.add(fillLight);
+
+        const rimLight = new THREE.SpotLight(0xffeedd, 1.5);
+        rimLight.position.set(0, 8, -6);
+        rimLight.lookAt(0, 0, 0);
+        rimLight.angle = Math.PI / 4;
+        rimLight.penumbra = 0.5;
+        scene.add(rimLight);
+
+        // 地面
+        const groundGeometry = new THREE.PlaneGeometry(30, 30);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xd5cec7,
+            roughness: 0.9,
+            metalness: 0.0
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 创建杯子组
+        const cupGroup = new THREE.Group();
+        scene.add(cupGroup);
+
+        // 杯子材质 - 陶瓷质感
+        const cupMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xf5f0e8,
+            roughness: 0.25,
+            metalness: 0.0,
+            clearcoat: 0.8,
+            clearcoatRoughness: 0.1,
+            reflectivity: 0.5,
+            sheen: 0.3,
+            sheenColor: 0xffffff,
+            side: THREE.DoubleSide
+        });
+
+        // 使用 LatheGeometry 创建杯身
+        const cupPoints = [];
+        const segments = 30;
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            let x, y;
+            if (t < 0.08) {
+                x = 0.6 + t * 2;
+                y = t * 3;
+            } else if (t < 0.92) {
+                const tt = (t - 0.08) / 0.84;
+                x = 0.76 + Math.sin(tt * Math.PI * 0.15) * 0.15 + tt * 0.05;
+                y = 0.24 + tt * 2.3;
+            } else {
+                const tt = (t - 0.92) / 0.08;
+                x = 0.95 + tt * 0.08;
+                y = 2.54 + tt * 0.06;
+            }
+            cupPoints.push(new THREE.Vector2(x, y));
+        }
+
+        const cupGeometry = new THREE.LatheGeometry(cupPoints, 64);
+        const cupBody = new THREE.Mesh(cupGeometry, cupMaterial);
+        cupBody.castShadow = true;
+        cupBody.receiveShadow = true;
+        cupGroup.add(cupBody);
+
+        // 杯内液体
+        const liquidGeometry = new THREE.CircleGeometry(0.88, 64);
+        const liquidMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x3d2314,
+            roughness: 0.2,
+            metalness: 0.0,
+            transmission: 0.1,
+            thickness: 0.5,
+            clearcoat: 1.0
+        });
+        const liquid = new THREE.Mesh(liquidGeometry, liquidMaterial);
+        liquid.rotation.x = -Math.PI / 2;
+        liquid.position.y = 2.2;
+        cupGroup.add(liquid);
+
+        // 杯把手 - 使用 CatmullRomCurve3 确保不穿过杯壁
+        const handlePoints = [
+            new THREE.Vector3(0.95, 2.0, 0),   // 上连接点（杯壁外侧）
+            new THREE.Vector3(1.38, 1.95, 0),  // 上外凸
+            new THREE.Vector3(1.52, 1.5, 0),   // 最外凸点
+            new THREE.Vector3(1.38, 1.05, 0),  // 下外凸
+            new THREE.Vector3(0.82, 0.9, 0)    // 下连接点（杯壁外侧）
+        ];
+        const handleCurve = new THREE.CatmullRomCurve3(handlePoints);
+        const handleGeometry = new THREE.TubeGeometry(handleCurve, 64, 0.11, 16, false);
+        const handle = new THREE.Mesh(handleGeometry, cupMaterial);
+        handle.castShadow = true;
+        handle.receiveShadow = true;
+        cupGroup.add(handle);
+
+        // 蒸汽粒子
+        const steamParticles = [];
+        const steamGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+        const steamMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.3,
+            depthWrite: false
+        });
+
+        for (let i = 0; i < 8; i++) {
+            const particle = new THREE.Mesh(steamGeometry, steamMaterial.clone());
+            particle.position.set(
+                (Math.random() - 0.5) * 0.5,
+                2.5 + Math.random() * 0.5,
+                (Math.random() - 0.5) * 0.5
+            );
+            particle.userData = {
+                speed: 0.005 + Math.random() * 0.01,
+                offset: Math.random() * Math.PI * 2,
+                initialX: particle.position.x,
+                initialZ: particle.position.z
+            };
+            scene.add(particle);
+            steamParticles.push(particle);
+        }
+
+        // 杯垫
+        const coasterGeometry = new THREE.CylinderGeometry(1.3, 1.4, 0.08, 64);
+        const coasterMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8b7355,
+            roughness: 0.8,
+            metalness: 0.0
+        });
+        const coaster = new THREE.Mesh(coasterGeometry, coasterMaterial);
+        coaster.position.y = 0.04;
+        coaster.receiveShadow = true;
+        coaster.castShadow = true;
+        scene.add(coaster);
+
+        const ringGeometry = new THREE.TorusGeometry(1.25, 0.03, 8, 64);
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: 0x6b5344,
+            roughness: 0.6
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.09;
+        scene.add(ring);
+
+        // 颜色切换
+        const colorBtns = document.querySelectorAll('.color-btn');
+        colorBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                colorBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const colorHex = parseInt(btn.dataset.color);
+                const newColor = new THREE.Color(colorHex);
+                const startColor = cupMaterial.color.clone();
+                let alpha = 0;
+                const animateColor = () => {
+                    alpha += 0.05;
+                    if (alpha <= 1) {
+                        cupMaterial.color.lerpColors(startColor, newColor, alpha);
+                        requestAnimationFrame(animateColor);
+                    }
+                };
+                animateColor();
+            });
+        });
+
+        // 动画
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            cupGroup.position.y = Math.sin(time * 0.5) * 0.03;
+            cupGroup.rotation.y = Math.sin(time * 0.2) * 0.05;
+
+            steamParticles.forEach((particle) => {
+                const data = particle.userData;
+                particle.position.y += data.speed;
+                particle.position.x = data.initialX + Math.sin(time * 2 + data.offset) * 0.15;
+                particle.position.z = data.initialZ + Math.cos(time * 1.5 + data.offset) * 0.15;
+                const life = (particle.position.y - 2.5) / 1.5;
+                particle.material.opacity = Math.max(0, 0.3 * (1 - life));
+                if (particle.position.y > 4.0) {
+                    particle.position.y = 2.5;
+                    particle.material.opacity = 0.3;
+                }
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            const mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+            fillLight.position.x = -5 + mouseX * 2;
+            fillLight.position.z = -3 + mouseY * 2;
+        });
+    </script>
+</body>
+</html>
