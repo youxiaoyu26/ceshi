@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>狂草 - 水墨动作Roguelike</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        body { background: #0a0a0a; overflow: hidden; font-family: 'Noto Serif SC', 'ZCOOL XiaoWei', serif; color: #e5e5e5; position: fixed; width: 100%; height: 100%; }
+        #gameCanvas { display: block; image-rendering: pixelated; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+        .ink-text { text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.1); letter-spacing: 0.2em; }
+        .ui-panel { background: rgba(10, 10, 10, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .ink-bar { background: linear-gradient(90deg, #1a1a1a, #2a2a2a); border: 1px solid rgba(255, 255, 255, 0.2); position: relative; overflow: hidden; border-radius: 999px; }
+        .ink-fill { background: linear-gradient(90deg, #fff, #ccc); box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); transition: width 0.1s; height: 100%; border-radius: 999px; }
+        .health-fill { background: linear-gradient(90deg, #8b0000, #dc143c); box-shadow: 0 0 10px rgba(220, 20, 60, 0.5); }
+        .full-hp-indicator { position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; background: #4aff4a; border-radius: 50%; box-shadow: 0 0 10px #4aff4a; animation: pulse-green 1.5s infinite; display: none; }
+        .full-hp-indicator.active { display: block; }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.2); } }
+        .joystick-area { position: absolute; bottom: 0; left: 0; width: 50%; height: 100%; pointer-events: auto; z-index: 10; touch-action: none; }
+        .joystick-base { position: absolute; width: 120px; height: 120px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: none; pointer-events: none; touch-action: none; }
+        .joystick-base.active { display: block; }
+        .joystick-knob { position: absolute; width: 50px; height: 50px; background: radial-gradient(circle, rgba(255,255,255,0.95), rgba(200,200,200,0.7)); border-radius: 50%; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: none; pointer-events: none; touch-action: none; }
+        .joystick-knob.active { display: block; }
+        .attack-btn { position: absolute; bottom: 100px; right: 60px; width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle, rgba(139,0,0,0.8), rgba(100,0,0,0.6)); border: 3px solid rgba(255, 100, 100, 0.5); display: flex; align-items: center; justify-content: center; font-size: 14px; color: rgba(255,255,255,0.9); pointer-events: auto; box-shadow: 0 4px 20px rgba(139,0,0,0.4); transition: all 0.1s; z-index: 20; font-family: 'ZCOOL XiaoWei', serif; touch-action: none; }
+        .attack-btn:active { transform: scale(0.95); background: radial-gradient(circle, rgba(200,0,0,0.9), rgba(139,0,0,0.8)); }
+        .attack-btn.active { background: radial-gradient(circle, rgba(255,50,50,0.9), rgba(200,0,0,0.8)); box-shadow: 0 0 30px rgba(255,0,0,0.6); }
+        .skill-btn { position: absolute; width: 70px; height: 70px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; pointer-events: auto; transition: all 0.2s; background: rgba(0,0,0,0.6); z-index: 20; font-family: 'ZCOOL XiaoWei', serif; touch-action: none; }
+        .skill-btn:active { transform: scale(0.9); }
+        .skill-btn.disabled { opacity: 0.3; border-color: rgba(255,255,255,0.1); }
+        .skill-dodge { bottom: 220px; right: 40px; border-color: rgba(100, 200, 255, 0.5); color: rgba(100, 200, 255, 0.9); }
+        .skill-kuangcao { bottom: 100px; right: 180px; border-color: rgba(255, 215, 0, 0.5); color: rgba(255, 215, 0, 0.9); }
+        .skill-kuangcao.ready { animation: pulse 1.5s infinite; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+        .skill-kuangcao.channeling { background: rgba(255, 215, 0, 0.3); animation: channeling 0.5s infinite alternate; }
+        @keyframes channeling { from { box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); } to { box-shadow: 0 0 40px rgba(255, 215, 0, 0.8); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .combo-display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: 900; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.8); pointer-events: none; opacity: 0; transition: opacity 0.3s; font-family: 'ZCOOL XiaoWei', serif; display: flex; flex-direction: column; align-items: center; }
+        .combo-display.show { opacity: 1; animation: comboPop 0.5s ease-out; }
+        @keyframes comboPop { 0% { transform: translate(-50%, -50%) scale(0.5); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+        .combo-rank { font-size: 20px; color: #ffd700; text-shadow: 0 0 15px rgba(255,215,0,0.5); margin-top: -10px; }
+        .liubai-text { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 72px; font-weight: 900; color: rgba(255,255,255,0.95); text-shadow: 0 0 40px rgba(255,255,255,0.8); pointer-events: none; opacity: 0; transition: all 0.5s; font-family: 'ZCOOL XiaoWei', serif; }
+        .liubai-text.show { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        .screen-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-2px, 0, 0); } 40%, 60% { transform: translate3d(2px, 0, 0); } }
+        .title-screen { background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%); }
+        .start-btn { background: linear-gradient(135deg, rgba(139,0,0,0.8), rgba(100,0,0,0.6)); border: 2px solid rgba(255,100,100,0.5); box-shadow: 0 4px 20px rgba(139,0,0,0.4); }
+        .upgrade-card { transition: all 0.3s; border: 1px solid rgba(255,255,255,0.1); background: rgba(20,20,20,0.9); display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; cursor: pointer; }
+        .upgrade-card:hover { border-color: rgba(255,255,255,0.3); background: rgba(35,35,35,0.95); }
+        .upgrade-card:active { transform: scale(0.98); border-color: rgba(255,255,255,0.5); background: rgba(40,40,40,0.9); }
+        .upgrade-card .flow-type { font-size: 10px; padding: 2px 10px; border-radius: 20px; background: rgba(255,255,255,0.1); color: #aaa; margin-left: auto; }
+        .hidden { display: none !important; }
+        .settings-btn { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 20px; color: rgba(255,255,255,0.8); pointer-events: auto; z-index: 30; transition: all 0.3s; cursor: pointer; touch-action: none; }
+        .settings-btn:hover { background: rgba(255,255,255,0.15); transform: rotate(45deg); }
+        .settings-btn:active { transform: rotate(90deg) scale(0.9); }
+        .settings-panel { position: absolute; top: 70px; right: 20px; width: 220px; background: rgba(10,10,10,0.95); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 16px; pointer-events: auto; z-index: 35; opacity: 0; transform: translateY(-10px); pointer-events: none; transition: all 0.3s; }
+        .settings-panel.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .settings-title { font-size: 14px; color: rgba(255,255,255,0.9); margin-bottom: 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; font-family: 'ZCOOL XiaoWei', serif; }
+        .setting-item { margin-bottom: 12px; }
+        .setting-item label { display: block; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+        .setting-slider { width: 100%; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.2); border-radius: 2px; outline: none; }
+        .setting-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; cursor: pointer; }
+        .setting-value { font-size: 10px; color: rgba(255,255,255,0.8); text-align: right; margin-top: 2px; }
+        .toggle-btn { width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: rgba(255,255,255,0.8); font-size: 11px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .toggle-btn:hover { background: rgba(255,255,255,0.2); }
+        .toggle-btn.active { background: rgba(100,200,100,0.3); border-color: rgba(100,200,100,0.5); color: #4aff4a; }
+        .toggle-btn:active { transform: scale(0.95); }
+        .quality-selector { display: flex; gap: 8px; margin-top: 6px; }
+        .quality-btn { flex: 1; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: rgba(255,255,255,0.6); font-size: 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .quality-btn:hover { background: rgba(255,255,255,0.15); }
+        .quality-btn.active { background: rgba(100,150,255,0.3); border-color: rgba(100,150,255,0.6); color: #6aa8ff; }
+        .pause-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 25; }
+        .pause-overlay.active { opacity: 1; pointer-events: auto; }
+        .pause-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; font-weight: 900; color: rgba(255,255,255,0.5); letter-spacing: 0.5em; font-family: 'ZCOOL XiaoWei', serif; }
+        .control-hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.3); font-size: 11px; font-family: 'ZCOOL XiaoWei', serif; pointer-events: none; text-align: center; white-space: nowrap; }
+        @media (pointer: coarse) { .attack-btn, .skill-btn, .joystick-area { display: flex !important; } .control-hint { display: none !important; } }
+        @media (pointer: fine) { .attack-btn, .skill-btn, .joystick-area { display: none !important; } }
+        .eight-methods-hint { position: absolute; bottom: 260px; right: 50px; color: rgba(255,215,0,0.8); font-size: 14px; font-family: 'ZCOOL XiaoWei', serif; text-shadow: 0 0 20px rgba(255,215,0,0.3); pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+        .eight-methods-hint.active { opacity: 1; }
+        .channel-bar { position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%); width: 200px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; display: none; z-index: 15; }
+        .channel-bar.active { display: block; }
+        .channel-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ff6b00); transition: width 0.1s; width: 0%; border-radius: 99px; }
+
+        /* ===== P1新增：墨晕效果 ===== */
+        .ink-bleed-overlay {
+            position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease-out; z-index: 20;
+            box-shadow: inset 0 0 120px 60px rgba(0,0,0,0.85);
+        }
+        .ink-bleed-overlay.active { opacity: 1; }
+        .ink-bleed-overlay::before, .ink-bleed-overlay::after {
+            content: ''; position: absolute; border-radius: 50%; filter: blur(50px); opacity: 0.7;
+        }
+        .ink-bleed-overlay::before { top: -80px; left: -80px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(0,0,0,0.95), transparent 70%); }
+        .ink-bleed-overlay::after { bottom: -80px; right: -80px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(0,0,0,0.95), transparent 70%); }
+
+        /* ===== P1新增：自定义布局模式 ===== */
+        .custom-layout-mode .attack-btn,
+        .custom-layout-mode .skill-btn {
+            border: 2px dashed rgba(255,255,255,0.6) !important;
+            animation: layoutPulse 1.2s infinite;
+            cursor: move !important;
+        }
+        @keyframes layoutPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+            50% { opacity: 0.65; box-shadow: 0 0 25px rgba(255,255,255,0.4); }
+        }
+        .dragging { z-index: 100 !important; opacity: 0.85; transform: scale(1.08); }
+        .layout-hint {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 18px; color: rgba(255,255,255,0.7); pointer-events: none;
+            font-family: 'ZCOOL XiaoWei', serif; text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            opacity: 0; transition: opacity 0.3s; z-index: 15;
+        }
+        .layout-hint.active { opacity: 1; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-black">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="titleScreen" class="absolute inset-0 flex flex-col items-center justify-center title-screen z-50">
+        <h1 class="text-6xl md:text-8xl font-black mb-2 ink-text text-white tracking-widest text-center px-4" style="font-family: 'ZCOOL XiaoWei', serif;">狂草</h1>
+        <p class="text-sm md:text-lg text-gray-400 mb-8 tracking-[0.3em]" style="font-family: 'ZCOOL XiaoWei', serif;">墨韵·节气·狂书·无限</p>
+        <div class="space-y-4 text-center px-6">
+            <button onclick="startGame()" class="start-btn px-10 py-4 text-xl rounded-lg text-white tracking-widest active:scale-95 transition-transform cursor-pointer" style="font-family: 'ZCOOL XiaoWei', serif;">挥毫开战</button>
+            <div class="text-xs text-gray-500 mt-6 space-y-2" style="font-family: 'ZCOOL XiaoWei', serif;">
+                <p id="touchHint">左半屏触摸移动 | 右侧按钮攻击/闪避/狂草</p>
+                <p id="pcHint" style="display:none">WASD移动 | 鼠标左键攻击 | 空格闪避 | Q狂草</p>
+                <p>无限地图 · 完美闪避触发"留白" · 满血免死保护</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameUI" class="absolute inset-0 pointer-events-none hidden">
+        <div class="absolute top-4 left-4 w-40 md:w-56">
+            <div class="mb-2 relative">
+                <div class="flex justify-between mb-1 text-xs">
+                    <span class="text-gray-300" style="font-family: 'ZCOOL XiaoWei', serif;">气血</span>
+                    <span id="hpText" class="text-red-400">100/100</span>
+                </div>
+                <div class="ink-bar h-2 md:h-3">
+                    <div id="hpBar" class="health-fill rounded-full" style="width: 100%"></div>
+                    <div id="fullHpIndicator" class="full-hp-indicator"></div>
+                </div>
+            </div>
+            <div class="mb-2">
+                <div class="flex justify-between mb-1 text-xs">
+                    <span class="text-gray-300" style="font-family: 'ZCOOL XiaoWei', serif;">墨韵</span>
+                    <span id="inkText" class="text-white">0/100</span>
+                </div>
+                <div class="ink-bar h-3 md:h-4">
+                    <div id="inkBar" class="ink-fill rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="text-white text-lg font-bold" id="scoreDisplay">0</div>
+            <div class="text-gray-500 text-xs" id="waveDisplay">第 1 波</div>
+            <div class="text-amber-400 text-xs mt-1" id="jieqiDisplay" style="font-family: 'ZCOOL XiaoWei', serif;">当前节气：立春</div>
+        </div>
+
+        <div id="comboDisplay" class="combo-display">
+            <span><span id="comboCount">0</span> <span class="text-lg">连击</span></span>
+            <span id="comboRank" class="combo-rank">初墨</span>
+        </div>
+        <div id="liubaiText" class="liubai-text">留白</div>
+
+        <!-- P1新增：墨晕覆盖层 -->
+        <div id="inkBleedOverlay" class="ink-bleed-overlay"></div>
+        <!-- P1新增：自定义布局提示 -->
+        <div id="layoutHint" class="layout-hint">拖拽调整按钮位置</div>
+
+        <div id="settingsBtn" class="settings-btn pointer-events-auto">⚙</div>
+        <div id="settingsPanel" class="settings-panel">
+            <div class="settings-title">设置</div>
+            <div class="setting-item">
+                <label>画质模式</label>
+                <div class="quality-selector">
+                    <div id="qualityStandard" class="quality-btn active" onclick="setQuality('standard')">标准</div>
+                    <div id="qualityPremium" class="quality-btn" onclick="setQuality('premium')">精美</div>
+                </div>
+                <div class="setting-value" id="qualityDesc">标准画质 - 流畅优先</div>
+            </div>
+            <div class="setting-item">
+                <label>震感强度</label>
+                <input type="range" id="shakeSlider" class="setting-slider" min="0" max="100" value="50">
+                <div class="setting-value" id="shakeValue">50%</div>
+            </div>
+            <div class="setting-item">
+                <label>打击音效</label>
+                <div id="soundToggle" class="toggle-btn active">开启</div>
+            </div>
+            <!-- P1新增：摇杆死区 -->
+            <div class="setting-item">
+                <label>摇杆死区</label>
+                <input type="range" id="deadzoneSlider" class="setting-slider" min="0" max="50" value="10">
+                <div class="setting-value" id="deadzoneValue">10%</div>
+            </div>
+            <!-- P1新增：自定义布局开关 -->
+            <div class="setting-item">
+                <label>自定义布局</label>
+                <div id="layoutToggle" class="toggle-btn">关闭</div>
+            </div>
+        </div>
+        <div id="pauseOverlay" class="pause-overlay">
+            <div class="pause-text">已暂停</div>
+        </div>
+
+        <div id="joystickArea" class="joystick-area"></div>
+        <div id="joystickBase" class="joystick-base"></div>
+        <div id="joystickKnob" class="joystick-knob"></div>
+
+        <div id="attackBtn" class="attack-btn"><span>攻</span></div>
+        <div id="dodgeBtn" class="skill-btn skill-dodge">
+            <span class="text-lg mb-1">避</span><span class="text-[10px]">闪避</span>
+            <div id="dodgeCooldown" class="cooldown-overlay" style="height: 0%"></div>
+        </div>
+        <div id="kuangcaoBtn" class="skill-btn skill-kuangcao disabled">
+            <span class="text-lg mb-1">狂</span><span class="text-[10px]">狂草</span>
+        </div>
+        <div id="channelBar" class="channel-bar"><div id="channelFill" class="channel-fill"></div></div>
+        <div id="eightMethodsHint" class="eight-methods-hint">八法 · 方向释法</div>
+        <div class="control-hint">WASD移动 | 鼠标左键攻击 | 空格闪避 | Q狂草</div>
+    </div>
+
+    <div id="upgradeScreen" class="absolute inset-0 bg-black/95 flex items-center justify-center hidden z-40 p-4">
+        <div class="text-center w-full max-w-md">
+            <h2 class="text-3xl font-bold mb-2 text-white" style="font-family: 'ZCOOL XiaoWei', serif;">笔锋精进</h2>
+            <p class="text-gray-400 mb-2 text-sm" style="font-family: 'ZCOOL XiaoWei', serif;">选择一项墨宝强化</p>
+            <p class="text-amber-400 mb-6 text-xs" id="nextJieqiText" style="font-family: 'ZCOOL XiaoWei', serif;">下一节气：雨水</p>
+            <div class="space-y-3" id="upgradeOptions"></div>
+        </div>
+    </div>
+
+    <div id="gameOver" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center hidden z-50">
+        <h2 class="text-5xl font-bold text-white mb-4" style="font-family: 'ZCOOL XiaoWei', serif;">墨尽</h2>
+        <p class="text-xl text-gray-400 mb-2" style="font-family: 'ZCOOL XiaoWei', serif;">最终得分</p>
+        <p class="text-4xl text-white mb-8 font-bold" id="finalScore">0</p>
+        <button onclick="location.reload()" class="px-8 py-3 bg-red-900/50 border border-red-500/50 rounded-lg text-white active:scale-95 transition-transform cursor-pointer" style="font-family: 'ZCOOL XiaoWei', serif;">重开一局</button>
+    </div>
+
+    <script>
+        // ============ 24节气数据 ============
+        const jieqiList = [
+            { name: '立春', desc: '万物复苏', color: '#4a7c59', enemyMod: 'speed', modValue: 1.0 },
+            { name: '雨水', desc: '润物无声', color: '#5a8a9c', enemyMod: 'hp', modValue: 1.1 },
+            { name: '惊蛰', desc: '春雷乍动', color: '#8b6914', enemyMod: 'damage', modValue: 1.15 },
+            { name: '春分', desc: '昼夜平分', color: '#6b8e23', enemyMod: 'count', modValue: 1.2 },
+            { name: '清明', desc: '气清景明', color: '#4a6741', enemyMod: 'speed', modValue: 1.15 },
+            { name: '谷雨', desc: '雨生百谷', color: '#2f5d50', enemyMod: 'hp', modValue: 1.2 },
+            { name: '立夏', desc: '万物并秀', color: '#8b4513', enemyMod: 'damage', modValue: 1.2 },
+            { name: '小满', desc: '小得盈满', color: '#a0522d', enemyMod: 'count', modValue: 1.3 },
+            { name: '芒种', desc: '忙种忙收', color: '#cd853f', enemyMod: 'speed', modValue: 1.2 },
+            { name: '夏至', desc: '日长之至', color: '#b8860b', enemyMod: 'hp', modValue: 1.3 },
+            { name: '小暑', desc: '暑气渐盛', color: '#d2691e', enemyMod: 'damage', modValue: 1.25 },
+            { name: '大暑', desc: '酷热难当', color: '#8b0000', enemyMod: 'count', modValue: 1.4 },
+            { name: '立秋', desc: '凉风至', color: '#8fbc8f', enemyMod: 'speed', modValue: 1.25 },
+            { name: '处暑', desc: '暑气渐消', color: '#6b8e6b', enemyMod: 'hp', modValue: 1.4 },
+            { name: '白露', desc: '露凝而白', color: '#a9a9a9', enemyMod: 'damage', modValue: 1.3 },
+            { name: '秋分', desc: '昼夜平分', color: '#708090', enemyMod: 'count', modValue: 1.5 },
+            { name: '寒露', desc: '露气寒冷', color: '#696969', enemyMod: 'speed', modValue: 1.3 },
+            { name: '霜降', desc: '气肃而凝', color: '#778899', enemyMod: 'hp', modValue: 1.5 },
+            { name: '立冬', desc: '水始冰', color: '#4682b4', enemyMod: 'damage', modValue: 1.35 },
+            { name: '小雪', desc: '雪初降', color: '#b0c4de', enemyMod: 'count', modValue: 1.6 },
+            { name: '大雪', desc: '雪盛矣', color: '#e0e0e0', enemyMod: 'speed', modValue: 1.35 },
+            { name: '冬至', desc: '日南至', color: '#c0c0c0', enemyMod: 'hp', modValue: 1.6 },
+            { name: '小寒', desc: '寒气渐盛', color: '#b0b0b0', enemyMod: 'damage', modValue: 1.4 },
+            { name: '大寒', desc: '寒气至极', color: '#a0a0a0', enemyMod: 'count', modValue: 1.8 }
+        ];
+
+        // ============ 传统纹样 ============
+        const patterns = {
+            cloud: function(ctx, x, y, size, alpha) {
+                ctx.save(); ctx.translate(x, y); ctx.scale(size / 20, size / 20);
+                ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(-10, 0); ctx.bezierCurveTo(-10, -8, -5, -12, 0, -8); ctx.bezierCurveTo(5, -12, 10, -8, 10, 0); ctx.bezierCurveTo(10, 5, 5, 8, 0, 5); ctx.bezierCurveTo(-5, 8, -10, 5, -10, 0); ctx.stroke(); ctx.restore();
+            },
+            meander: function(ctx, x, y, size, alpha) {
+                ctx.save(); ctx.translate(x, y); ctx.scale(size / 20, size / 20);
+                ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 8); ctx.lineTo(8, -8); ctx.lineTo(-4, -8); ctx.lineTo(-4, 4); ctx.lineTo(4, 4); ctx.lineTo(4, -4); ctx.lineTo(0, -4); ctx.stroke(); ctx.restore();
+            },
+            scroll: function(ctx, x, y, size, alpha) {
+                ctx.save(); ctx.translate(x, y); ctx.scale(size / 20, size / 20);
+                ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(-10, 0); ctx.bezierCurveTo(-5, -10, 5, -10, 10, 0); ctx.bezierCurveTo(5, 10, -5, 10, -10, 0); ctx.moveTo(0, -8); ctx.bezierCurveTo(3, -5, 3, 5, 0, 8); ctx.stroke(); ctx.restore();
+            },
+            taiji: function(ctx, x, y, size, alpha) {
+                ctx.save(); ctx.translate(x, y); ctx.scale(size / 20, size / 20);
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = `rgba(0,0,0,${alpha})`; ctx.beginPath(); ctx.arc(0, 5, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = `rgba(0,0,0,${alpha})`; ctx.beginPath(); ctx.arc(0, -5, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.beginPath(); ctx.arc(0, 5, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            },
+            lotus: function(ctx, x, y, size, alpha) {
+                ctx.save(); ctx.translate(x, y); ctx.scale(size / 20, size / 20);
+                ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = 1;
+                for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate((Math.PI * 2 / 6) * i); ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(3, -5, 8, -8, 0, -12); ctx.bezierCurveTo(-8, -8, -3, -5, 0, 0); ctx.stroke(); ctx.restore(); }
+                ctx.restore();
+            },
+            auspicious: function(ctx, x, y, size, alpha) {
+                ctx.save(); ctx.translate(x, y); ctx.scale(size / 20, size / 20);
+                ctx.strokeStyle = `rgba(255,255,255,${alpha})`; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(-12, 0); ctx.bezierCurveTo(-10, -6, -6, -8, -2, -4); ctx.bezierCurveTo(0, -8, 4, -8, 6, -4); ctx.bezierCurveTo(10, -6, 12, -2, 10, 2); ctx.bezierCurveTo(8, 6, 4, 8, 0, 6); ctx.bezierCurveTo(-4, 8, -8, 6, -12, 0); ctx.stroke(); ctx.restore();
+            }
+        };
+
+        // ============ 画布 ============
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resizeCanvas();
+
+        // ============ 无限世界配置 ============
+        const world = {
+            cleanupDist: 3000,
+            spawnMinDist: 450,
+            spawnMaxDist: 700,
+            gridSize: 150,
+            decorDist: 2000,
+        };
+
+        const game = {
+            state: 'title', score: 0, wave: 1, time: 0,
+            slowMotion: 1, combo: 0, comboTimer: 0,
+            camera: { x: 0, y: 0 },
+            shakeIntensity: 0.5, soundEnabled: true,
+            paused: false, quality: 'standard',
+            currentJieqi: 0, freezeTimer: 0, isTouch: false,
+            effects: { inkSplash: true, swordTrail: false }
+        };
+
+        // ============ 连击段位 ============
+        const comboRanks = [
+            { name: '初墨', threshold: 0, damageBonus: 0, speedBonus: 0, critBonus: 0, lifestealBonus: 0, color: '#aaa' },
+            { name: '凝锋', threshold: 10, damageBonus: 0.1, speedBonus: 0.05, critBonus: 0, lifestealBonus: 0, color: '#8bf' },
+            { name: '破竹', threshold: 20, damageBonus: 0.2, speedBonus: 0.1, critBonus: 0.05, lifestealBonus: 0, color: '#4f4' },
+            { name: '惊鸿', threshold: 30, damageBonus: 0.35, speedBonus: 0.15, critBonus: 0.1, lifestealBonus: 0, color: '#ff4' },
+            { name: '无我', threshold: 40, damageBonus: 0.5, speedBonus: 0.2, critBonus: 0.15, lifestealBonus: 0.1, color: '#f4f' }
+        ];
+        let currentRankIndex = 0;
+        function getRankForCombo(combo) {
+            let idx = 0;
+            for (let i = comboRanks.length - 1; i >= 0; i--) {
+                if (combo >= comboRanks[i].threshold) { idx = i; break; }
+            }
+            return idx;
+        }
+        function applyRankBonus(rankIdx) {
+            const rank = comboRanks[rankIdx];
+            game.currentRank = rankIdx;
+            document.getElementById('comboRank').textContent = rank.name;
+            document.getElementById('comboRank').style.color = rank.color;
+            if (rankIdx > 0 && rankIdx !== game.lastRank) {
+                for (let i = 0; i < 10; i++) {
+                    particles.push({
+                        x: player.x + (Math.random()-0.5)*40,
+                        y: player.y + (Math.random()-0.5)*40,
+                        vx: (Math.random()-0.5)*6,
+                        vy: (Math.random()-0.5)*6,
+                        life: 30,
+                        size: 3+Math.random()*5,
+                        color: `rgba(255,215,0,${0.5+Math.random()*0.5})`
+                    });
+                }
+                addFloatingText(player.x, player.y-40, rank.name+'!', rank.color, 28, 60);
+                game.lastRank = rankIdx;
+            }
+        }
+        game.lastRank = -1;
+        game.currentRank = 0;
+
+        function detectTouch() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+        }
+        game.isTouch = detectTouch();
+
+        const perf = {
+            maxEnemies: 30, maxParticles: 200, maxInkStains: 50,
+            maxBlood: 60, maxTrails: 40, maxLiubaiEffects: 100,
+            maxFloatingTexts: 20, updateInterval: 2,
+            cullDistance: 900, renderScale: 1
+        };
+
+        // ============ 玩家 ============
+        const player = {
+            x: 0, y: 0, vx: 0, vy: 0, radius: 12,
+            hp: 100, maxHp: 100, ink: 0, maxInk: 100,
+            speed: 5.5, attacking: false, attackCooldown: 0, attackAnim: 0,
+            dodgeCooldown: 0, isDodging: false, dodgeTime: 0,
+            hairLength: 90, hairSegments: [], hairBranches: 1,
+            damage: 18, critChance: 0.12, lifeSteal: 0,
+            invincible: false, invincibleTime: 0, liubaiActive: false,
+            facing: { x: 1, y: 0 }, targetEnemy: null,
+            isKuangcao: false, kuangcaoChanneling: false,
+            kuangcaoCharge: 0, kuangcaoMaxCharge: 60,
+            fullHpProtection: true, protectionTriggered: false,
+            attackSpeed: 1, moveSpeedBonus: 0, inkEfficiency: 1,
+            hairWidth: 2.5, pierceCount: 0, reflectDamage: 0,
+            dodgeInvincible: false, comboBonus: 0, killHeal: 0,
+            orbitWeapons: [], clones: [],
+            burstOnHit: 0, shockwaveRange: 0,
+            doubleAttack: false, poisonDamage: 0,
+            eightMethods: false,
+            eightMethodsTime: 0,
+            eightMethodsMaxTime: 480,
+            eightMethodUsed: false,
+            flowCounts: { attack: 0, resource: 0, defense: 0 },
+            perfectDodgeCrit: false,
+            perfectDodgeCritTime: 0
+        };
+
+        const input = {
+            moveX: 0, moveY: 0, attacking: false,
+            kuangcaoPressed: false,
+            mouseX: 0, mouseY: 0,
+            mouseWorldX: 0, mouseWorldY: 0,
+            keys: {}
+        };
+
+        let enemies = [];
+        let particles = [];
+        let inkStains = [];
+        let bloodDrops = [];
+        let floatingTexts = [];
+        let swordTrails = [];
+        let liubaiEffects = [];
+        let worldDecor = [];
+
+        // 修复：升级防重复标志
+        let upgradePending = false;
+
+        // ============ P1：摇杆与布局变量 ============
+        let deadzone = 0.10;
+        let customLayoutMode = false;
+        let draggedElement = null;
+        let dragOffset = { x: 0, y: 0 };
+        const layoutStorageKey = 'kuangcao_layout_v1';
+
+        // ============ 音频 ============
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function playHitSound(isCrit, isHeavy) {
+            if (!game.soundEnabled || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            if (isHeavy) {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.2);
+            } else if (isCrit) {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+                osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.12);
+            } else {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(350, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.08);
+            }
+        }
+        function playSwingSound() {
+            if (!game.soundEnabled || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(2000, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+            osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function setQuality(quality) {
+            game.quality = quality;
+            const standardBtn = document.getElementById('qualityStandard');
+            const premiumBtn = document.getElementById('qualityPremium');
+            const desc = document.getElementById('qualityDesc');
+            if (quality === 'premium') {
+                standardBtn.classList.remove('active'); premiumBtn.classList.add('active');
+                desc.textContent = '精美画质 - 刀光追踪+留白特效';
+                game.effects.swordTrail = true;
+                perf.maxParticles = 250; perf.maxTrails = 50; perf.maxLiubaiEffects = 120;
+            } else {
+                standardBtn.classList.add('active'); premiumBtn.classList.remove('active');
+                desc.textContent = '标准画质 - 流畅优先';
+                game.effects.swordTrail = false;
+                perf.maxParticles = 150; perf.maxTrails = 0; perf.maxLiubaiEffects = 60;
+            }
+        }
+
+        function initHair() {
+            player.hairSegments = [];
+            for (let i = 0; i < 14; i++) player.hairSegments.push({ x: player.x, y: player.y, angle: 0 });
+        }
+
+        function getCurrentJieqi() { return jieqiList[game.currentJieqi % jieqiList.length]; }
+
+        // ============ 无限世界：生成远处装饰 ============
+        function generateWorldDecor() {
+            const needed = 30 - worldDecor.length;
+            for (let i = 0; i < needed; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 800 + Math.random() * 1500;
+                worldDecor.push({
+                    x: player.x + Math.cos(angle) * dist,
+                    y: player.y + Math.sin(angle) * dist,
+                    type: Math.random() > 0.5 ? 'rock' : 'bamboo',
+                    size: 20 + Math.random() * 40,
+                    seed: Math.random()
+                });
+            }
+        }
+
+        // ============ 敌人生成 ============
+        function spawnEnemy() {
+            if (enemies.length >= perf.maxEnemies) return;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = world.spawnMinDist + Math.random() * (world.spawnMaxDist - world.spawnMinDist);
+            const jieqi = getCurrentJieqi();
+            const types = ['slime', 'paper', 'ghost', 'ninja', 'sumo', 'archer', 'bomber'];
+            let typeIndex = Math.floor(Math.random() * Math.min(types.length, 1 + Math.floor(game.wave / 2)));
+            typeIndex = Math.min(typeIndex, types.length - 1);
+            const type = types[typeIndex];
+            const waveScale = Math.min(game.wave * 0.12, 2.5);
+            const jieqiMod = jieqi.modValue;
+
+            let enemyData = {
+                x: player.x + Math.cos(angle) * dist,
+                y: player.y + Math.sin(angle) * dist,
+                vx: 0, vy: 0, type: type,
+                updateOffset: Math.floor(Math.random() * perf.updateInterval),
+                simplified: false, hitFlash: 0, attackCooldown: 0,
+                jieqiColor: jieqi.color, poisoned: 0
+            };
+
+            const baseHp = 30, baseSpeed = 2, baseDmg = 10;
+            switch(type) {
+                case 'slime':
+                    enemyData.hp = baseHp * 1.2 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 16; enemyData.speed = baseSpeed * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 6; break;
+                case 'paper':
+                    enemyData.hp = baseHp * 2 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 20; enemyData.speed = baseSpeed * 1.6 * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * 1.2 * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 10; break;
+                case 'ghost':
+                    enemyData.hp = baseHp * 1.5 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 17; enemyData.speed = baseSpeed * 1.4 * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * 1.5 * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 12; enemyData.evasion = 0.2; break;
+                case 'ninja':
+                    enemyData.hp = baseHp * 1.3 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 15; enemyData.speed = baseSpeed * 2 * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * 0.8 * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 14; enemyData.dashCooldown = 0; break;
+                case 'sumo':
+                    enemyData.hp = baseHp * 3 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 30; enemyData.speed = baseSpeed * 0.8 * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * 2 * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 18; enemyData.knockbackResist = 0.5; break;
+                case 'archer':
+                    enemyData.hp = baseHp * 1.2 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 16; enemyData.speed = baseSpeed * 1.1 * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * 1.2 * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 12; enemyData.ranged = true; enemyData.projectileCooldown = 0; break;
+                case 'bomber':
+                    enemyData.hp = baseHp * 1 * (1 + waveScale * 0.4) * (jieqi.enemyMod === 'hp' ? jieqiMod : 1);
+                    enemyData.radius = 17; enemyData.speed = baseSpeed * 1.5 * (1 + waveScale * 0.15) * (jieqi.enemyMod === 'speed' ? jieqiMod : 1);
+                    enemyData.damage = Math.floor(baseDmg * 2.5 * (1 + waveScale * 0.25) * (jieqi.enemyMod === 'damage' ? jieqiMod : 1));
+                    enemyData.inkDrop = 10; enemyData.explodeOnDeath = true; break;
+            }
+            enemyData.maxHp = enemyData.hp;
+            enemies.push(enemyData);
+        }
+
+        function spawnWave() {
+            const jieqi = getCurrentJieqi();
+            const baseCount = 3 + game.wave * 1.5 * (jieqi.enemyMod === 'count' ? jieqi.modValue : 1);
+            const count = Math.min(Math.floor(baseCount), 18);
+            for (let i = 0; i < count; i++) setTimeout(() => spawnEnemy(), i * 350);
+        }
+
+        function getNearestEnemy() {
+            let nearest = null, minDist = Infinity;
+            const checkCount = Math.min(enemies.length, 12);
+            for (let i = 0; i < checkCount; i++) {
+                const enemy = enemies[i];
+                const dx = enemy.x - player.x, dy = enemy.y - player.y;
+                const dist = dx*dx + dy*dy;
+                if (dist < minDist && dist < 360000) { minDist = dist; nearest = enemy; }
+            }
+            return nearest;
+        }
+
+        // ============ 浮动文字 ============
+        function addFloatingText(x, y, text, color, size, duration) {
+            if (floatingTexts.length >= perf.maxFloatingTexts) return;
+            floatingTexts.push({ x, y, text, color, size, life: duration, maxLife: duration, vy: -2 });
+        }
+        function showHealNumber(x, y, amount) { addFloatingText(x, y, '+' + Math.floor(amount), 'rgba(74, 255, 74, 1)', 16, 60); }
+        function showProtectionText(x, y) { addFloatingText(x, y, '满血保护', 'rgba(74, 255, 74, 1)', 14, 90); }
+
+        // ============ P1：毛笔笔触绘制 ============
+        function drawBrushStroke(ctx, x1, y1, x2, y2, width, color, alpha) {
+            const dx = x2 - x1, dy = y2 - y1;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            if (len < 1) return;
+            const angle = Math.atan2(dy, dx);
+            const perpX = -Math.sin(angle), perpY = Math.cos(angle);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = color;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            // 主笔触：中间粗两头细
+            const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+            grad.addColorStop(0, color.replace(/[\d.]+\)$/, (alpha * 0.3) + ')'));
+            grad.addColorStop(0.5, color.replace(/[\d.]+\)$/, (alpha * 0.9) + ')'));
+            grad.addColorStop(1, color.replace(/[\d.]+\)$/, (alpha * 0.2) + ')'));
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = width;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            // 飞白效果：笔触边缘不规则细线
+            ctx.lineWidth = width * 0.25;
+            for (let i = 0; i < 3; i++) {
+                const offset = (Math.random() - 0.5) * width * 0.9;
+                const flickerAlpha = alpha * (0.15 + Math.random() * 0.25);
+                ctx.strokeStyle = color.replace(/[\d.]+\)$/, flickerAlpha + ')');
+                ctx.beginPath();
+                const fx1 = x1 + perpX * offset, fy1 = y1 + perpY * offset;
+                const fx2 = x2 + perpX * offset * 0.4, fy2 = y2 + perpY * offset * 0.4;
+                ctx.moveTo(fx1, fy1); ctx.lineTo(fx2, fy2); ctx.stroke();
+            }
+            // 墨点飞溅
+            ctx.fillStyle = color;
+            for (let i = 0; i < 4; i++) {
+                const t = 0.2 + Math.random() * 0.6;
+                const px = x1 + dx * t + (Math.random() - 0.5) * width * 0.8;
+                const py = y1 + dy * t + (Math.random() - 0.5) * width * 0.8;
+                const size = Math.random() * width * 0.25;
+                ctx.globalAlpha = alpha * (0.2 + Math.random() * 0.3);
+                ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // ============ P1：墨花绽放效果 ============
+        function createInkBloom(x, y, color, intensity) {
+            intensity = intensity || 1;
+            const petalCount = Math.floor((5 + Math.random() * 4) * intensity);
+            for (let i = 0; i < petalCount; i++) {
+                const angle = (Math.PI * 2 / petalCount) * i + Math.random() * 0.4;
+                const speed = 1.5 + Math.random() * 3.5;
+                const size = (4 + Math.random() * 8) * intensity;
+                liubaiEffects.push({
+                    x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    life: 25 + Math.random() * 20, maxLife: 45,
+                    size, type: 'inkBloom',
+                    color: color || `rgba(${25+Math.random()*35},${25+Math.random()*35},${25+Math.random()*35},${0.35+Math.random()*0.35})`,
+                    angle, petalLength: size * (1.2 + Math.random() * 1.2),
+                    rotSpeed: (Math.random() - 0.5) * 0.08
+                });
+            }
+            // 中心浓墨点
+            for (let i = 0; i < 6 * intensity; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const d = Math.random() * 12 * intensity;
+                liubaiEffects.push({
+                    x: x + Math.cos(a) * d, y: y + Math.sin(a) * d,
+                    vx: 0, vy: 0, life: 15 + Math.random() * 15, maxLife: 30,
+                    size: 2 + Math.random() * 4, type: 'ink',
+                    color: `rgba(15,15,15,${0.5+Math.random()*0.5})`
+                });
+            }
+        }
+
+        // ============ P1：墨晕屏幕效果 ============
+        function triggerInkBleed() {
+            const overlay = document.getElementById('inkBleedOverlay');
+            overlay.classList.add('active');
+            setTimeout(() => overlay.classList.remove('active'), 1200);
+        }
+
+        // ============ 视觉特效 ============
+        function createBloodSplash(x, y, angle, intensity) {
+            if (bloodDrops.length >= perf.maxBlood) return;
+            const count = Math.floor(6 * intensity);
+            for (let i = 0; i < count; i++) {
+                const spreadAngle = angle + (Math.random() - 0.5) * 2;
+                const speed = 4 + Math.random() * 6;
+                bloodDrops.push({
+                    x, y, vx: Math.cos(spreadAngle) * speed, vy: Math.sin(spreadAngle) * speed,
+                    size: 2 + Math.random() * 5, life: 30 + Math.random() * 25, gravity: 0.35,
+                    color: `rgba(${139 + Math.random() * 60}, 0, 0, ${0.7 + Math.random() * 0.3})`
+                });
+            }
+        }
+        function createHitBurst(x, y, color, count) {
+            if (particles.length >= perf.maxParticles) return;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 6;
+                particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 20 + Math.random() * 15, size: 1.5 + Math.random() * 3, color: color || `rgba(255, ${200 + Math.random() * 55}, ${100 + Math.random() * 100}, 0.9)` });
+            }
+        }
+        function createSwordTrail(startX, startY, endX, endY, isKuangcao) {
+            if (game.quality !== 'premium' || swordTrails.length >= perf.maxTrails) return;
+            swordTrails.push({
+                x1: startX, y1: startY, x2: endX, y2: endY,
+                life: 15, maxLife: 15,
+                color: isKuangcao ? 'rgba(255, 215, 0, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+                width: isKuangcao ? 4 : 3, isKuangcao,
+                isBrush: true
+            });
+        }
+        function createShockwave(x, y, radius) {
+            liubaiEffects.push({ x, y, vx: 0, vy: 0, life: 30, maxLife: 30, size: 5, maxSize: radius, type: 'shockwave', color: 'rgba(255, 255, 255, 0.6)' });
+        }
+        function createLiubaiEffect() {
+            if (liubaiEffects.length >= perf.maxLiubaiEffects) return;
+            for (let i = 0; i < 10; i++) {
+                const angle = (Math.PI * 2 / 10) * i + Math.random() * 0.5;
+                const speed = 2 + Math.random() * 4;
+                liubaiEffects.push({ x: player.x, y: player.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 60, maxLife: 60, size: 5 + Math.random() * 12, type: 'ripple', color: `rgba(255, 255, 255, ${0.3 + Math.random() * 0.3})` });
+            }
+            for (let i = 0; i < 18; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1 + Math.random() * 5;
+                liubaiEffects.push({ x: player.x, y: player.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 40 + Math.random() * 25, maxLife: 60, size: 2 + Math.random() * 5, type: 'ink', color: `rgba(${200 + Math.random() * 55}, ${200 + Math.random() * 55}, ${200 + Math.random() * 55}, ${0.4 + Math.random() * 0.4})` });
+            }
+            for (let i = 0; i < 15; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 30 + Math.random() * 100;
+                liubaiEffects.push({ x: player.x + Math.cos(angle) * dist, y: player.y + Math.sin(angle) * dist, vx: 0, vy: -0.5, life: 80, maxLife: 80, size: 1 + Math.random() * 2.5, type: 'particle', color: 'rgba(255, 215, 0, 0.8)', orbit: angle, orbitSpeed: 0.02 + Math.random() * 0.02 });
+            }
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 40 + Math.random() * 70;
+                liubaiEffects.push({ x: player.x + Math.cos(angle) * dist, y: player.y + Math.sin(angle) * dist, vx: 0, vy: 0, life: 50, maxLife: 50, size: 15 + Math.random() * 12, type: 'cloud', color: 'rgba(255, 255, 255, 0.3)', angle: Math.random() * Math.PI * 2 });
+            }
+        }
+
+        // ============ 打击感 ============
+        function triggerHeavyShake() {
+            if (game.shakeIntensity <= 0) return;
+            const intensity = game.shakeIntensity * 1.5;
+            const duration = 400 * intensity;
+            document.body.classList.add('screen-shake');
+            setTimeout(() => document.body.classList.remove('screen-shake'), duration);
+            if (navigator.vibrate && intensity > 0.3) navigator.vibrate(80);
+        }
+        function triggerShake() {
+            if (game.shakeIntensity <= 0) return;
+            const intensity = game.shakeIntensity;
+            const duration = 300 * intensity;
+            document.body.classList.add('screen-shake');
+            setTimeout(() => document.body.classList.remove('screen-shake'), duration);
+            if (navigator.vibrate && intensity > 0.5) navigator.vibrate(50);
+        }
+        function freezeFrame(frames) { game.freezeTimer = frames; }
+
+        // ============ 八法定义 ============
+        const eightMethods = [
+            { name: '侧锋', dir: { x: -1, y: 0 }, desc: '横向范围', color: '#8bf',
+              effect: (angle) => { return { damageMult: 0.9, rangeMult: 1.8, knockback: 12, isWide: true, trailColor: 'rgba(100,180,255,0.8)' }; } },
+            { name: '中锋', dir: { x: 0, y: -1 }, desc: '直线穿透', color: '#fff',
+              effect: (angle) => { return { damageMult: 1.3, rangeMult: 1.2, knockback: 8, pierce: true, trailColor: 'rgba(255,255,255,0.9)' }; } },
+            { name: '逆锋', dir: { x: 0, y: 1 }, desc: '范围击退', color: '#f84',
+              effect: (angle) => { return { damageMult: 0.7, rangeMult: 2.0, knockback: 22, isAoe: true, trailColor: 'rgba(255,136,68,0.8)' }; } },
+            { name: '露锋', dir: { x: 1, y: 0 }, desc: '多段快速', color: '#4f4',
+              effect: (angle) => { return { damageMult: 0.6, rangeMult: 1.0, knockback: 4, multiHit: 3, trailColor: 'rgba(68,255,68,0.8)' }; } },
+            { name: '藏锋', dir: { x: -0.707, y: -0.707 }, desc: '高暴击', color: '#f4f',
+              effect: (angle) => { return { damageMult: 1.0, rangeMult: 1.0, knockback: 6, critBonus: 0.4, trailColor: 'rgba(255,68,255,0.8)' }; } },
+            { name: '折锋', dir: { x: 0.707, y: -0.707 }, desc: '墨韵伤害', color: '#ff4',
+              effect: (angle) => { return { damageMult: 1.2, rangeMult: 1.0, knockback: 6, inkDamage: 0.3, trailColor: 'rgba(255,255,68,0.8)' }; } },
+            { name: '转锋', dir: { x: -0.707, y: 0.707 }, desc: '回旋周围', color: '#f82',
+              effect: (angle) => { return { damageMult: 0.8, rangeMult: 2.2, knockback: 10, isSpin: true, trailColor: 'rgba(255,136,34,0.8)' }; } },
+            { name: '回锋', dir: { x: 0.707, y: 0.707 }, desc: '吸血', color: '#f44',
+              effect: (angle) => { return { damageMult: 0.9, rangeMult: 1.0, knockback: 6, lifeSteal: 0.2, trailColor: 'rgba(255,68,68,0.8)' }; } }
+        ];
+
+        function getEightMethodFromDirection(dx, dy) {
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) return eightMethods[1];
+            let angle = Math.atan2(dy, dx);
+            let minDiff = Infinity;
+            let best = eightMethods[0];
+            for (let m of eightMethods) {
+                let mAngle = Math.atan2(m.dir.y, m.dir.x);
+                let diff = Math.abs(angle - mAngle);
+                if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                if (diff < minDiff) { minDiff = diff; best = m; }
+            }
+            return best;
+        }
+
+        function performEightMethodAttack(method) {
+            const eff = method.effect(0);
+            const baseDamage = player.damage;
+            let damage = baseDamage * eff.damageMult;
+            const critBonus = eff.critBonus || 0;
+            let isCrit = Math.random() < (player.critChance + critBonus + (player.perfectDodgeCrit ? 0.5 : 0));
+            if (isCrit) damage *= 2.2;
+            const rank = comboRanks[game.currentRank];
+            damage *= (1 + rank.damageBonus);
+            if (eff.inkDamage) {
+                const inkDmg = player.ink * eff.inkDamage * 0.05;
+                damage += inkDmg;
+                player.ink = Math.max(0, player.ink - 10);
+                addFloatingText(player.x, player.y-50, '墨伤', '#ffd700', 16, 40);
+            }
+            if (eff.lifeSteal) {
+                const heal = damage * eff.lifeSteal;
+                player.hp = Math.min(player.maxHp, player.hp + heal);
+                showHealNumber(player.x, player.y-30, heal);
+            }
+            const range = player.hairLength * (eff.rangeMult || 1);
+            const knockback = eff.knockback || 8;
+            const angle = Math.atan2(player.facing.y, player.facing.x);
+            if (eff.isWide) {
+                const sectorAngle = 1.2;
+                enemies.forEach(enemy => {
+                    const dx = enemy.x - player.x, dy = enemy.y - player.y;
+                    const dist = Math.sqrt(dx*dx+dy*dy);
+                    if (dist > range) return;
+                    const ang = Math.atan2(dy, dx);
+                    let diff = ang - angle;
+                    while (diff > Math.PI) diff -= 2*Math.PI;
+                    while (diff < -Math.PI) diff += 2*Math.PI;
+                    if (Math.abs(diff) < sectorAngle) {
+                        applyDamageToEnemy(enemy, damage, knockback, dx, dy, isCrit);
+                    }
+                });
+            } else if (eff.isAoe) {
+                enemies.forEach(enemy => {
+                    const dx = enemy.x - player.x, dy = enemy.y - player.y;
+                    const dist = Math.sqrt(dx*dx+dy*dy);
+                    if (dist < range) {
+                        applyDamageToEnemy(enemy, damage * 0.8, knockback, dx, dy, isCrit);
+                    }
+                });
+                if (game.quality === 'premium') {
+                    for (let i=0; i<20; i++) {
+                        const a = Math.random()*Math.PI*2;
+                        const r = range*Math.random();
+                        liubaiEffects.push({ x: player.x+Math.cos(a)*r, y: player.y+Math.sin(a)*r, vx: 0, vy: 0, life: 20, maxLife: 20, size: 3, type: 'ink', color: `rgba(255,136,68,${0.3+Math.random()*0.3})` });
+                    }
+                }
+            } else if (eff.isSpin) {
+                const count = 8;
+                for (let i=0; i<count; i++) {
+                    const a = angle + (Math.PI*2/count)*i;
+                    const tx = player.x + Math.cos(a)*range*0.7;
+                    const ty = player.y + Math.sin(a)*range*0.7;
+                    enemies.forEach(enemy => {
+                        const dx = enemy.x - tx, dy = enemy.y - ty;
+                        if (dx*dx+dy*dy < (enemy.radius+25)*(enemy.radius+25)) {
+                            applyDamageToEnemy(enemy, damage*0.5, knockback, dx, dy, isCrit);
+                        }
+                    });
+                    if (game.quality === 'premium') createSwordTrail(player.x, player.y, tx, ty, true);
+                }
+            } else if (eff.multiHit) {
+                for (let h=0; h<eff.multiHit; h++) {
+                    setTimeout(() => {
+                        const offset = (h - (eff.multiHit-1)/2) * 20;
+                        const a = angle + offset * 0.03;
+                        const tx = player.x + Math.cos(a)*range;
+                        const ty = player.y + Math.sin(a)*range;
+                        enemies.forEach(enemy => {
+                            const dx = enemy.x - tx, dy = enemy.y - ty;
+                            if (dx*dx+dy*dy < (enemy.radius+30)*(enemy.radius+30)) {
+                                applyDamageToEnemy(enemy, damage*0.4, knockback, dx, dy, isCrit);
+                            }
+                        });
+                        if (game.quality === 'premium') createSwordTrail(player.x, player.y, tx, ty, true);
+                    }, h*60);
+                }
+            } else {
+                const tx = player.x + Math.cos(angle)*range;
+                const ty = player.y + Math.sin(angle)*range;
+                enemies.forEach(enemy => {
+                    const dx = enemy.x - tx, dy = enemy.y - ty;
+                    if (dx*dx+dy*dy < (enemy.radius+30)*(enemy.radius+30)) {
+                        applyDamageToEnemy(enemy, damage, knockback, dx, dy, isCrit);
+                    }
+                });
+                if (game.quality === 'premium') createSwordTrail(player.x, player.y, tx, ty, true);
+            }
+            createHitBurst(player.x + Math.cos(angle)*range*0.5, player.y + Math.sin(angle)*range*0.5, method.color, 12);
+            // P1：八法攻击也触发墨花
+            createInkBloom(player.x + Math.cos(angle)*range*0.5, player.y + Math.sin(angle)*range*0.5, method.color, 0.8);
+            playSwingSound();
+            if (isCrit) triggerHeavyShake();
+            freezeFrame(2);
+            player.ink = Math.max(0, player.ink - 15);
+        }
+
+        function applyDamageToEnemy(enemy, damage, knockback, dx, dy, isCrit) {
+            if (enemy.hp <= 0) return;
+            if (enemy.evasion && Math.random() < enemy.evasion) {
+                addFloatingText(enemy.x, enemy.y, '闪避', 'rgba(200,200,200,0.8)', 14, 40);
+                return;
+            }
+            enemy.hp -= damage;
+            enemy.hitFlash = 12;
+            const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+            const kb = knockback * (enemy.knockbackResist ? (1-enemy.knockbackResist) : 1);
+            enemy.vx += (dx/dist) * kb;
+            enemy.vy += (dy/dist) * kb;
+            createBloodSplash(enemy.x, enemy.y, Math.atan2(dy, dx), isCrit ? 2 : 1.2);
+            createHitBurst(enemy.x, enemy.y, isCrit ? 'rgba(255,50,50,0.9)' : 'rgba(255,200,100,0.8)', isCrit ? 12 : 6);
+            // P1：墨花绽放
+            createInkBloom(enemy.x, enemy.y, 'rgba(40,40,40,0.7)', isCrit ? 1.3 : 0.9);
+            game.combo++;
+            game.comboTimer = 120;
+            const newRank = getRankForCombo(game.combo);
+            if (newRank !== game.currentRank) {
+                applyRankBonus(newRank);
+                game.currentRank = newRank;
+            }
+            addFloatingText(enemy.x, enemy.y-20, Math.floor(damage), isCrit ? 'rgba(255,0,0,1)' : 'rgba(255,255,255,1)', isCrit ? 22 : 17, 60);
+            playHitSound(isCrit, false);
+            if (player.lifeSteal > 0) {
+                const heal = damage * player.lifeSteal;
+                const old = player.hp;
+                player.hp = Math.min(player.maxHp, player.hp + heal);
+                if (player.hp > old) showHealNumber(player.x, player.y-30, heal);
+            }
+            if (enemy.hp <= 0 && player.killHeal > 0) {
+                const heal = player.killHeal;
+                const old = player.hp;
+                player.hp = Math.min(player.maxHp, player.hp + heal);
+                if (player.hp > old) showHealNumber(player.x, player.y-30, heal);
+            }
+            player.ink = Math.min(player.maxInk, player.ink + 6 * player.inkEfficiency);
+        }
+
+        // ============ 攻击系统 ============
+        function attack() {
+            if (player.attackCooldown > 0 || player.isDodging || player.kuangcaoChanneling) return;
+            if (player.eightMethods) {
+                let dx = input.moveX, dy = input.moveY;
+                if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) { dx = player.facing.x; dy = player.facing.y; }
+                const method = getEightMethodFromDirection(dx, dy);
+                performEightMethodAttack(method);
+                player.eightMethodUsed = true;
+                player.attackCooldown = Math.floor(8 / player.attackSpeed);
+                return;
+            }
+
+            player.attacking = true;
+            player.attackCooldown = Math.floor(10 / player.attackSpeed);
+            player.attackAnim = 12;
+            playSwingSound();
+
+            let angle;
+            if (!game.isTouch) {
+                angle = Math.atan2(input.mouseWorldY - player.y, input.mouseWorldX - player.x);
+            } else {
+                const target = getNearestEnemy();
+                if (target) { angle = Math.atan2(target.y - player.y, target.x - player.x); player.targetEnemy = target; }
+                else if (Math.abs(input.moveX) > 0.1 || Math.abs(input.moveY) > 0.1) angle = Math.atan2(input.moveY, input.moveX);
+                else angle = Math.atan2(player.facing.y, player.facing.x);
+            }
+            player.facing = { x: Math.cos(angle), y: Math.sin(angle) };
+
+            const dashDist = 15;
+            player.x += Math.cos(angle) * dashDist;
+            player.y += Math.sin(angle) * dashDist;
+
+            const reach = player.hairLength;
+            const tipX = player.x + Math.cos(angle) * reach;
+            const tipY = player.y + Math.sin(angle) * reach;
+
+            if (game.quality === 'premium') createSwordTrail(player.x - Math.cos(angle) * 20, player.y - Math.sin(angle) * 20, tipX, tipY, player.isKuangcao);
+            createHitBurst(player.x + Math.cos(angle) * reach * 0.5, player.y + Math.sin(angle) * reach * 0.5, 'rgba(255,255,255,0.8)', 5);
+
+            let hitCount = 0, hasCrit = false;
+            const rank = comboRanks[game.currentRank];
+            const baseDamage = player.damage * (1 + rank.damageBonus);
+            enemies.forEach(enemy => {
+                const dx = enemy.x - tipX, dy = enemy.y - tipY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < enemy.radius + 30) {
+                    if (enemy.evasion && Math.random() < enemy.evasion) { addFloatingText(enemy.x, enemy.y, '闪避', 'rgba(200,200,200,0.8)', 14, 40); return; }
+                    hitCount++;
+                    const isCrit = Math.random() < (player.critChance + rank.critBonus + (player.perfectDodgeCrit ? 0.5 : 0));
+                    if (isCrit) hasCrit = true;
+                    let damage = baseDamage * (isCrit ? 2.2 : 1) * (game.slowMotion < 1 ? 1.5 : 1);
+                    if (player.comboBonus > 0 && game.combo > 5) damage *= (1 + player.comboBonus * Math.min(game.combo, 25) / 25);
+                    enemy.hp -= damage;
+                    enemy.hitFlash = 12;
+                    let knockback = 10;
+                    if (enemy.knockbackResist) knockback *= (1 - enemy.knockbackResist);
+                    const knockbackAngle = Math.atan2(dy, dx);
+                    enemy.vx += Math.cos(knockbackAngle) * knockback;
+                    enemy.vy += Math.sin(knockbackAngle) * knockback;
+                    createBloodSplash(enemy.x, enemy.y, knockbackAngle, isCrit ? 2 : 1.2);
+                    createHitBurst(enemy.x, enemy.y, isCrit ? 'rgba(255,50,50,0.9)' : 'rgba(255,200,100,0.8)', isCrit ? 12 : 6);
+                    // P1：墨花绽放
+                    createInkBloom(enemy.x, enemy.y, 'rgba(40,40,40,0.7)', isCrit ? 1.5 : 1);
+
+                    if (player.burstOnHit > 0) {
+                        const burstRadius = 60;
+                        enemies.forEach(e2 => {
+                            if (e2 === enemy) return;
+                            const dx2 = e2.x - enemy.x, dy2 = e2.y - enemy.y;
+                            if (dx2*dx2 + dy2*dy2 < burstRadius * burstRadius) {
+                                e2.hp -= damage * player.burstOnHit; e2.hitFlash = 6;
+                                e2.vx += (dx2 / (Math.sqrt(dx2*dx2+dy2*dy2) || 1)) * 4;
+                                e2.vy += (dy2 / (Math.sqrt(dx2*dx2+dy2*dy2) || 1)) * 4;
+                            }
+                        });
+                        createHitBurst(enemy.x, enemy.y, 'rgba(255,100,0,0.7)', 10);
+                    }
+                    if (player.shockwaveRange > 0) {
+                        createShockwave(enemy.x, enemy.y, player.shockwaveRange);
+                        enemies.forEach(e2 => {
+                            if (e2 === enemy) return;
+                            const dx2 = e2.x - enemy.x, dy2 = e2.y - enemy.y;
+                            const d2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+                            if (d2 < player.shockwaveRange && d2 > 0) { e2.hp -= damage * 0.3; e2.vx += (dx2 / d2) * 6; e2.vy += (dy2 / d2) * 6; e2.hitFlash = 5; }
+                        });
+                    }
+                    if (player.poisonDamage > 0) enemy.poisoned = 120;
+                    game.combo++;
+                    game.comboTimer = 120;
+                    const newRank = getRankForCombo(game.combo);
+                    if (newRank !== game.currentRank) {
+                        applyRankBonus(newRank);
+                        game.currentRank = newRank;
+                    }
+                    addFloatingText(enemy.x, enemy.y - 20, Math.floor(damage), isCrit ? 'rgba(255,0,0,1)' : 'rgba(255,255,255,1)', isCrit ? 22 : 17, 60);
+                    playHitSound(isCrit, false);
+
+                    if (enemy.hp <= 0 && player.killHeal > 0) {
+                        const healAmount = player.killHeal;
+                        const oldHp = player.hp;
+                        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+                        if (player.hp > oldHp) showHealNumber(player.x, player.y - 30);
+                    }
+                    if (player.lifeSteal > 0) {
+                        const healAmount = damage * (player.lifeSteal + rank.lifestealBonus);
+                        const oldHp = player.hp;
+                        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+                        if (player.hp > oldHp) showHealNumber(player.x, player.y - 30);
+                    }
+                    player.ink = Math.min(player.maxInk, player.ink + 6 * player.inkEfficiency);
+                    if (isCrit) { triggerHeavyShake(); freezeFrame(3); }
+                    if (game.effects.inkSplash && particles.length < perf.maxParticles) {
+                        for (let i = 0; i < 6; i++) particles.push({ x: enemy.x, y: enemy.y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, life: 25, size: Math.random() * 4 + 2, color: `rgba(${20 + Math.random() * 40},${20 + Math.random() * 40},${20 + Math.random() * 40},0.9)`, isInk: true });
+                    }
+                }
+            });
+
+            if (player.doubleAttack && hitCount > 0) {
+                setTimeout(() => {
+                    const secondAngle = angle + (Math.random() - 0.5) * 0.5;
+                    const secondTipX = player.x + Math.cos(secondAngle) * reach * 0.8;
+                    const secondTipY = player.y + Math.sin(secondAngle) * reach * 0.8;
+                    createHitBurst(secondTipX, secondTipY, 'rgba(255,150,50,0.6)', 4);
+                    enemies.forEach(enemy => {
+                        const dx = enemy.x - secondTipX, dy = enemy.y - secondTipY;
+                        if (Math.sqrt(dx*dx + dy*dy) < enemy.radius + 25) {
+                            const dmg = player.damage * 0.5;
+                            enemy.hp -= dmg; enemy.hitFlash = 6;
+                            enemy.vx += (dx / (Math.sqrt(dx*dx+dy*dy) || 1)) * 5;
+                            enemy.vy += (dy / (Math.sqrt(dx*dx+dy*dy) || 1)) * 5;
+                            addFloatingText(enemy.x, enemy.y, Math.floor(dmg), 'rgba(255,200,100,0.9)', 14, 40);
+                            createBloodSplash(enemy.x, enemy.y, Math.atan2(dy, dx), 0.6);
+                            createInkBloom(enemy.x, enemy.y, 'rgba(40,40,40,0.5)', 0.6);
+                        }
+                    });
+                }, 100);
+            }
+            if (player.hairBranches > 1 && !player.isKuangcao) {
+                for (let b = 1; b < player.hairBranches; b++) {
+                    const branchAngle = angle + (b % 2 === 0 ? 0.35 : -0.35) * Math.ceil(b / 2);
+                    const branchTipX = player.x + Math.cos(branchAngle) * reach * 0.85;
+                    const branchTipY = player.y + Math.sin(branchAngle) * reach * 0.85;
+                    if (game.quality === 'premium') createSwordTrail(player.x, player.y, branchTipX, branchTipY, player.isKuangcao);
+                    enemies.forEach(enemy => {
+                        const dx = enemy.x - branchTipX, dy = enemy.y - branchTipY;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < enemy.radius + 22) {
+                            if (enemy.evasion && Math.random() < enemy.evasion) return;
+                            const damage = player.damage * 0.7;
+                            enemy.hp -= damage; enemy.hitFlash = 8;
+                            let knockback = 6;
+                            if (enemy.knockbackResist) knockback *= (1 - enemy.knockbackResist);
+                            const knockbackAngle = Math.atan2(dy, dx);
+                            enemy.vx += Math.cos(knockbackAngle) * knockback;
+                            enemy.vy += Math.sin(knockbackAngle) * knockback;
+                            createBloodSplash(enemy.x, enemy.y, knockbackAngle, 0.8);
+                            createHitBurst(enemy.x, enemy.y, 'rgba(255,255,255,0.5)', 3);
+                            createInkBloom(enemy.x, enemy.y, 'rgba(40,40,40,0.5)', 0.6);
+                            if (player.lifeSteal > 0) {
+                                const healAmount = damage * player.lifeSteal;
+                                const oldHp = player.hp;
+                                player.hp = Math.min(player.maxHp, player.hp + healAmount);
+                                if (player.hp > oldHp) showHealNumber(player.x, player.y - 30);
+                            }
+                            addFloatingText(enemy.x, enemy.y, Math.floor(damage), 'rgba(255,255,255,0.8)', 15, 50);
+                        }
+                    });
+                }
+            }
+            if (hitCount > 0) freezeFrame(2);
+        }
+
+        // ============ 环绕武器 ============
+        function updateOrbitWeapons() {
+            player.orbitWeapons.forEach((weapon, idx) => {
+                weapon.angle += weapon.speed;
+                weapon.x = player.x + Math.cos(weapon.angle) * weapon.orbitRadius;
+                weapon.y = player.y + Math.sin(weapon.angle) * weapon.orbitRadius;
+                enemies.forEach(enemy => {
+                    const dx = enemy.x - weapon.x, dy = enemy.y - weapon.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < enemy.radius + weapon.size + 5 && weapon.cooldown <= 0) {
+                        weapon.cooldown = weapon.maxCooldown;
+                        const damage = player.damage * weapon.damageMult;
+                        enemy.hp -= damage; enemy.hitFlash = 6;
+                        enemy.vx += (dx / dist) * 3; enemy.vy += (dy / dist) * 3;
+                        createHitBurst(weapon.x, weapon.y, 'rgba(255,215,0,0.7)', 3);
+                        addFloatingText(enemy.x, enemy.y, Math.floor(damage), 'rgba(255,215,0,0.9)', 13, 45);
+                        player.ink = Math.min(player.maxInk, player.ink + 2 * player.inkEfficiency);
+                    }
+                });
+                if (weapon.cooldown > 0) weapon.cooldown--;
+            });
+        }
+        function addOrbitWeapon() {
+            const count = player.orbitWeapons.length;
+            player.orbitWeapons.push({ angle: (Math.PI * 2 / 3) * count, x: 0, y: 0, orbitRadius: 50 + count * 15, speed: 0.08, size: 8, damageMult: 0.4, cooldown: 0, maxCooldown: 20, type: 'brush' });
+        }
+
+        // ============ 分身系统 ============
+        function updateClones() {
+            player.clones.forEach(clone => {
+                let nearest = null, minDist = Infinity;
+                enemies.forEach(e => { const d = (e.x-clone.x)**2 + (e.y-clone.y)**2; if (d < minDist) { minDist = d; nearest = e; } });
+                if (nearest && minDist < 40000) {
+                    const angle = Math.atan2(nearest.y - clone.y, nearest.x - clone.x);
+                    clone.x += Math.cos(angle) * 4; clone.y += Math.sin(angle) * 4;
+                    clone.facing = { x: Math.cos(angle), y: Math.sin(angle) };
+                    if (clone.attackCooldown <= 0) {
+                        clone.attackCooldown = 25;
+                        const tipX = clone.x + Math.cos(angle) * 60;
+                        const tipY = clone.y + Math.sin(angle) * 60;
+                        enemies.forEach(enemy => {
+                            const dx = enemy.x - tipX, dy = enemy.y - tipY;
+                            if (Math.sqrt(dx*dx + dy*dy) < enemy.radius + 20) {
+                                const dmg = player.damage * 0.5;
+                                enemy.hp -= dmg; enemy.hitFlash = 5;
+                                createHitBurst(enemy.x, enemy.y, 'rgba(100,200,255,0.6)', 3);
+                                addFloatingText(enemy.x, enemy.y, Math.floor(dmg), 'rgba(100,200,255,0.8)', 12, 40);
+                            }
+                        });
+                        if (game.quality === 'premium') createSwordTrail(clone.x, clone.y, tipX, tipY, false);
+                    }
+                } else {
+                    const dx = player.x - clone.x, dy = player.y - clone.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist > 80) { clone.x += (dx/dist) * 3; clone.y += (dy/dist) * 3; }
+                }
+                if (clone.attackCooldown > 0) clone.attackCooldown--;
+                clone.life--;
+            });
+            player.clones = player.clones.filter(c => c.life > 0);
+        }
+        function spawnClone() {
+            player.clones.push({ x: player.x + (Math.random() - 0.5) * 40, y: player.y + (Math.random() - 0.5) * 40, life: 600, attackCooldown: 0, facing: { x: 1, y: 0 } });
+        }
+
+        // ============ 闪避与留白 ============
+        function dodge() {
+            if (player.dodgeCooldown > 0 || player.isDodging || player.kuangcaoChanneling) return;
+
+            // P1：检测完美闪避（敌人攻击判定前）
+            let perfectDodge = false;
+            for (let enemy of enemies) {
+                const dx = enemy.x - player.x, dy = enemy.y - player.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < enemy.radius + player.radius + 30 && enemy.attackCooldown > 35 && enemy.attackCooldown < 50) {
+                    perfectDodge = true; break;
+                }
+            }
+
+            player.isDodging = true; player.dodgeTime = 12; player.dodgeCooldown = 40;
+            if (player.dodgeInvincible) { player.invincible = true; player.invincibleTime = 35; }
+
+            let dx = input.moveX, dy = input.moveY;
+            if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) { dx = -player.facing.x; dy = -player.facing.y; }
+            const len = Math.sqrt(dx*dx + dy*dy);
+            if (len > 0) { dx /= len; dy /= len; }
+            player.vx = dx * 12; player.vy = dy * 12;
+
+            for (let i = 0; i < 3; i++) liubaiEffects.push({ x: player.x - dx * i * 8, y: player.y - dy * i * 8, vx: 0, vy: 0, life: 15, maxLife: 15, size: 8, type: 'ghost', color: 'rgba(255,255,255,0.2)' });
+
+            let nearEnemy = false;
+            const checkCount = Math.min(enemies.length, 6);
+            for (let i = 0; i < checkCount; i++) { const enemy = enemies[i]; const edx = enemy.x - player.x, edy = enemy.y - player.y; if (edx*edx + edy*edy < 10000) { nearEnemy = true; break; } }
+
+            if (nearEnemy) {
+                triggerLiubai();
+                if (perfectDodge) {
+                    triggerInkBleed();
+                    addFloatingText(player.x, player.y - 60, '留白·惊鸿', 'rgba(255,215,0,1)', 26, 120);
+                    player.perfectDodgeCrit = true;
+                    player.perfectDodgeCritTime = 180;
+                }
+            }
+        }
+        function triggerLiubai() {
+            game.slowMotion = 0.25;
+            document.getElementById('liubaiText').classList.add('show');
+            player.hp = Math.min(player.maxHp, player.hp + 12);
+            player.invincible = true; player.invincibleTime = 140; player.liubaiActive = true;
+            if (game.quality === 'premium') createLiubaiEffect();
+            setTimeout(() => { game.slowMotion = 1; document.getElementById('liubaiText').classList.remove('show'); }, 1400);
+        }
+
+        // ============ 狂草·八法 ============
+        function startKuangcao() {
+            if (player.ink < 100 || player.isKuangcao || player.kuangcaoChanneling) return false;
+            player.kuangcaoChanneling = true; player.kuangcaoCharge = 0;
+            document.getElementById('kuangcaoBtn').classList.add('channeling');
+            document.getElementById('channelBar').classList.add('active');
+            return true;
+        }
+        function updateKuangcao() {
+            if (!player.kuangcaoChanneling) return;
+            player.kuangcaoCharge++;
+            const progress = (player.kuangcaoCharge / player.kuangcaoMaxCharge) * 100;
+            document.getElementById('channelFill').style.width = progress + '%';
+            if (player.kuangcaoCharge >= player.kuangcaoMaxCharge) activateEightMethods();
+        }
+        function activateEightMethods() {
+            player.kuangcaoChanneling = false;
+            player.ink = 0;
+            document.getElementById('kuangcaoBtn').classList.remove('channeling');
+            document.getElementById('channelBar').classList.remove('active');
+            document.getElementById('channelFill').style.width = '0%';
+            player.eightMethods = true;
+            player.eightMethodsTime = player.eightMethodsMaxTime;
+            player.eightMethodUsed = false;
+            document.getElementById('eightMethodsHint').classList.add('active');
+            addFloatingText(player.x, player.y-80, '八法·方向释法', '#ffd700', 28, 90);
+            for (let i=0; i<30; i++) {
+                const a = Math.random()*Math.PI*2;
+                const r = 60+Math.random()*80;
+                liubaiEffects.push({ x: player.x+Math.cos(a)*r, y: player.y+Math.sin(a)*r, vx: 0, vy: 0, life: 40, maxLife: 40, size: 4, type: 'particle', color: `rgba(255,215,0,${0.3+Math.random()*0.3})`, orbit: a, orbitSpeed: 0.02 });
+            }
+        }
+        function cancelKuangcao() {
+            if (!player.kuangcaoChanneling) return;
+            player.kuangcaoChanneling = false; player.kuangcaoCharge = 0;
+            document.getElementById('kuangcaoBtn').classList.remove('channeling');
+            document.getElementById('channelBar').classList.remove('active');
+            document.getElementById('channelFill').style.width = '0%';
+        }
+
+        // ============ 升级系统 ============
+        const upgrades = [
+            { name: '立春·生发', desc: '头发长度+25%', icon: '春', type: 'attack', effect: () => player.hairLength *= 1.25 },
+            { name: '雨水·润物', desc: '攻击吸血+15%', icon: '雨', type: 'defense', effect: () => { player.lifeSteal += 0.15; } },
+            { name: '惊蛰·雷动', desc: '暴击率+15%', icon: '雷', type: 'attack', effect: () => player.critChance += 0.15 },
+            { name: '春分·均势', desc: '伤害+20%', icon: '分', type: 'attack', effect: () => player.damage *= 1.2 },
+            { name: '清明·气清', desc: '生命值+15', icon: '清', type: 'defense', effect: () => { player.maxHp += 15; player.hp += 15; } },
+            { name: '谷雨·丰润', desc: '墨韵获取+30%', icon: '谷', type: 'resource', effect: () => player.inkEfficiency *= 1.3 },
+            { name: '立夏·并秀', desc: '攻击速度+25%', icon: '夏', type: 'attack', effect: () => player.attackSpeed *= 1.25 },
+            { name: '小满·盈满', desc: '移动速度+20%', icon: '满', type: 'resource', effect: () => player.moveSpeedBonus += 0.2 },
+            { name: '芒种·忙种', desc: '头发宽度+50%', icon: '芒', type: 'attack', effect: () => player.hairWidth *= 1.5 },
+            { name: '夏至·至极', desc: '攻击穿透+1', icon: '至', type: 'attack', effect: () => player.pierceCount++ },
+            { name: '小暑·渐盛', desc: '受到伤害反弹30%', icon: '暑', type: 'defense', effect: () => player.reflectDamage += 0.3 },
+            { name: '大暑·酷烈', desc: '闪避时短暂无敌', icon: '烈', type: 'defense', effect: () => player.dodgeInvincible = true },
+            { name: '立秋·凉风', desc: '连击伤害加成（最高50%）', icon: '秋', type: 'attack', effect: () => player.comboBonus += 0.5 },
+            { name: '处暑·渐消', desc: '击杀回血+8', icon: '处', type: 'defense', effect: () => player.killHeal += 8 },
+            { name: '白露·凝珠', desc: '满血保护重置', icon: '露', type: 'defense', effect: () => { player.protectionTriggered = false; player.fullHpProtection = true; } },
+            { name: '秋分·平分', desc: '头发分叉+1', icon: '平', type: 'attack', effect: () => player.hairBranches++ },
+            { name: '寒露·气肃', desc: '狂草持续时间+50%', icon: '寒', type: 'resource', effect: () => { player.eightMethodsMaxTime *= 1.5; } },
+            { name: '霜降·凝霜', desc: '满墨韵时获得护盾', icon: '霜', type: 'defense', effect: () => {} },
+            { name: '立冬·水冰', desc: '留白回血+15', icon: '冬', type: 'defense', effect: () => {} },
+            { name: '小雪·初降', desc: '攻击附带范围震荡', icon: '雪', type: 'attack', effect: () => player.shockwaveRange = Math.max(player.shockwaveRange, 80) },
+            { name: '大雪·盛雪', desc: '墨韵上限+30', icon: '盛', type: 'resource', effect: () => { player.maxInk += 30; player.ink += 30; } },
+            { name: '冬至·南至', desc: '气血上限+20', icon: '南', type: 'defense', effect: () => { player.maxHp += 20; player.hp += 20; } },
+            { name: '小寒·渐盛', desc: '暴击伤害+50%', icon: '小', type: 'attack', effect: () => {} },
+            { name: '大寒·至极', desc: '全属性+10%', icon: '大', type: 'resource', effect: () => { player.damage *= 1.1; player.speed *= 1.1; player.maxHp *= 1.1; player.hp *= 1.1; } },
+            { name: '御笔·飞白', desc: '获得一支环绕飞笔', icon: '笔', type: 'attack', effect: () => addOrbitWeapon() },
+            { name: '墨影·分身', desc: '召唤一个墨影分身（10秒）', icon: '影', type: 'resource', effect: () => spawnClone() },
+            { name: '爆墨·飞溅', desc: '击中敌人时造成范围爆炸', icon: '爆', type: 'attack', effect: () => player.burstOnHit = Math.max(player.burstOnHit, 0.4) },
+            { name: '连击·双锋', desc: '攻击时追加一次连击', icon: '双', type: 'attack', effect: () => player.doubleAttack = true },
+            { name: '毒墨·侵蚀', desc: '攻击使敌人中毒3秒', icon: '毒', type: 'attack', effect: () => player.poisonDamage = Math.max(player.poisonDamage, 5) },
+            { name: '聚气·归元', desc: '墨韵上限+50，获取+20%', icon: '元', type: 'resource', effect: () => { player.maxInk += 50; player.inkEfficiency *= 1.2; } }
+        ];
+
+        function showUpgrade() {
+            game.state = 'upgrade';
+            document.getElementById('upgradeScreen').classList.remove('hidden');
+            const jieqi = getCurrentJieqi();
+            const nextJieqi = jieqiList[(game.currentJieqi + 1) % jieqiList.length];
+            document.getElementById('nextJieqiText').textContent = `下一节气：${nextJieqi.name} · ${nextJieqi.desc}`;
+            const container = document.getElementById('upgradeOptions');
+            container.innerHTML = '';
+            const groups = { attack: [], resource: [], defense: [] };
+            upgrades.forEach(u => { if (groups[u.type]) groups[u.type].push(u); });
+            const selected = [];
+            const types = ['attack', 'resource', 'defense'];
+            types.forEach(type => {
+                const pool = groups[type];
+                if (pool.length === 0) return;
+                const idx = Math.floor(Math.random() * pool.length);
+                const chosen = pool.splice(idx, 1)[0];
+                selected.push(chosen);
+            });
+            const allRemaining = Object.values(groups).flat();
+            while (selected.length < 3 && allRemaining.length > 0) {
+                const idx = Math.floor(Math.random() * allRemaining.length);
+                selected.push(allRemaining.splice(idx, 1)[0]);
+            }
+            selected.forEach(up => {
+                const div = document.createElement('div');
+                div.className = 'upgrade-card pointer-events-auto';
+                const typeLabel = { attack: '墨痕·攻', resource: '墨韵·源', defense: '墨守·御' }[up.type] || '通用';
+                const typeColor = { attack: '#ff6b6b', resource: '#ffd93d', defense: '#6bcbff' }[up.type] || '#aaa';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold" style="background: rgba(139,0,0,0.3); border: 1px solid rgba(255,100,100,0.3); color: rgba(255,200,200,0.9); font-family: 'ZCOOL XiaoWei', serif;">${up.icon}</div>
+                        <div class="flex-1 text-left">
+                            <h3 class="text-lg font-bold text-white" style="font-family: 'ZCOOL XiaoWei', serif;">${up.name}</h3>
+                            <p class="text-gray-400 text-xs" style="font-family: 'ZCOOL XiaoWei', serif;">${up.desc}</p>
+                        </div>
+                        <span class="flow-type" style="background:${typeColor}33; color:${typeColor};">${typeLabel}</span>
+                    </div>
+                `;
+                div.onclick = () => {
+                    up.effect();
+                    if (player.flowCounts[up.type] !== undefined) player.flowCounts[up.type]++;
+                    game.currentJieqi++;
+                    closeUpgrade();
+                };
+                container.appendChild(div);
+            });
+        }
+        function closeUpgrade() {
+            document.getElementById('upgradeScreen').classList.add('hidden');
+            game.state = 'playing'; game.wave++; spawnWave();
+        }
+
+        // ============ 无限世界：清理远处实体 ============
+        function cleanupDistantEntities() {
+            const maxDist = world.cleanupDist;
+            const maxDistSq = maxDist * maxDist;
+            inkStains = inkStains.filter(s => { const dx = s.x - player.x, dy = s.y - player.y; return dx*dx + dy*dy < maxDistSq; });
+            worldDecor = worldDecor.filter(d => { const dx = d.x - player.x, dy = d.y - player.y; return dx*dx + dy*dy < maxDistSq * 2; });
+            enemies = enemies.filter(e => { const dx = e.x - player.x, dy = e.y - player.y; return dx*dx + dy*dy < maxDistSq * 3; });
+        }
+
+        // ============ 主更新循环 ============
+        function update() {
+            if (game.state !== 'playing' || game.paused) return;
+            if (game.freezeTimer > 0) { game.freezeTimer--; draw(); return; }
+            game.time++;
+            const dt = game.slowMotion;
+
+            if (game.time % 60 === 0) cleanupDistantEntities();
+            if (game.time % 30 === 0) generateWorldDecor();
+
+            if (player.invincibleTime > 0) {
+                player.invincibleTime--;
+                if (player.invincibleTime <= 0) { player.invincible = false; player.liubaiActive = false; }
+            }
+            const fullHpIndicator = document.getElementById('fullHpIndicator');
+            if (player.fullHpProtection && !player.protectionTriggered && player.hp >= player.maxHp) fullHpIndicator.classList.add('active');
+            else fullHpIndicator.classList.remove('active');
+
+            if (player.eightMethods) {
+                player.eightMethodsTime--;
+                if (player.eightMethodsTime <= 0) {
+                    player.eightMethods = false;
+                    document.getElementById('eightMethodsHint').classList.remove('active');
+                }
+            }
+
+            // P1：完美闪避暴击计时
+            if (player.perfectDodgeCritTime > 0) {
+                player.perfectDodgeCritTime--;
+                if (player.perfectDodgeCritTime <= 0) player.perfectDodgeCrit = false;
+            }
+
+            updateOrbitWeapons();
+            updateClones();
+
+            enemies.forEach(enemy => {
+                if (enemy.hitFlash > 0) enemy.hitFlash--;
+                if (enemy.poisoned > 0) {
+                    enemy.poisoned--;
+                    if (enemy.poisoned % 30 === 0) { const poisonDmg = player.poisonDamage; enemy.hp -= poisonDmg; addFloatingText(enemy.x, enemy.y - 10, poisonDmg, 'rgba(0,255,100,0.7)', 12, 30); }
+                }
+                if (enemy.type === 'ninja') {
+                    enemy.dashCooldown--;
+                    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 180 && enemy.dashCooldown <= 0) { enemy.vx += (dx/dist) * 9; enemy.vy += (dy/dist) * 9; enemy.dashCooldown = 120; }
+                }
+                if (enemy.type === 'archer') {
+                    enemy.projectileCooldown--;
+                    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 280 && dist > 80 && enemy.projectileCooldown <= 0) {
+                        const angle = Math.atan2(dy, dx);
+                        enemy.vx -= Math.cos(angle) * 2; enemy.projectileCooldown = 90;
+                        if (dist < 100 && !player.invincible) {
+                            let damage = enemy.damage * 0.5;
+                            if (player.hp >= player.maxHp && player.fullHpProtection && !player.protectionTriggered) {
+                                if (damage >= player.hp) { damage = player.hp - 1; player.protectionTriggered = true; showProtectionText(player.x, player.y - 50); triggerShake(); }
+                            }
+                            player.hp -= damage;
+                        }
+                    }
+                }
+                if (player.reflectDamage > 0 && enemy.attackCooldown > 45) {
+                    const reflect = enemy.damage * player.reflectDamage;
+                    enemy.hp -= reflect;
+                    addFloatingText(enemy.x, enemy.y, Math.floor(reflect), 'rgba(255,100,100,0.8)', 13, 40);
+                }
+            });
+
+            liubaiEffects = liubaiEffects.filter(effect => {
+                effect.x += effect.vx * dt; effect.y += effect.vy * dt; effect.life--;
+                if (effect.type === 'particle' && effect.orbit !== undefined) { effect.orbit += effect.orbitSpeed; effect.x = player.x + Math.cos(effect.orbit) * 50; effect.y = player.y + Math.sin(effect.orbit) * 30; }
+                if (effect.type === 'shockwave') effect.size += (effect.maxSize - effect.size) * 0.1;
+                // P1：墨花旋转
+                if (effect.type === 'inkBloom' && effect.rotSpeed) { effect.angle += effect.rotSpeed; }
+                return effect.life > 0;
+            });
+
+            if (input.kuangcaoPressed && player.kuangcaoChanneling) updateKuangcao();
+
+            let moveX = 0, moveY = 0;
+            if (input.keys['w'] || input.keys['arrowup']) moveY -= 1;
+            if (input.keys['s'] || input.keys['arrowdown']) moveY += 1;
+            if (input.keys['a'] || input.keys['arrowleft']) moveX -= 1;
+            if (input.keys['d'] || input.keys['arrowright']) moveX += 1;
+            const kLen = Math.sqrt(moveX*moveX + moveY*moveY);
+            if (kLen > 1) { moveX /= kLen; moveY /= kLen; }
+            if (kLen < 0.1) { moveX = Math.max(-1, Math.min(1, input.moveX)); moveY = Math.max(-1, Math.min(1, input.moveY)); }
+
+            const rank = comboRanks[game.currentRank];
+            const currentSpeed = player.speed * (1 + player.moveSpeedBonus + rank.speedBonus);
+            if (!player.isDodging && !player.kuangcaoChanneling) { player.vx = moveX * currentSpeed; player.vy = moveY * currentSpeed; }
+            else if (player.kuangcaoChanneling) { player.vx = moveX * currentSpeed * 0.5; player.vy = moveY * currentSpeed * 0.5; }
+
+            player.x += player.vx * dt;
+            player.y += player.vy * dt;
+
+            if (player.isDodging) {
+                player.dodgeTime--;
+                if (player.dodgeTime <= 0) { player.isDodging = false; player.vx *= 0.3; player.vy *= 0.3; }
+            }
+            if (player.attackAnim > 0) player.attackAnim--;
+            updateHair();
+
+            if (player.attackCooldown > 0) player.attackCooldown--;
+            if (player.dodgeCooldown > 0) player.dodgeCooldown--;
+
+            if (game.comboTimer > 0) {
+                game.comboTimer--;
+                if (game.comboTimer <= 0) {
+                    game.combo = 0;
+                    document.getElementById('comboDisplay').classList.remove('show');
+                    game.currentRank = 0;
+                    applyRankBonus(0);
+                } else if (game.combo > 1) {
+                    document.getElementById('comboDisplay').classList.add('show');
+                    document.getElementById('comboCount').textContent = game.combo;
+                }
+            }
+
+            enemies = enemies.filter((enemy) => {
+                const dx = player.x - enemy.x, dy = player.y - enemy.y;
+                const distSq = dx*dx + dy*dy;
+                enemy.simplified = distSq > perf.cullDistance * perf.cullDistance;
+                if ((game.time + enemy.updateOffset) % perf.updateInterval === 0 && !enemy.simplified) {
+                    const dist = Math.sqrt(distSq);
+                    if (dist > 30) { const moveFactor = enemy.speed * 0.08; enemy.vx += (dx / dist) * moveFactor; enemy.vy += (dy / dist) * moveFactor; }
+                    enemy.vx *= 0.92; enemy.vy *= 0.92;
+                }
+                enemy.x += enemy.vx * dt; enemy.y += enemy.vy * dt;
+
+                if (!enemy.simplified && distSq < 2500 && !player.invincible && enemy.attackCooldown <= 0) {
+                    let damage = Math.max(0, enemy.damage);
+                    if (player.hp >= player.maxHp && player.fullHpProtection && !player.protectionTriggered) {
+                        if (damage >= player.hp) { damage = player.hp - 1; player.protectionTriggered = true; showProtectionText(player.x, player.y - 50); triggerShake(); }
+                    }
+                    player.hp -= damage; enemy.attackCooldown = 50;
+                    const dist = Math.sqrt(distSq) || 1;
+                    player.vx -= (dx / dist) * 7; player.vy -= (dy / dist) * 7;
+                    document.body.style.boxShadow = 'inset 0 0 80px rgba(139,0,0,0.5)';
+                    setTimeout(() => document.body.style.boxShadow = 'none', 250);
+                }
+                if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+
+                if (enemy.hp <= 0) {
+                    if (enemy.explodeOnDeath) {
+                        const distSq2 = (player.x - enemy.x)**2 + (player.y - enemy.y)**2;
+                        if (distSq2 < 10000 && !player.invincible) {
+                            let damage = enemy.damage * 0.8;
+                            if (player.hp >= player.maxHp && player.fullHpProtection && !player.protectionTriggered) {
+                                if (damage >= player.hp) { damage = player.hp - 1; player.protectionTriggered = true; showProtectionText(player.x, player.y - 50); triggerShake(); }
+                            }
+                            player.hp -= damage;
+                            createBloodSplash(player.x, player.y, Math.atan2(player.y - enemy.y, player.x - enemy.x), 2.5);
+                        }
+                    }
+                    game.score += enemy.inkDrop * 10;
+                    player.ink = Math.min(player.maxInk, player.ink + enemy.inkDrop * player.inkEfficiency);
+                    if (inkStains.length < perf.maxInkStains) inkStains.push({ x: enemy.x, y: enemy.y, size: 0, maxSize: enemy.radius * 2.2, alpha: 0.5, isBlood: enemy.type === 'bomber', jieqiColor: enemy.jieqiColor });
+                    return false;
+                }
+                return true;
+            });
+
+            if (enemies.length === 0 && game.state === 'playing' && !upgradePending) {
+                upgradePending = true;
+                setTimeout(() => {
+                    if (enemies.length === 0 && game.state === 'playing') {
+                        showUpgrade();
+                    }
+                    upgradePending = false;
+                }, 300);
+            }
+
+            particles = particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life--; return p.life > 0; });
+            swordTrails = swordTrails.filter(t => { t.life--; return t.life > 0; });
+            bloodDrops = bloodDrops.filter(b => {
+                b.x += b.vx; b.y += b.vy; b.vy += b.gravity; b.life--;
+                if (b.life <= 0) {
+                    if (inkStains.length < perf.maxInkStains && Math.random() > 0.4) inkStains.push({ x: b.x, y: b.y, size: 0, maxSize: b.size * 1.8, alpha: 0.4, isBlood: true, jieqiColor: getCurrentJieqi().color });
+                    return false;
+                }
+                return true;
+            });
+            floatingTexts = floatingTexts.filter(ft => { ft.y += ft.vy; ft.life--; return ft.life > 0; });
+            if (inkStains.length > perf.maxInkStains) inkStains.shift();
+            inkStains.forEach(s => { if (s.size < s.maxSize) s.size += 0.35; });
+
+            game.camera.x += (player.x - canvas.width/2 - game.camera.x) * 0.12;
+            game.camera.y += (player.y - canvas.height/2 - game.camera.y) * 0.12;
+
+            if (player.hp <= 0 && game.state === 'playing') gameOver();
+            updateUI();
+        }
+
+        function updateHair() {
+            player.hairSegments[0].x = player.x; player.hairSegments[0].y = player.y;
+            for (let i = 1; i < player.hairSegments.length; i++) {
+                const prev = player.hairSegments[i-1], curr = player.hairSegments[i];
+                const dx = curr.x - prev.x, dy = curr.y - prev.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const maxDist = player.hairLength / player.hairSegments.length;
+                if (dist > maxDist) { const angle = Math.atan2(dy, dx); curr.x = prev.x + Math.cos(angle) * maxDist; curr.y = prev.y + Math.sin(angle) * maxDist; }
+                if (i % 2 === 0) { curr.x += (Math.random() - 0.5); curr.y += (Math.random() - 0.5) + 0.3; }
+            }
+        }
+
+        // ============ 绘制系统 ============
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.25)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(-game.camera.x, -game.camera.y);
+
+            const jieqi = getCurrentJieqi();
+
+            // === 第1层：背景/装饰（低对比度）===
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.012)';
+            ctx.lineWidth = 1;
+            const gridSize = world.gridSize;
+            const startX = Math.floor(game.camera.x / gridSize) * gridSize;
+            const startY = Math.floor(game.camera.y / gridSize) * gridSize;
+            const endX = startX + canvas.width + gridSize;
+            const endY = startY + canvas.height + gridSize;
+
+            for (let x = startX; x <= endX; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+            }
+            for (let y = startY; y <= endY; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+            }
+
+            worldDecor.forEach(decor => {
+                const sx = decor.x - game.camera.x, sy = decor.y - game.camera.y;
+                if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) return;
+                const dist = Math.sqrt((decor.x - player.x)**2 + (decor.y - player.y)**2);
+                const alpha = Math.max(0, 1 - dist / world.decorDist) * 0.15;
+                if (alpha <= 0) return;
+                ctx.globalAlpha = alpha;
+                if (decor.type === 'rock') {
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.beginPath();
+                    ctx.moveTo(decor.x, decor.y - decor.size);
+                    ctx.lineTo(decor.x + decor.size * 0.7, decor.y + decor.size * 0.3);
+                    ctx.lineTo(decor.x - decor.size * 0.5, decor.y + decor.size * 0.5);
+                    ctx.closePath(); ctx.fill();
+                } else {
+                    ctx.strokeStyle = '#1a2a1a';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(decor.x, decor.y + decor.size);
+                    ctx.quadraticCurveTo(decor.x + Math.sin(game.time * 0.01 + decor.seed * 10) * 10, decor.y, decor.x + Math.sin(game.time * 0.02 + decor.seed * 5) * 5, decor.y - decor.size);
+                    ctx.stroke();
+                }
+            });
+            ctx.globalAlpha = 1;
+
+            if (game.quality === 'premium') {
+                const cloudSeed = Math.floor(game.camera.x / 300) + Math.floor(game.camera.y / 300);
+                for (let i = 0; i < 5; i++) {
+                    const cx = startX + (i * 300 + cloudSeed * 50) % (canvas.width + 300);
+                    const cy = startY + ((i * 137 + cloudSeed * 73) % (canvas.height + 300));
+                    patterns.cloud(ctx, cx, cy, 20, 0.08);
+                }
+            }
+
+            // === 第2层：环境墨迹与血滴（中对比度）===
+            inkStains.forEach(stain => {
+                const screenX = stain.x - game.camera.x, screenY = stain.y - game.camera.y;
+                if (screenX > -120 && screenX < canvas.width + 120 && screenY > -120 && screenY < canvas.height + 120) {
+                    const grad = ctx.createRadialGradient(stain.x, stain.y, 0, stain.x, stain.y, stain.size);
+                    if (stain.isBlood) grad.addColorStop(0, `rgba(100, 0, 0, ${stain.alpha})`);
+                    else if (stain.jieqiColor) {
+                        const r = parseInt(stain.jieqiColor.slice(1, 3), 16);
+                        const g = parseInt(stain.jieqiColor.slice(3, 5), 16);
+                        const b = parseInt(stain.jieqiColor.slice(5, 7), 16);
+                        grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${stain.alpha * 0.5})`);
+                    } else grad.addColorStop(0, `rgba(30, 30, 30, ${stain.alpha})`);
+                    grad.addColorStop(1, 'rgba(10, 10, 10, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath(); ctx.arc(stain.x, stain.y, stain.size, 0, Math.PI * 2); ctx.fill();
+                }
+            });
+
+            bloodDrops.forEach(b => { ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill(); });
+
+            // === 第3层：攻击特效（高对比度）===
+            if (game.quality === 'premium') {
+                swordTrails.forEach(trail => {
+                    const alpha = (trail.life / trail.maxLife) * 0.8;
+                    if (trail.isBrush) {
+                        drawBrushStroke(ctx, trail.x1, trail.y1, trail.x2, trail.y2, trail.width * (trail.life / trail.maxLife), trail.color, alpha);
+                    } else {
+                        ctx.strokeStyle = trail.color.replace(/[\d.]+\)$/, alpha + ')');
+                        ctx.lineWidth = trail.width * (trail.life / trail.maxLife);
+                        ctx.lineCap = 'round'; ctx.shadowBlur = 12; ctx.shadowColor = trail.color;
+                        ctx.beginPath(); ctx.moveTo(trail.x1, trail.y1); ctx.lineTo(trail.x2, trail.y2); ctx.stroke();
+                        ctx.shadowBlur = 0;
+                    }
+                });
+            }
+
+            if (game.quality === 'premium' && liubaiEffects.length > 0) {
+                liubaiEffects.forEach(effect => {
+                    const alpha = effect.life / effect.maxLife;
+                    ctx.globalAlpha = alpha;
+                    if (effect.type === 'ripple') { ctx.strokeStyle = effect.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(effect.x, effect.y, effect.size * (2 - alpha), 0, Math.PI * 2); ctx.stroke(); }
+                    else if (effect.type === 'ink') { ctx.fillStyle = effect.color; ctx.beginPath(); ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2); ctx.fill(); }
+                    else if (effect.type === 'particle') { ctx.fillStyle = effect.color; ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(255, 215, 0, 0.8)'; ctx.beginPath(); ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+                    else if (effect.type === 'cloud') patterns.cloud(ctx, effect.x, effect.y, effect.size, alpha * 0.3);
+                    else if (effect.type === 'shockwave') { ctx.strokeStyle = effect.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2); ctx.stroke(); }
+                    else if (effect.type === 'ghost') { ctx.fillStyle = effect.color; ctx.beginPath(); ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2); ctx.fill(); }
+                    // P1：墨花绽放绘制
+                    else if (effect.type === 'inkBloom') {
+                        ctx.save();
+                        ctx.translate(effect.x, effect.y);
+                        ctx.rotate(effect.angle);
+                        ctx.fillStyle = effect.color;
+                        ctx.globalAlpha = alpha;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.bezierCurveTo(effect.petalLength * 0.25, -effect.size * 0.4, effect.petalLength * 0.7, -effect.size * 0.15, effect.petalLength, 0);
+                        ctx.bezierCurveTo(effect.petalLength * 0.7, effect.size * 0.15, effect.petalLength * 0.25, effect.size * 0.4, 0, 0);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                });
+                ctx.globalAlpha = 1;
+            }
+
+            // === 第3层：分身 ===
+            player.clones.forEach(clone => {
+                ctx.save(); ctx.translate(clone.x, clone.y); ctx.globalAlpha = 0.5 + Math.sin(game.time * 0.2) * 0.1;
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.5)'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(clone.facing.x * 50, clone.facing.y * 50); ctx.stroke();
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.3)'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)'; ctx.lineWidth = 1; ctx.stroke();
+                ctx.restore();
+            });
+
+            // === 第2层：敌人 ===
+            enemies.forEach(enemy => {
+                const screenX = enemy.x - game.camera.x, screenY = enemy.y - game.camera.y;
+                if (screenX < -60 || screenX > canvas.width + 60 || screenY < -60 || screenY > canvas.height + 60) return;
+                ctx.save(); ctx.translate(enemy.x, enemy.y);
+                if (enemy.hitFlash > 0) ctx.globalAlpha = 0.5 + Math.sin(enemy.hitFlash * 0.5) * 0.5;
+                if (enemy.poisoned > 0) { ctx.strokeStyle = `rgba(0, 255, 100, ${0.2 + Math.sin(game.time * 0.3) * 0.1})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, enemy.radius + 4, 0, Math.PI * 2); ctx.stroke(); }
+                const r = parseInt(enemy.jieqiColor.slice(1, 3), 16), g = parseInt(enemy.jieqiColor.slice(3, 5), 16), b = parseInt(enemy.jieqiColor.slice(5, 7), 16);
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.25)`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, enemy.radius + 4, 0, Math.PI * 2); ctx.stroke();
+
+                switch(enemy.type) {
+                    case 'slime':
+                        const pulse = Math.sin(game.time * 0.1) * 2;
+                        ctx.fillStyle = '#1a1a1a'; ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(0, pulse, enemy.radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                        patterns.meander(ctx, 0, pulse, 8, 0.3);
+                        ctx.fillStyle = '#666'; ctx.beginPath(); ctx.arc(-5, pulse-2, 3, 0, Math.PI * 2); ctx.arc(5, pulse-2, 3, 0, Math.PI * 2); ctx.fill();
+                        break;
+                    case 'paper':
+                        ctx.fillStyle = '#f5f5f5'; ctx.fillRect(-15, -20, 30, 40); ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.strokeRect(-15, -20, 30, 40);
+                        patterns.scroll(ctx, 0, -5, 10, 0.4);
+                        ctx.fillStyle = '#8b0000'; ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI * 2); ctx.fill();
+                        break;
+                    case 'ghost':
+                        ctx.fillStyle = 'rgba(200, 200, 200, 0.3)'; ctx.beginPath(); ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 1; ctx.stroke();
+                        patterns.cloud(ctx, 0, -5, 8, 0.3);
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.beginPath(); ctx.arc(0, -5, 4, 0, Math.PI * 2); ctx.fill();
+                        break;
+                    case 'ninja':
+                        ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.moveTo(0, -enemy.radius); ctx.lineTo(enemy.radius, enemy.radius); ctx.lineTo(-enemy.radius, enemy.radius); ctx.closePath(); ctx.fill();
+                        patterns.taiji(ctx, 0, 0, 6, 0.5);
+                        ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+                        break;
+                    case 'sumo':
+                        ctx.fillStyle = '#3a3a3a'; ctx.beginPath(); ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2); ctx.fill();
+                        patterns.lotus(ctx, 0, 0, 12, 0.3);
+                        ctx.strokeStyle = '#666'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, enemy.radius - 5, 0, Math.PI * 2); ctx.stroke();
+                        break;
+                    case 'archer':
+                        ctx.fillStyle = '#4a3728'; ctx.beginPath(); ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2); ctx.fill();
+                        patterns.auspicious(ctx, 0, -5, 10, 0.3);
+                        ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -enemy.radius); ctx.lineTo(0, enemy.radius); ctx.stroke();
+                        break;
+                    case 'bomber':
+                        ctx.fillStyle = '#4a0000'; ctx.beginPath(); ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2); ctx.fill();
+                        patterns.meander(ctx, 0, 0, 8, 0.3);
+                        if (Math.floor(game.time / 10) % 2 === 0) { ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill(); }
+                        break;
+                }
+                ctx.globalAlpha = 1;
+                const hpPct = enemy.hp / enemy.maxHp;
+                ctx.fillStyle = '#333'; ctx.fillRect(-20, -38, 40, 4);
+                ctx.fillStyle = hpPct > 0.5 ? '#4a4' : '#a44'; ctx.fillRect(-20, -38, 40 * hpPct, 4);
+                ctx.restore();
+            });
+
+            // === 第3层：环绕武器 ===
+            player.orbitWeapons.forEach(weapon => {
+                ctx.save(); ctx.translate(weapon.x, weapon.y); ctx.rotate(game.time * 0.1);
+                ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.9)'; ctx.beginPath(); ctx.moveTo(0, -weapon.size); ctx.lineTo(weapon.size * 0.5, 0); ctx.lineTo(0, weapon.size * 1.5); ctx.lineTo(-weapon.size * 0.5, 0); ctx.closePath(); ctx.fill();
+                ctx.strokeStyle = 'rgba(139, 69, 19, 0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -weapon.size); ctx.lineTo(0, weapon.size * 1.5); ctx.stroke();
+                ctx.shadowBlur = 0; ctx.restore();
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.08)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(player.x, player.y, weapon.orbitRadius, 0, Math.PI * 2); ctx.stroke();
+            });
+
+            // === 第3层：玩家（最高对比度）===
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            const hairWidth = player.isKuangcao ? 3 : player.hairWidth;
+            const hairColor = player.isKuangcao ? 'rgba(255, 215, 0, 0.9)' : 'rgba(255, 255, 255, 0.85)';
+            ctx.strokeStyle = hairColor; ctx.lineWidth = hairWidth;
+            if (player.isKuangcao) { ctx.shadowBlur = 18; ctx.shadowColor = 'rgba(255, 215, 0, 0.5)'; } else ctx.shadowBlur = 0;
+            const attackOffset = player.attackAnim > 0 ? Math.sin(player.attackAnim * 0.5) * 10 : 0;
+            ctx.beginPath();
+            for (let i = 0; i < player.hairSegments.length; i++) {
+                const seg = player.hairSegments[i];
+                const offsetX = i > 5 ? Math.cos(player.facing.x * attackOffset) * (i - 5) * 0.5 : 0;
+                if (i === 0) ctx.moveTo(seg.x + offsetX, seg.y); else ctx.lineTo(seg.x + offsetX, seg.y);
+            }
+            ctx.stroke();
+            if (player.hairBranches > 1 && !player.isKuangcao) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.lineWidth = player.hairWidth * 0.5;
+                const tip = player.hairSegments[player.hairSegments.length - 1];
+                ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(tip.x + 22, tip.y + 12); ctx.moveTo(player.x, player.y); ctx.lineTo(tip.x - 22, tip.y + 12); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+
+            ctx.save(); ctx.translate(player.x, player.y);
+            if (player.isKuangcao) { ctx.shadowBlur = 22; ctx.shadowColor = 'rgba(255, 215, 0, 0.6)'; }
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, player.radius, 0, Math.PI * 2); ctx.fill();
+            patterns.taiji(ctx, 0, 0, 9, 0.6);
+            ctx.fillStyle = player.isKuangcao ? '#b8860b' : '#700'; ctx.fillRect(-6, 4, 12, 12);
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+            if (player.isDodging || player.isKuangcao) { ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(-3, -1, 2, 0, Math.PI * 2); ctx.arc(3, -1, 2, 0, Math.PI * 2); ctx.fill(); }
+            else { ctx.beginPath(); ctx.moveTo(-5, -1); ctx.lineTo(-2, -1); ctx.moveTo(2, -1); ctx.lineTo(5, -1); ctx.stroke(); }
+
+            if (player.invincible) {
+                const alpha = 0.3 + Math.sin(game.time * 0.3) * 0.2;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, player.radius + 5, 0, Math.PI * 2); ctx.stroke();
+                patterns.auspicious(ctx, 0, 0, player.radius + 10, alpha * 0.4);
+            }
+            if (player.fullHpProtection && !player.protectionTriggered && player.hp >= player.maxHp) {
+                ctx.strokeStyle = 'rgba(74, 255, 74, 0.8)'; ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(0, 0, player.radius + 9, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+                patterns.lotus(ctx, 0, 0, player.radius + 14, 0.3);
+            }
+            ctx.shadowBlur = 0;
+            if (player.isDodging) { ctx.globalAlpha = 0.3; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-player.vx, -player.vy, player.radius - 2, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+            if (player.kuangcaoChanneling) { ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 135 + Math.sin(game.time * 0.2) * 12, 0, Math.PI * 2); ctx.stroke(); patterns.scroll(ctx, 0, 0, 140, 0.2); }
+            if (!game.isTouch) { ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 1; ctx.setLineDash([5, 10]); ctx.beginPath(); ctx.moveTo(0, 0); const aimAngle = Math.atan2(input.mouseWorldY - player.y, input.mouseWorldX - player.x); ctx.lineTo(Math.cos(aimAngle) * 60, Math.sin(aimAngle) * 60); ctx.stroke(); ctx.setLineDash([]); }
+            ctx.restore();
+
+            // === 第3层：粒子 ===
+            particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life / 20; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); });
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+            // === 第4层：浮动文字（最高对比度）===
+            floatingTexts.forEach(ft => { const alpha = ft.life / ft.maxLife; ctx.globalAlpha = alpha; ctx.fillStyle = ft.color; ctx.font = `bold ${ft.size}px 'ZCOOL XiaoWei', serif`; ctx.textAlign = 'center'; ctx.fillText(ft.text, ft.x, ft.y); });
+            ctx.globalAlpha = 1;
+
+            ctx.restore();
+        }
+
+        function updateUI() {
+            const hpPercent = Math.max(0, Math.min(100, (player.hp / player.maxHp * 100)));
+            document.getElementById('hpBar').style.width = hpPercent + '%';
+            document.getElementById('hpText').textContent = `${Math.max(0, Math.ceil(player.hp))}/${player.maxHp}`;
+            document.getElementById('inkBar').style.width = (player.ink / player.maxInk * 100) + '%';
+            document.getElementById('inkText').textContent = `${Math.floor(player.ink)}/${player.maxInk}`;
+            document.getElementById('scoreDisplay').textContent = game.score;
+            document.getElementById('waveDisplay').textContent = `第 ${game.wave} 波`;
+            const jieqi = getCurrentJieqi();
+            const jieqiDisplay = document.getElementById('jieqiDisplay');
+            jieqiDisplay.textContent = `当前节气：${jieqi.name} · ${jieqi.desc}`; jieqiDisplay.style.color = jieqi.color;
+
+            const dodgeBtn = document.getElementById('dodgeBtn');
+            const dodgeCd = document.getElementById('dodgeCooldown');
+            const kuangcaoBtn = document.getElementById('kuangcaoBtn');
+            if (player.dodgeCooldown > 0) { dodgeCd.style.height = (player.dodgeCooldown / 40 * 100) + '%'; dodgeBtn.classList.add('disabled'); }
+            else { dodgeCd.style.height = '0%'; dodgeBtn.classList.remove('disabled'); }
+            if (player.ink >= 100 && !player.isKuangcao && !player.kuangcaoChanneling) { kuangcaoBtn.classList.remove('disabled'); kuangcaoBtn.classList.add('ready'); }
+            else { kuangcaoBtn.classList.add('disabled'); kuangcaoBtn.classList.remove('ready'); }
+        }
+
+        function gameOver() {
+            if (game.state === 'gameover') return;
+            game.state = 'gameover';
+            document.getElementById('finalScore').textContent = game.score;
+            document.getElementById('gameOver').classList.remove('hidden');
+            document.getElementById('gameUI').classList.add('hidden');
+            document.getElementById('joystickBase').classList.remove('active');
+            document.getElementById('joystickKnob').classList.remove('active');
+            input.moveX = 0; input.moveY = 0; input.attacking = false; input.kuangcaoPressed = false;
+        }
+
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+        // ============ 设置 ============
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        let settingsOpen = false;
+        settingsBtn.addEventListener('click', () => {
+            settingsOpen = !settingsOpen;
+            if (settingsOpen) { game.paused = true; settingsPanel.classList.add('active'); pauseOverlay.classList.add('active'); }
+            else { game.paused = false; settingsPanel.classList.remove('active'); pauseOverlay.classList.remove('active'); }
+        });
+        pauseOverlay.addEventListener('click', () => { settingsOpen = false; game.paused = false; settingsPanel.classList.remove('active'); pauseOverlay.classList.remove('active'); });
+        const shakeSlider = document.getElementById('shakeSlider');
+        const shakeValue = document.getElementById('shakeValue');
+        shakeSlider.addEventListener('input', (e) => { const value = parseInt(e.target.value); game.shakeIntensity = value / 100; shakeValue.textContent = value + '%'; });
+        const soundToggle = document.getElementById('soundToggle');
+        soundToggle.addEventListener('click', () => { game.soundEnabled = !game.soundEnabled; soundToggle.textContent = game.soundEnabled ? '开启' : '关闭'; soundToggle.classList.toggle('active', game.soundEnabled); if (game.soundEnabled) initAudio(); });
+
+        // P1：死区调节
+        const deadzoneSlider = document.getElementById('deadzoneSlider');
+        const deadzoneValue = document.getElementById('deadzoneValue');
+        deadzoneSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            deadzone = value / 100;
+            deadzoneValue.textContent = value + '%';
+            localStorage.setItem('kuangcao_deadzone', deadzone);
+        });
+        // 读取保存的死区
+        const savedDeadzone = localStorage.getItem('kuangcao_deadzone');
+        if (savedDeadzone !== null) {
+            deadzone = parseFloat(savedDeadzone);
+            deadzoneSlider.value = Math.round(deadzone * 100);
+            deadzoneValue.textContent = Math.round(deadzone * 100) + '%';
+        }
+
+        // P1：自定义布局开关
+        const layoutToggle = document.getElementById('layoutToggle');
+        const gameUI = document.getElementById('gameUI');
+        layoutToggle.addEventListener('click', () => {
+            customLayoutMode = !customLayoutMode;
+            layoutToggle.textContent = customLayoutMode ? '开启' : '关闭';
+            layoutToggle.classList.toggle('active', customLayoutMode);
+            if (customLayoutMode) {
+                gameUI.classList.add('custom-layout-mode');
+                document.getElementById('layoutHint').classList.add('active');
+            } else {
+                gameUI.classList.remove('custom-layout-mode');
+                document.getElementById('layoutHint').classList.remove('active');
+                draggedElement = null;
+            }
+        });
+
+        // ============ 触屏控制 ============
+        const joystickArea = document.getElementById('joystickArea');
+        const joystickBase = document.getElementById('joystickBase');
+        const joystickKnob = document.getElementById('joystickKnob');
+        let joystickTouchId = null;
+        let joystickPos = { x: 0, y: 0 };
+        const maxRadius = 35;
+        function getTouchById(touches, id) { for (let i = 0; i < touches.length; i++) if (touches[i].identifier === id) return touches[i]; return null; }
+
+        joystickArea.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (joystickTouchId !== null || game.paused) return;
+            const touch = e.changedTouches[0]; joystickTouchId = touch.identifier;
+            joystickPos.x = touch.clientX; joystickPos.y = touch.clientY;
+            joystickBase.style.left = (joystickPos.x - 60) + 'px'; joystickBase.style.top = (joystickPos.y - 60) + 'px';
+            joystickKnob.style.left = (joystickPos.x - 25) + 'px'; joystickKnob.style.top = (joystickPos.y - 25) + 'px';
+            joystickBase.classList.add('active'); joystickKnob.classList.add('active');
+            updateJoystickInput(touch);
+        }, { passive: false });
+        joystickArea.addEventListener('touchmove', e => { e.preventDefault(); if (joystickTouchId === null || game.paused) return; const touch = getTouchById(e.changedTouches, joystickTouchId); if (!touch) return; updateJoystickInput(touch); }, { passive: false });
+        joystickArea.addEventListener('touchend', e => { e.preventDefault(); const touch = getTouchById(e.changedTouches, joystickTouchId); if (!touch) return; joystickTouchId = null; input.moveX = 0; input.moveY = 0; joystickBase.classList.remove('active'); joystickKnob.classList.remove('active'); }, { passive: false });
+        joystickArea.addEventListener('touchcancel', e => { e.preventDefault(); const touch = getTouchById(e.changedTouches, joystickTouchId); if (!touch) return; joystickTouchId = null; input.moveX = 0; input.moveY = 0; joystickBase.classList.remove('active'); joystickKnob.classList.remove('active'); }, { passive: false });
+        function updateJoystickInput(touch) {
+            let dx = touch.clientX - joystickPos.x, dy = touch.clientY - joystickPos.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > maxRadius) { const ratio = maxRadius / dist; dx *= ratio; dy *= ratio; }
+            // P1：应用死区
+            const inputDist = Math.sqrt(dx*dx + dy*dy);
+            const deadzonePx = deadzone * maxRadius;
+            if (inputDist < deadzonePx) {
+                dx = 0; dy = 0;
+            } else {
+                // 重新映射死区外的值到完整范围
+                const effectiveMax = maxRadius - deadzonePx;
+                const effectiveDist = inputDist - deadzonePx;
+                const scale = effectiveDist / effectiveMax;
+                const angle = Math.atan2(dy, dx);
+                dx = Math.cos(angle) * maxRadius * scale;
+                dy = Math.sin(angle) * maxRadius * scale;
+            }
+            joystickKnob.style.left = (joystickPos.x + dx - 25) + 'px'; joystickKnob.style.top = (joystickPos.y + dy - 25) + 'px';
+            input.moveX = dx / maxRadius; input.moveY = dy / maxRadius;
+        }
+
+        const attackBtn = document.getElementById('attackBtn');
+        attackBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); if (game.paused || customLayoutMode) return; input.attacking = true; attackBtn.classList.add('active'); attack(); }, { passive: false });
+        attackBtn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); input.attacking = false; attackBtn.classList.remove('active'); }, { passive: false });
+        document.getElementById('dodgeBtn').addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); if (game.paused || customLayoutMode) return; dodge(); }, { passive: false });
+        const kuangcaoBtn = document.getElementById('kuangcaoBtn');
+        kuangcaoBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); if (game.paused || customLayoutMode) return; if (startKuangcao()) input.kuangcaoPressed = true; }, { passive: false });
+        kuangcaoBtn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); input.kuangcaoPressed = false; cancelKuangcao(); }, { passive: false });
+        kuangcaoBtn.addEventListener('touchcancel', e => { e.preventDefault(); e.stopPropagation(); input.kuangcaoPressed = false; cancelKuangcao(); }, { passive: false });
+        document.addEventListener('touchmove', e => { if (e.target === canvas || e.target.id === 'joystickArea') e.preventDefault(); }, { passive: false });
+
+        // ============ P1：按钮拖拽自定义布局 ============
+        const draggableButtons = ['attackBtn', 'dodgeBtn', 'kuangcaoBtn'];
+        function initLayoutDrag() {
+            draggableButtons.forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('touchstart', handleLayoutDragStart, { passive: false });
+                el.addEventListener('touchmove', handleLayoutDragMove, { passive: false });
+                el.addEventListener('touchend', handleLayoutDragEnd, { passive: false });
+            });
+        }
+        function handleLayoutDragStart(e) {
+            if (!customLayoutMode) return;
+            e.preventDefault(); e.stopPropagation();
+            const touch = e.changedTouches[0];
+            draggedElement = e.currentTarget;
+            draggedElement.classList.add('dragging');
+            // 将right/bottom定位转换为left/top定位
+            const rect = draggedElement.getBoundingClientRect();
+            draggedElement.style.left = rect.left + 'px';
+            draggedElement.style.top = rect.top + 'px';
+            draggedElement.style.right = 'auto';
+            draggedElement.style.bottom = 'auto';
+            dragOffset.x = touch.clientX - rect.left;
+            dragOffset.y = touch.clientY - rect.top;
+        }
+        function handleLayoutDragMove(e) {
+            if (!draggedElement || !customLayoutMode) return;
+            e.preventDefault(); e.stopPropagation();
+            const touch = e.changedTouches[0];
+            draggedElement.style.left = (touch.clientX - dragOffset.x) + 'px';
+            draggedElement.style.top = (touch.clientY - dragOffset.y) + 'px';
+        }
+        function handleLayoutDragEnd(e) {
+            if (!draggedElement) return;
+            draggedElement.classList.remove('dragging');
+            draggedElement = null;
+            saveLayout();
+        }
+        function saveLayout() {
+            const layout = {};
+            draggableButtons.forEach(id => {
+                const el = document.getElementById(id);
+                layout[id] = {
+                    left: el.style.left,
+                    top: el.style.top,
+                    right: el.style.right,
+                    bottom: el.style.bottom
+                };
+            });
+            localStorage.setItem(layoutStorageKey, JSON.stringify(layout));
+        }
+        function loadLayout() {
+            const saved = localStorage.getItem(layoutStorageKey);
+            if (!saved) return;
+            try {
+                const layout = JSON.parse(saved);
+                Object.keys(layout).forEach(id => {
+                    const el = document.getElementById(id);
+                    const pos = layout[id];
+                    if (pos.left && pos.left !== 'auto') el.style.left = pos.left;
+                    if (pos.top && pos.top !== 'auto') el.style.top = pos.top;
+                    if (pos.right && pos.right !== 'auto') el.style.right = pos.right;
+                    if (pos.bottom && pos.bottom !== 'auto') el.style.bottom = pos.bottom;
+                });
+            } catch(e) {}
+        }
+
+        // ============ PC键鼠 ============
+        window.addEventListener('keydown', e => {
+            input.keys[e.key.toLowerCase()] = true;
+            if (game.state !== 'playing' || game.paused) return;
+            if (e.code === 'Space') { e.preventDefault(); dodge(); }
+            if (e.code === 'KeyQ') { e.preventDefault(); if (startKuangcao()) input.kuangcaoPressed = true; }
+            if (e.code === 'Escape') settingsBtn.click();
+        });
+        window.addEventListener('keyup', e => {
+            input.keys[e.key.toLowerCase()] = false;
+            if (e.code === 'KeyQ') { input.kuangcaoPressed = false; cancelKuangcao(); }
+        });
+        canvas.addEventListener('mousemove', e => { input.mouseX = e.clientX; input.mouseY = e.clientY; input.mouseWorldX = e.clientX + game.camera.x; input.mouseWorldY = e.clientY + game.camera.y; });
+        canvas.addEventListener('mousedown', e => { if (game.state !== 'playing' || game.paused) return; if (e.button === 0) { input.attacking = true; attack(); } });
+        canvas.addEventListener('mouseup', e => { if (e.button === 0) input.attacking = false; });
+
+        function startGame() {
+            document.getElementById('titleScreen').classList.add('hidden');
+            document.getElementById('gameUI').classList.remove('hidden');
+            initAudio(); initHair(); spawnWave(); game.state = 'playing';
+            game.currentRank = 0;
+            applyRankBonus(0);
+            if (game.isTouch) { document.getElementById('touchHint').style.display = 'block'; document.getElementById('pcHint').style.display = 'none'; }
+            else { document.getElementById('touchHint').style.display = 'none'; document.getElementById('pcHint').style.display = 'block'; }
+            // P1：加载自定义布局
+            loadLayout();
+        }
+
+        window.addEventListener('resize', () => { resizeCanvas(); game.isTouch = detectTouch(); });
+        // P1：初始化拖拽
+        initLayoutDrag();
+        loop();
+    </script>
+</body>
+</html>
