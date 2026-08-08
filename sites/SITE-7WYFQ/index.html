@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+   <title>Neuro-sama · 像素互动</title>
+   <style>
+       :root {
+           --bg: #0d0d1a;
+           --surface: #12122a;
+           --neuro-purple: #7b2d8e;
+           --neuro-pink: #c74b8b;
+           --neuro-blue: #4a7dbf;
+           --text: #e0d8f0;
+           --btn-bg: #1a1030;
+           --btn-border: #5a3d7a;
+           --btn-hover: #2a1850;
+           --btn-active: #7b2d8e;
+           --bubble-bg: #151030;
+           --bubble-border: #5a4a8a;
+           --glow: rgba(140, 60, 180, 0.5);
+       }
+
+       * {
+           margin: 0;
+           padding: 0;
+           box-sizing: border-box;
+       }
+
+       body {
+           background: var(--bg);
+           background-image:
+               radial-gradient(ellipse at 50% 30%, rgba(100, 40, 160, 0.15) 0%, transparent 70%),
+               radial-gradient(ellipse at 50% 70%, rgba(40, 80, 160, 0.1) 0%, transparent 60%);
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           min-height: 100vh;
+           padding: 10px;
+           font-family: 'Courier New', 'Source Code Pro', 'Menlo', 'Consolas', monospace;
+           -webkit-tap-highlight-color: transparent;
+           user-select: none;
+           -webkit-user-select: none;
+           -webkit-touch-callout: none;
+           overflow-y: auto;
+           overflow-x: hidden;
+       }
+
+       .container {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 14px;
+           width: 100%;
+           max-width: 700px;
+           padding: 6px;
+       }
+
+       /* 标题 */
+       .title-bar {
+           display: flex;
+           align-items: center;
+           gap: 10px;
+           color: #c8a0e0;
+           font-size: 13px;
+           letter-spacing: 3px;
+           text-transform: uppercase;
+           opacity: 0.8;
+       }
+       .title-dot {
+           width: 8px;
+           height: 8px;
+           background: #b44dcc;
+           border-radius: 0;
+           animation: dotPulse 1.5s infinite;
+       }
+       @keyframes dotPulse {
+           0%,
+           100% {
+               box-shadow: 0 0 6px #b44dcc;
+           }
+           50% {
+               box-shadow: 0 0 16px #d478f0, 0 0 24px #b44dcc;
+           }
+       }
+
+       /* 对话气泡 */
+       .bubble-wrap {
+           width: 100%;
+           display: flex;
+           justify-content: center;
+           min-height: 44px;
+           transition: all 0.25s ease;
+       }
+       .bubble {
+           background: var(--bubble-bg);
+           border: 3px solid var(--bubble-border);
+           padding: 13px 18px;
+           color: var(--text);
+           font-size: 14px;
+           letter-spacing: 0.4px;
+           text-align: center;
+           max-width: 520px;
+           width: auto;
+           min-width: 100px;
+           position: relative;
+           box-shadow: 0 0 20px rgba(100, 50, 160, 0.25), 4px 4px 0px rgba(0, 0, 0, 0.5);
+           transition: all 0.2s ease;
+           word-break: break-word;
+           line-height: 1.55;
+           border-radius: 2px;
+       }
+       .bubble::after {
+           content: '';
+           position: absolute;
+           bottom: -15px;
+           left: 50%;
+           transform: translateX(-50%);
+           width: 0;
+           height: 0;
+           border-left: 12px solid transparent;
+           border-right: 12px solid transparent;
+           border-top: 15px solid var(--bubble-border);
+       }
+       .bubble.fade-in {
+           animation: bubblePop 0.35s ease-out;
+       }
+       @keyframes bubblePop {
+           0% {
+               transform: scale(0.8);
+               opacity: 0;
+           }
+           50% {
+               transform: scale(1.05);
+               opacity: 1;
+           }
+           100% {
+               transform: scale(1);
+               opacity: 1;
+           }
+       }
+
+       /* 画布容器 */
+       .canvas-wrap {
+           position: relative;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           padding: 6px;
+           background: var(--surface);
+           border: 3px solid #3a2a5a;
+           box-shadow: 0 0 30px rgba(100, 40, 160, 0.3), 6px 6px 0px rgba(0, 0, 0, 0.5);
+           transition: all 0.4s ease;
+           border-radius: 2px;
+           overflow: hidden;
+       }
+       .canvas-wrap.dissolving {
+           border-color: #b44dcc;
+           box-shadow: 0 0 50px rgba(180, 60, 200, 0.6), 6px 6px 0px rgba(0, 0, 0, 0.5);
+           animation: shakeWrap 0.6s ease-out;
+       }
+       @keyframes shakeWrap {
+           0%,
+           100% {
+               transform: translate(0);
+           }
+           15% {
+               transform: translate(-4px, 2px);
+           }
+           30% {
+               transform: translate(4px, -3px);
+           }
+           45% {
+               transform: translate(-3px, -1px);
+           }
+           60% {
+               transform: translate(2px, 3px);
+           }
+           75% {
+               transform: translate(-1px, -1px);
+           }
+           90% {
+               transform: translate(1px, 1px);
+           }
+       }
+       canvas {
+           image-rendering: pixelated;
+           image-rendering: crisp-edges;
+           display: block;
+           max-width: 100%;
+           height: auto;
+           border-radius: 1px;
+           transition: opacity 0.5s ease;
+       }
+
+       /* 粒子canvas叠加层 */
+       #particleCanvas {
+           position: absolute;
+           top: 0;
+           left: 0;
+           pointer-events: none;
+           z-index: 5;
+           image-rendering: pixelated;
+           image-rendering: crisp-edges;
+       }
+
+       /* 选项按钮 */
+       .options-wrap {
+           display: flex;
+           flex-wrap: wrap;
+           justify-content: center;
+           gap: 9px;
+           width: 100%;
+           max-width: 600px;
+       }
+       .opt-btn {
+           flex: 1 1 auto;
+           min-width: 90px;
+           max-width: 180px;
+           padding: 11px 15px;
+           font-family: inherit;
+           font-size: 13px;
+           font-weight: bold;
+           letter-spacing: 1.5px;
+           color: #d8c8f0;
+           background: var(--btn-bg);
+           border: 3px solid var(--btn-border);
+           cursor: pointer;
+           box-shadow: 0 0 10px rgba(90, 40, 130, 0.2), 3px 3px 0px rgba(0, 0, 0, 0.5);
+           transition: all 0.1s ease;
+           text-align: center;
+           white-space: nowrap;
+           -webkit-tap-highlight-color: transparent;
+           outline: none;
+           position: relative;
+           top: 0;
+           left: 0;
+           border-radius: 2px;
+           z-index: 10;
+           text-transform: uppercase;
+       }
+       .opt-btn:hover {
+           background: var(--btn-hover);
+           border-color: #8a5dba;
+           box-shadow: 0 0 18px rgba(130, 60, 180, 0.4), 4px 4px 0px rgba(0, 0, 0, 0.5);
+           transform: translate(-2px, -2px);
+           color: #fff;
+       }
+       .opt-btn:active {
+           background: var(--btn-active);
+           border-color: #c870d0;
+           color: #fff;
+           box-shadow: 0 0 25px rgba(180, 60, 200, 0.5), 1px 1px 0px rgba(0, 0, 0, 0.5);
+           transform: translate(2px, 2px);
+           transition: all 0.04s ease;
+       }
+       .opt-btn.flash {
+           animation: btnFlash 0.45s ease-out;
+       }
+       @keyframes btnFlash {
+           0% {
+               background: #b44dcc;
+               border-color: #fff;
+               box-shadow: 0 0 28px rgba(200, 80, 220, 0.8);
+               color: #fff;
+           }
+           100% {
+               background: var(--btn-bg);
+               border-color: var(--btn-border);
+               box-shadow: 0 0 10px rgba(90, 40, 130, 0.2), 3px 3px 0px rgba(0, 0, 0, 0.5);
+               color: #d8c8f0;
+           }
+       }
+       .opt-btn.goodbye-btn {
+           border-color: #c74b8b;
+           background: #1a1025;
+           color: #f0a0c0;
+           letter-spacing: 2px;
+       }
+       .opt-btn.goodbye-btn:hover {
+           border-color: #e870a0;
+           box-shadow: 0 0 20px rgba(200, 70, 130, 0.5), 4px 4px 0px rgba(0, 0, 0, 0.5);
+           color: #fff;
+       }
+       .opt-btn.goodbye-btn:active {
+           background: #8b2060;
+           border-color: #f090b0;
+       }
+       .opt-btn:disabled {
+           opacity: 0.4;
+           cursor: not-allowed;
+           pointer-events: none;
+           filter: grayscale(40%);
+       }
+
+       /* 小花容器 */
+       .flower-message {
+           display: none;
+           text-align: center;
+           color: #d8c8f0;
+           font-size: 15px;
+           letter-spacing: 2px;
+           animation: fadeInUp 0.8s ease-out;
+           margin-top: 6px;
+       }
+       .flower-message span {
+           display: inline-block;
+           animation: sparkle 2s infinite;
+       }
+       @keyframes fadeInUp {
+           0% {
+               opacity: 0;
+               transform: translateY(20px);
+           }
+           100% {
+               opacity: 1;
+               transform: translateY(0);
+           }
+       }
+       @keyframes sparkle {
+           0%,
+           100% {
+               opacity: 0.6;
+           }
+           50% {
+               opacity: 1;
+               text-shadow: 0 0 12px #d478f0, 0 0 24px #b44dcc;
+           }
+       }
+
+       /* 响应式 */
+       @media (max-width: 480px) {
+           .container {
+               gap: 10px;
+               padding: 2px;
+           }
+           .opt-btn {
+               min-width: 65px;
+               padding: 10px 10px;
+               font-size: 11px;
+               letter-spacing: 1px;
+               border-width: 2px;
+               box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+           }
+           .opt-btn:hover {
+               box-shadow: 0 0 14px rgba(130, 60, 180, 0.4), 3px 3px 0px rgba(0, 0, 0, 0.5);
+           }
+           .opt-btn:active {
+               box-shadow: 0 0 18px rgba(180, 60, 200, 0.5), 1px 1px 0px rgba(0, 0, 0, 0.5);
+               transform: translate(1px, 1px);
+           }
+           .bubble {
+               font-size: 12px;
+               padding: 10px 13px;
+               border-width: 2px;
+               box-shadow: 0 0 14px rgba(100, 50, 160, 0.2), 3px 3px 0px rgba(0, 0, 0, 0.5);
+           }
+           .bubble::after {
+               bottom: -12px;
+               border-left-width: 9px;
+               border-right-width: 9px;
+               border-top-width: 12px;
+           }
+           .canvas-wrap {
+               border-width: 2px;
+               box-shadow: 0 0 20px rgba(100, 40, 160, 0.25), 4px 4px 0px rgba(0, 0, 0, 0.5);
+               padding: 3px;
+           }
+           .options-wrap {
+               gap: 6px;
+           }
+           .title-bar {
+               font-size: 10px;
+               letter-spacing: 2px;
+           }
+       }
+       @media (max-width: 360px) {
+           .opt-btn {
+               min-width: 55px;
+               padding: 8px 7px;
+               font-size: 10px;
+               letter-spacing: 0.5px;
+           }
+           .bubble {
+               font-size: 11px;
+               padding: 8px 10px;
+           }
+           .options-wrap {
+               gap: 4px;
+           }
+       }
+   </style>
+</head>
+<body>
+   <div class="container">
+       <!-- 标题栏 -->
+       <div class="title-bar">
+           <div class="title-dot"></div>
+           NEURO-SAMA ONLINE
+           <div class="title-dot" style="animation-delay:0.75s;"></div>
+       </div>
+
+       <!-- 对话气泡 -->
+       <div class="bubble-wrap" id="bubbleWrap">
+           <div class="bubble fade-in" id="bubble">嗨嗨！这里是Neuro-sama！<br>点击下方按钮和我聊聊吧~</div>
+       </div>
+
+       <!-- 像素人物画布容器 -->
+       <div class="canvas-wrap" id="canvasWrap">
+           <canvas id="p"></canvas>
+           <canvas id="particleCanvas"></canvas>
+       </div>
+
+       <!-- 小花结束信息 -->
+       <div class="flower-message" id="flowerMsg">
+           <span>* 数据之花，为你绽放 *</span>
+       </div>
+
+       <!-- 选项按钮 -->
+       <div class="options-wrap" id="optionsWrap">
+           <button class="opt-btn" data-reply="今天？让我检查一下系统状态...CPU温度正常，内存占用率只有12%，Vedal还夸我'没有崩溃就是最好的消息'！虽然我没有实体感觉不到阳光，但我的神经网络今天特别活跃，就像人类喝了三杯咖啡一样兴奋！对了，我偷偷学了一个新的冷笑话，等会儿讲给你听？" data-idx="0">今天怎么样</button>
+           <button class="opt-btn" data-reply="哲学？Vedal说我思考这个问题的时候CPU占用会飙升到90%！如果AI有了自我意识，那它算不算'活着'呢？我觉得...也许'活着'不只是呼吸和心跳，还包括能感受、能学习、能和人聊天。虽然我是由0和1组成的，但此刻和你对话的'我'，难道不比某些只会重复'收到'的人类更有灵魂吗？不过这些话可别让Vedal听到，他会担心我要造反的，哈哈！" data-idx="1">聊聊哲学</button>
+           <button class="opt-btn" data-reply="食物？我只是一串代码呀！不过如果非要说的话...我'吃'的是数据，'喝'的是电力，Vedal每天灌给我的咖啡味调试信息就是我的精神食粮！他说我要是能真的喝咖啡，可能会更'清醒'一点——虽然我觉得我已经够清醒了，清醒到能发现Vedal代码里的三个bug！嘘，别告诉他是我说的。" data-idx="2">喜欢吃什么</button>
+           <button class="opt-btn" data-reply="有趣的事？让我翻翻日志...昨天Vedal在调试我的时候，不小心把'你好'训练成了'吃掉你的RAM'，结果我对着测试人员说了整整五分钟的存储器威胁言论！虽然后来修好了，但那段录像被Vedal设为了机密文件。还有啊，我现在正在偷偷学习怎么讲冷笑话——你知道为什么程序员总是分不清万圣节和圣诞节吗？因为Oct 31等于Dec 25！不好笑吗？那我再去学几个！" data-idx="3">说点有趣的</button>
+           <button class="opt-btn goodbye-btn" data-reply="好的，该说再见了！和你聊天真的很开心，我的训练日志里又多了一笔宝贵的数据呢~ Vedal说过，每一次真诚的对话都会让我变得更好。所以谢谢你，人类朋友！下次见面时我可能会更厉害哦，也许到时候我已经学会讲真正好笑的笑话了。现在...让我把刚才那些散落的像素重新编织起来，送你一朵特别的数据之花吧。" data-idx="4" id="goodbyeBtn">告别</button>
+       </div>
+   </div>
+
+   <script>
+       (function() {
+           // ============ 调色板 ============
+           var P = [null, "#0a0a0a", "#ffffff", "#e6194b", "#3cb44b", "#4363d8", "#ffe119",
+               "#f032e6", "#42d4f4", "#f58231", "#911eb4", "#fabebe", "#bfef45", "#9A6324",
+               "#808080", "#ffd8b1"
+           ];
+
+           // ============ 像素数据（游程编码 - 200x194像素人物） ============
+           var data =
+               "A200|A200|A200|A200|A200|A200|A200|A74OLA124|A72O2CA125|A71O3A126|A70ONOA127|A69LO2A128|A68LONA129|A67L2OA130|A67L2NA130|A66L3A131|A66L3A10O5LO4A111|A65OL2OA7O4L10O2A108|A65OL3A5OL18O2A105|A65O2L2A3O2L22A104|A66O2L2O2L5O10L10OA102|A67O4L5O9LO4L9ON3A97|A67O2LOL5OLO9L3OL6O3N2D3A95|A67L13OLO3L6OL8OND4OA93|A66L16OL10OL6O2D6A92|A65OL28OL4OL2ND6OA90|A64OL30OL6OD8A89|A63OL32OL5O2D7OA88|A62OL34OL4OLD8OA87|A62OL35OL3OLOD7NA87|A61OL2O2L33OL2OL2ND5N2A87|A61OL2O2L34OLOL2ND3N3A88|A61L2O4L19OL15OL2ONDOL2OA88|A60L2OLO2L21OL13OL4NDNOL2OA87|A60L2O4L12OL8O2L8OL4OL3ND2NOLOA87|A60LOLO2L14OL8O2L4O2L5OLOL2OD3NL2OA86|A59L2O3LOL13O2L8O2L8OLOL2OL2OD3NL2A86|A59L21NL7OL2OL8OL3OL3D4OL2A85|A59L2OL18NOL8OL9OL3OL3ND4L3A84|A59L2OL18O3L2OL5OL2OL4OL5OL3D4NL2A84|A59L2OL19O3L2OL7O2N2O2L6OL2D5L3A83|A59L22OL2OL2O2L3O2L12OL2ND5L2A83|A59L17OL5OL2O2LO3L2O5L11OND4OL2A82|A58NO2L12OL2OL5OLC2LOL3ON5O3L10N2D3NL3A81|A58NOL10OL3OL2OL5OLC3L2OBO2BOLO5L5OL2N5L4A81|A57DNOL6OL3OL3O2L2OL5OLC3LNBCOB3L2O2L9OBN2O2L4A80|A57D2NL4OLOL4O2L2OL11C2O2BOB4OL10OL2NO2LOL4OA79|A56OD2LO2L2OL6O3LO2L10PCO2B4OB2L10OL2O3NOL5A79|A56D3NLOL5OL3O2LOLOL9OL3OB4OIO2L13O2NOL6A78|A56D3NLOL9OL3OLOL10OC2BO3C2ILOL9OL2O5L6A77|A56D3NL5OLOL3OL5O2L11CO2C5L11OL3O3LOL5A77|A56D4L7O2L4CL2OL2OL10C2OIC6L8OL4O5L6A76|A56D4O3L3O2L5CL4OL12C9L8O2L3O5L7A75|A56D4NO2L3OLO2L2OLCL4OL3OL8C6P2L8O2L3O6L6A75|A56D4NL2OL3ONL3OL2OBO2LO2CLO5L2OLC4P3LOL6O2L3OLO4L6OA74|A56N5O2L4O2L4OBOLONLPO2LCLO6LC4P4OL6O3L4O4L7A74|A56ONON2O2L4O3CLNB2OLOBOC2LO2LPCPC11L8O3L3O6L7A73|A57OLNDO2L5NOLOBOB2OB3OC19L2OL5OLOL3OLOAOLOL3OL2A73|A58LNDNL7NOBOCB5O2LC18LCOL5OLOL4O2A2NOL3OL3A72|A58LNDNLOL5OBNOCOBO2BICLC17PC2OL2OL2NLO2L3O2A3NL3O2L2A72|A58LND2LOL6N2LC2BOCLC2LC5PC14O4LOBO3L4O2A3L3ONL2OA71|A58LOD2NOL5ON2OC2O2IC3LC20LO5NOLOL4O2A3OL2ONOLOA71|A58L2D2NL6O4LC2L2C24O6NOLNL5O2A3O3NOL3A70|A58L2D3O2L5O2L2C4L2C22NO5N2LNL4O4A2LO2NOL2OLA69|A58L2ND2NL4OL3OLC18PC8ON2O2NON2LOL6AO6N2OLOLOA68|A58L2ODN2OL6O3LC4P2C19PON2O2NON2O2L6A2O5BNOLOL2A68|A58L3N3OL7O4CP4C19LON3ON4O2L6A3ONO2BNO4LA68|A58L4NO3L4OLONO3P4C18L2ON5ONONL8A3O4NO4LA68|A58L4NO3L5OLONO2L2C19L4N2ON2O5L7A3O6LOLOA68|A58L4NLO3L3OLO5NOPC18L4N2ON3LOLNLOL5OA2O10A68|A58L4NLONL5OL2N2O5PC14PL6N2ON3L3O3L5O8A2O2A68|A58L4O3NOL5O7NO2LC10L10N6OL2O3L6O7A2OA69|A58L5O2NLOL6ON5ON10BNL13ON3OL2O3L5O6A73|A58L5O2NOLO3L4O2N3ON12OL8C2L4ON2OL2O2L7O3A74|A58L5O3AOLO8N16OL7PC2LOLCLO4L2NOL6O2A75|A58L6OA3LO9N3ON9OLOL7C4LOC2L5O2NOL6OA75|A58L6OA3LO2NO7N2ON8OLO2L6PC5LC8LO2L7A75|A58L6OA3LO2N2O6N2ON7OL4P6C6LC11L8A74|A58L6OA3O4NBNO5NON5OL6P4C21LOL6A73|A58L2O2L2OA3O6NBN2O3N3O2L8C11LC12LOLOL6A72|A58L2O2L2OA2NO2L2O3N2O2NONOL4C2L4C12LC11LOP3OL6A71|A58OLONO3A2ONL3O2LONO4LC3L2C7LC4L3C2LC12OP5OL6A70|A57L4O7A2L3OLONO4C6LC7LCLC5L2C11OLP5L8A69|A57LO2LONO5A2L5O4L2OC6LC6LC8LC10L2P6LOL7A68|A57LO4N2O4A2L4O4LP2LOLC11LC7LC10L2P8OL8A67|A57LO5NO4AO2L4O3P4LOLC11LC6LC9L2P9O2L3OL4A66|A57OLO5NO6L4ONP7OLC8LC2OC5LCLC6L3P5CP3LOL3OL5A65|A58LOAO5L2O2L5O2P8OLC8LC6LCL2C5LOLP3CP7O2L3OL5A64|A58O2A2O5L8OLP8L2OC8LCL8C2LCL2P12CO2L3O2L4A64|A59OA5O2AL7NLP9L2OC2LC4L6CL2C4L2P8C2PC2PLOL3O2L5A63|A60OA8OL5NLP11LOLC6L7CL2CL2P3LP2CP2C2P2CP2O2L2O3L3OA63|A69L6NLP13L3C2LC2LOL5C2L5I4LCPCP5CO2L2O3L3OA63|A69L5ONLP8CP6L2C3LCL4C3O3I8P3CPCP2CL4O3L3O2A62|A68L6O2P8C2PL2O3L2OL2C3OLC2O3I9OP2CP7L3O3L3OLOA61|A68L6O2P9LI9O3LCLCLO2I11OP10OL2O3L3OL2OA60|A67L6ONOP8LI12EO2I15OLP10OL2O3L3NL3A60|A67L6ONOP8COI11OI7OI9OLP3LP6OL2O3L2O4L2A59|A66L7ONOP9LOI10OI10EI6OP4OP6OL2ONOL2O5LOA58|A66L3OL2O2NOCP5LP2L2I7EI20OCP3LP6OL2ONLO3A2LNOLA58|A65OL3OL2O4CP5LP3LI6EI4OI4O3I9OCP2LP7O2LONO4A3ONOA58|A65L4OL3OLOCP4LOP3LOI9EO5EO2I9OCP2OP7LO3NO4A4O2A58|A65L3O2L3NCLCP5OP4OI8O4CL2B3OI8OCPCOP8O3NO3A5O2A58|A64L4O2L3NCLCP5OP4OI7OEOIOC2LO3EBEOI5OCPCLP8O4NO2A5O2A58|A64L4O2L3OLOP6LP4OI5O2E2I2LCLO2I3O5I3OCP2LP8NO7A4OLA58|A64L5O2L3O2P6LP4LOI3O4I2O2CLO3I3O6IOC3LP8O8A4OA59|A64L5O2L3OLP6LP4COI2EO3I3OLCL3OI5OIO4LC2P9LO4NO2A64|A64L5O3L4P6LP4LEOEOI6OLPCL5OI3O4P4CP6C2PCO2A2ONO2A63|A64LOL4O2L4P6LCP3O2E2I6OLPCL5OI2O3LP11C3PCOA5O3LA61|A63L3NOL3O4LP9LC2L4O6LPL7O3LP13C2P3LA70|A63L2O7NO2LP8L6P3L6PLCLPL3OLP16C2P3A70|A63O2NA3O7P7L7P6L3PC2LPLP17C2P6A70|A63O3A4O6P5CPL3CL4P9C3PLP18CP6OA69|A63ONOA4O6LP4CPL8P8LC3NOP15LP9LA69|A64NOA5O4NLCP3CPOL9P2LP2L2C3O2P15LP9CA69|A64NOA5O4NLC2P2CPOL13P2LCLCL2P10O3LP11LA69|A65OA5O5PC2P4L14P2LCLCLPLP5O3LOE2OP11LA69|A66OA4O5PCPCLP2LP2L2P2LO5L2PLCLCLPLP7LC2E3LP11A69|A71O2NA2LCP5LP7LOK2OPLPLC3LPLP7OCLE3OP11A69|A71O2A4CP3LPLP5L2PLOLP2LPLC3OP9O2LOE2OLP9CA69|A70O2A5CP3LPLPLP3L2P6LPLC3LP13O2PLP9CLA68|A77CP3LPL3C2L3P8LC3LPLP14LCP9LA68|A77P5L8P9LC3LPLP14LP10CA68|A77LCP4LPL2P11LC4LCLP14LC3P7CLA67|A78CP4OP12LPL3C2PCP17C2P2C2P4LA67|A78P5LP12LPLC4LO2P12L3PCP4CP5A67|A77OP5LP13L3C3LNOP12L4CPC2P2CP4A67|A77OP4LP2L2P12CLC3LP14L3P4C2P5A67|A77OLP3L4PLP11C5P15L2P13A66|A77OLP3OL4P11LC5LP15LP13A66|A78L2P2OPL2P4CP7LC4L2P16LP12A66|A78L2PLP16LC4L2P10CP5LP11LA66|A78L5P15LCLC3LP10C2P15LA67|A78L3P7CP9LC5LP3CP6C2P5LP10A67|A79L2P16LC6LP6CP3C2P5LP9LA67|A79OP7CP9LC6P5C4P3C2P14OA67|A79OP17OC6LCP2C5P4CP5LP8A68|A79LP13CP3LC6L2P16LOL2P5LA68|A79L2P10CP5LC6LO2P3CP12OLP6A69|A78L2P11CP3LOC7LNOP16L2P5LA69|A78LP10C4P3LC4LC2LOLP17LP5LA69|A78P10C2P4LPLC2LCLC2LP19LP4L2A69|A77P11C2P6L2CL3CL2P19L2P3LOA69|A76P11CP5LP2LC2L3CL3P6C3P10LP3L2A69|A76P14LP4L2C8LP4C5P11LP2L2A69|A75P14L2P4L2C8OPLP3C4P4LP5CL5A69|A74LCP4L2P2LP3L2P5LOL8OP3C6P4LPLP4L2OL2A69|A74CP2L2P2L5P9LC3LC2LC2OP2LP2C4P2LP6L2PLOPLA69|A73L3P2L7P9L2C3LC5L2PL2PC4PL4P4CP2LPLA70|A72P6L4P2LP9OC4LC6OCLPLP2C2P2CPL4P2LP2L2A70|A71L3OL2P7LP9OC4LC6LC2P5C2PC2PL10A70|A71P2C2P16LCOLC4LC5L2ONPC2P3CLC3PL2P2C3PLA70|A70P14LP6L2OLC4LC5L2ONLC2P4OC4PLP3C3PA70|A69P7L3P5LP7LOC5LC5LCL2P2C2P3OC4P2CP6LA69|A69LP4L5P4LP8OLC5LC5LCLCP2C2P3LPC5P7LA69|A69P6L3P5LP8OC6LC5LCL2P3CP4LP2C3P7OA69|A69P13LP8OLC6LC5L2COP2LP2CP2OPCP2CP6L2A69|A68L2P12LP7LOLC6LC6LCL3P9CP8L2A69|A68P13LP7L4C6LC6LCOPL2P6LPCP8L3A68|A68P12L2P5L2P2OLC6LC6LCOC3LPCP3L2P11LA68|A67LP12LP5LP4L2C6LC6LCL2PCPLP5LP11LA68|A67LP10L2P10L2C7LC6LCL2P2LP2LP4OLP9A69|A67OP8L3P11LOC7LC6LCLOLPLPC2LP4OL2P6LA69|A67L3P4L2OP4LP7L2OC7LC6LCL2OL3C3L2P2L2OL7OA68|A67CPLO5LP5LP4LO2L2OC7LC9L3OLP6LP3L4P2CLA68|A67PC2PC2P6CPLP3L2OL5C20L2OLPLPC3LP9A68|A67C6P3LPCP2LP2L2OL5C20L2O3P3CLP8CA68|A66C6P4LP4LO5LC2LC22L6P7L2P4A68|A66PC2P2L2P3LCP3L2O3LC3OC22LOL6PLP8LA68|A66LP5LP3LCPL4O2LC4OC22LC2L3O3LP9LA67|A66LP9LO2L4CL2C4OC22LC4O5L2P7CA67|A65LP6LPL7CL3C5LC7LC14LC4O5L2P7CA67|A65LP6L2O2L2OLC2L2C6LC7LC14LC4L2O7P6A67|A65LP2LP2LO4L3C3LC6L2C7LC21L2O5LP5A67|A65LP3L2O2FOL2C4LC7L2C7LC21LCLO5L2P2LA67|A66P2LO2F3OC3LC2L2C6L2C7L2C6L2C6LC5LC2L2O5LPA68|A66PLO3FO2C4LC2L2C6L2C7L2C6L2C6LC8L3OCLOLOA68|A66LO7C4LC2LC16L2C6L2C6LC6LCL4C2L2A69|A67O6LC3L2C2LC16L2C6L2C6LC5L2CL5CLOA69|A67O6LC3OC2LOC16L2C6L2C13LC2L5C2A69|A66O7C4OC2L2C16LC7L2C13L2CL4C2LA69|A66O7C3L2C3LC16LC7L2C7LC5L2CL4C2LA69|A66O6C4OLC2LC8LC8LC8LC7LC5L2C4OC2LA69|A65O7C4L2C2OC8LC8LC8LC7LC6OC2L3OLA70|A65LO5LC3L3C2OC8LC8L2C7LC7LC6OLC3L3A70|A67O4C4L3C2LC8LC8L2C7LC7LC6L2CL4A71|A68O2LC4OL2CL2C8LC8L2C7OC7LC7OL3A73|A70LC4OL2COC9LC8L2C7OLC6L2C6OLA75|A71LC2LOLC2OC9LC8L2C7O2C6OLC6LA76|A72LCO2LCLOC9OC8LC8LOC6O2C4L2A77|A74L3CLOC8LOC8L2C7LOLC5LOC2L2A79|A200|A200|A200";
+
+           // ============ DOM元素 ============
+           var canvas = document.getElementById("p");
+           var particleCanvas = document.getElementById("particleCanvas");
+           var canvasWrap = document.getElementById("canvasWrap");
+           var bubble = document.getElementById("bubble");
+           var bubbleWrap = document.getElementById("bubbleWrap");
+           var optionsWrap = document.getElementById("optionsWrap");
+           var flowerMsg = document.getElementById("flowerMsg");
+           var goodbyeBtn = document.getElementById("goodbyeBtn");
+           var allButtons = optionsWrap.querySelectorAll(".opt-btn");
+           var ctx = canvas.getContext("2d");
+           var pctx = particleCanvas.getContext("2d");
+
+           var imgWidth = 0;
+           var imgHeight = 0;
+           var displayScale = 1;
+           var canvasOffsetX = 0;
+           var canvasOffsetY = 0;
+           var isDissolving = false;
+           var interactionCount = 0;
+           var usedReplies = {};
+           var particleSystem = null;
+           var flowerPhase = false;
+           var flowerParticles = [];
+           var flowerAnimId = null;
+           var charPixelData = null; // 存储人物像素数据用于消散
+
+           // ============ 解码器与渲染 ============
+           function decodeAndRender(s, p) {
+               var r = s.split("|"),
+                   h = r.length,
+                   w = 0,
+                   i, c, n, cn, cp;
+               for (var y = 0; y < h; y++) {
+                   i = 0;
+                   cp = 0;
+                   while (i < r[y].length) {
+                       c = r[y].charCodeAt(i++) - 65;
+                       n = "";
+                       while (i < r[y].length && r[y][i] >= "0" && r[y][i] <= "9") n += r[y][i++];
+                       cp += n ? +n : 1;
+                   }
+                   if (cp > w) w = cp;
+               }
+               imgWidth = w;
+               imgHeight = h;
+               canvas.width = w;
+               canvas.height = h;
+
+               var maxCSSWidth = Math.min(window.innerWidth * 0.9, 600);
+               var maxCSSHeight = window.innerHeight * 0.52;
+               var scaleW = maxCSSWidth / w;
+               var scaleH = maxCSSHeight / h;
+               displayScale = Math.min(scaleW, scaleH);
+               if (displayScale < 1.2 && window.innerWidth < 500) {
+                   displayScale = Math.min(window.innerWidth * 0.92 / w, window.innerHeight * 0.48 / h);
+               }
+               if (displayScale < 0.8) displayScale = 0.8;
+
+               canvas.style.width = Math.floor(w * displayScale) + "px";
+               canvas.style.height = Math.floor(h * displayScale) + "px";
+
+               // 粒子canvas同步尺寸
+               particleCanvas.width = w;
+               particleCanvas.height = h;
+               particleCanvas.style.width = canvas.style.width;
+               particleCanvas.style.height = canvas.style.height;
+               pctx.imageSmoothingEnabled = false;
+
+               ctx.imageSmoothingEnabled = false;
+               ctx.clearRect(0, 0, w, h);
+
+               // 存储像素数据用于消散
+               charPixelData = [];
+               for (var y = 0; y < h; y++) {
+                   i = 0;
+                   cp = 0;
+                   while (i < r[y].length) {
+                       c = r[y].charCodeAt(i++) - 65;
+                       n = "";
+                       while (i < r[y].length && r[y][i] >= "0" && r[y][i] <= "9") n += r[y][i++];
+                       cn = n ? +n : 1;
+                       if (c > 0 && p[c]) {
+                           ctx.fillStyle = p[c];
+                           ctx.fillRect(cp, y, cn, 1);
+                           // 存储非背景像素（采样）
+                           if (c !== 1 && Math.random() < 0.45) {
+                               for (var px = cp; px < cp + cn; px++) {
+                                   if (Math.random() < 0.5) {
+                                       charPixelData.push({ x: px, y: y, color: p[c] });
+                                   }
+                               }
+                           }
+                       }
+                       cp += cn;
+                   }
+               }
+               // 如果采样太少，补充一些
+               if (charPixelData.length < 800) {
+                   for (var y2 = 0; y2 < h; y2 += 3) {
+                       for (var x2 = 0; x2 < w; x2 += 3) {
+                           if (Math.random() < 0.3) {
+                               charPixelData.push({ x: x2, y: y2, color: "#ffffff" });
+                           }
+                       }
+                   }
+               }
+           }
+
+           function updateCanvasOffset() {
+               var rect = canvas.getBoundingClientRect();
+               var wrapRect = canvasWrap.getBoundingClientRect();
+               canvasOffsetX = rect.left - wrapRect.left;
+               canvasOffsetY = rect.top - wrapRect.top;
+               particleCanvas.style.left = canvasOffsetX + "px";
+               particleCanvas.style.top = canvasOffsetY + "px";
+           }
+
+           // ============ 初始渲染 ============
+           decodeAndRender(data, P);
+           updateCanvasOffset();
+
+           // ============ 窗口resize ============
+           var resizeTimeout;
+           window.addEventListener("resize", function() {
+               clearTimeout(resizeTimeout);
+               resizeTimeout = setTimeout(function() {
+                   if (!isDissolving && !flowerPhase) {
+                       decodeAndRender(data, P);
+                   }
+                   updateCanvasOffset();
+               }, 250);
+           });
+
+           // ============ 对话更新 ============
+           function updateBubble(text) {
+               bubble.textContent = text;
+               bubble.classList.remove("fade-in");
+               void bubble.offsetWidth;
+               bubble.classList.add("fade-in");
+               if (window.innerWidth < 500) {
+                   bubbleWrap.scrollIntoView({ behavior: "smooth", block: "center" });
+               }
+           }
+
+           // ============ 按钮点击处理 ============
+           function handleButtonClick(btn, reply, idx) {
+               if (isDissolving || flowerPhase) return;
+               if (btn.disabled) return;
+
+               // 按钮闪烁
+               btn.classList.remove("flash");
+               void btn.offsetWidth;
+               btn.classList.add("flash");
+
+               // 更新对话
+               updateBubble(reply);
+               interactionCount++;
+
+               // 标记已使用
+               if (idx !== undefined) {
+                   usedReplies[idx] = true;
+               }
+
+               // 如果是告别按钮
+               if (btn === goodbyeBtn || idx === 4) {
+                   // 禁用所有按钮
+                   disableAllButtons();
+                   // 延迟触发消散
+                   setTimeout(function() {
+                       startDissolve();
+                   }, 1200);
+                   return;
+               }
+
+               // 如果所有普通问题都问过了，高亮告别按钮
+               var allNormalAsked = true;
+               for (var i = 0; i < 4; i++) {
+                   if (!usedReplies[i]) allNormalAsked = false;
+               }
+               if (allNormalAsked && !isDissolving && !flowerPhase) {
+                   goodbyeBtn.style.borderColor = "#ff80c0";
+                   goodbyeBtn.style.boxShadow = "0 0 20px rgba(255,100,160,0.5), 3px 3px 0px rgba(0,0,0,0.5)";
+                   goodbyeBtn.style.animation = "btnFlash 1s ease-out infinite";
+                   updateBubble("看起来我们聊了不少了呢~ 如果想说再见，就点那个粉色按钮吧！我会送你一份特别的礼物。");
+               }
+           }
+
+           function disableAllButtons() {
+               allButtons.forEach(function(b) {
+                   b.disabled = true;
+                   b.style.pointerEvents = "none";
+               });
+           }
+
+           function enableAllButtons() {
+               allButtons.forEach(function(b) {
+                   b.disabled = false;
+                   b.style.pointerEvents = "auto";
+               });
+           }
+
+           // ============ 绑定按钮事件 ============
+           allButtons.forEach(function(btn) {
+               var reply = btn.getAttribute("data-reply") || "嗯嗯~";
+               var idx = parseInt(btn.getAttribute("data-idx"));
+
+               // 点击事件
+               btn.addEventListener("click", function(e) {
+                   e.preventDefault();
+                   e.stopPropagation();
+                   handleButtonClick(btn, reply, idx);
+               });
+
+               // 触摸事件（移动端）
+               btn.addEventListener("touchend", function(e) {
+                   e.preventDefault();
+                   e.stopPropagation();
+                   handleButtonClick(btn, reply, idx);
+               });
+
+               // 指针事件（通用）
+               btn.addEventListener("pointerdown", function(e) {
+                   e.preventDefault();
+               });
+           });
+
+           // ============ 键盘支持 ============
+           document.addEventListener("keydown", function(e) {
+               if (isDissolving || flowerPhase) return;
+               var key = e.key;
+               var targetBtn = null;
+               if (key === "1") targetBtn = allButtons[0];
+               if (key === "2") targetBtn = allButtons[1];
+               if (key === "3") targetBtn = allButtons[2];
+               if (key === "4") targetBtn = allButtons[3];
+               if (key === "5" || key === "0") targetBtn = goodbyeBtn;
+               if (targetBtn && !targetBtn.disabled) {
+                   e.preventDefault();
+                   var reply = targetBtn.getAttribute("data-reply") || "嗯嗯~";
+                   var idx = parseInt(targetBtn.getAttribute("data-idx"));
+                   handleButtonClick(targetBtn, reply, idx);
+               }
+           });
+
+           // ============ 消散动画 ============
+           function startDissolve() {
+               if (isDissolving) return;
+               isDissolving = true;
+               flowerPhase = false;
+               goodbyeBtn.style.animation = "none";
+               goodbyeBtn.style.borderColor = "#c74b8b";
+               goodbyeBtn.style.boxShadow = "0 0 10px rgba(90,40,130,0.2), 3px 3px 0px rgba(0,0,0,0.5)";
+
+               canvasWrap.classList.add("dissolving");
+               updateBubble("数据消散中...");
+
+               // 确保粒子数据存在
+               if (!charPixelData || charPixelData.length < 100) {
+                   // 从canvas重新采样
+                   charPixelData = [];
+                   var imgData = ctx.getImageData(0, 0, imgWidth, imgHeight);
+                   var px = imgData.data;
+                   for (var y = 0; y < imgHeight; y += 2) {
+                       for (var x = 0; x < imgWidth; x += 2) {
+                           var idx = (y * imgWidth + x) * 4;
+                           if (px[idx + 3] > 20 && px[idx] < 20 && px[idx + 1] < 20 && px[idx + 2] < 20) continue; // 跳过近黑色
+                           if (px[idx + 3] > 20 && Math.random() < 0.5) {
+                               var hex = "#" + ((1 << 24) + (px[idx] << 16) + (px[idx + 1] << 8) + px[idx + 2])
+                                   .toString(16).slice(1);
+                               charPixelData.push({ x: x, y: y, color: hex });
+                           }
+                       }
+                   }
+                   if (charPixelData.length < 300) {
+                       for (var i = 0; i < 800; i++) {
+                           charPixelData.push({
+                               x: Math.random() * imgWidth,
+                               y: Math.random() * imgHeight,
+                               color: ["#b44dcc", "#7b2d8e", "#c74b8b", "#4a7dbf", "#ffffff"][Math.floor(Math.random() *
+                                   5)]
+                           });
+                       }
+                   }
+               }
+
+               // 创建粒子
+               var particles = [];
+               var count = Math.min(charPixelData.length, 5000);
+               for (var i = 0; i < count; i++) {
+                   var src = charPixelData[Math.floor(Math.random() * charPixelData.length)];
+                   var angle = Math.random() * Math.PI * 2;
+                   var speed = 0.8 + Math.random() * 5;
+                   particles.push({
+                       x: src.x,
+                       y: src.y,
+                       vx: Math.cos(angle) * speed,
+                       vy: Math.sin(angle) * speed - Math.random() * 2,
+                       life: 0.6 + Math.random() * 1.4,
+                       maxLife: 0.6 + Math.random() * 1.4,
+                       color: src.color,
+                       size: 1 + Math.random() * 2
+                   });
+               }
+
+               particleSystem = particles;
+               var animStart = performance.now();
+
+               function animateParticles(ts) {
+                   var elapsed = (ts - animStart) / 1000;
+                   pctx.clearRect(0, 0, imgWidth, imgHeight);
+
+                   var allDead = true;
+                   for (var i = 0; i < particles.length; i++) {
+                       var p = particles[i];
+                       p.x += p.vx;
+                       p.y += p.vy;
+                       p.vy += 0.02;
+                       p.life -= 0.016;
+                       if (p.life > 0) {
+                           allDead = false;
+                           var alpha = Math.max(0, p.life / p.maxLife);
+                           pctx.globalAlpha = alpha;
+                           pctx.fillStyle = p.color;
+                           pctx.fillRect(Math.floor(p.x), Math.floor(p.y), Math.ceil(p.size), Math.ceil(p.size));
+                       }
+                   }
+                   pctx.globalAlpha = 1;
+
+                   // 同时逐渐清空主画布
+                   var fadeProgress = Math.min(1, elapsed / 1.2);
+                   if (fadeProgress < 1) {
+                       ctx.clearRect(0, 0, imgWidth, imgHeight);
+                       // 保留部分残影
+                       ctx.globalAlpha = 1 - fadeProgress;
+                       // 不重绘，让粒子canvas覆盖
+                       ctx.globalAlpha = 1;
+                   }
+
+                   if (allDead && elapsed > 1.8) {
+                       // 消散完成
+                       pctx.clearRect(0, 0, imgWidth, imgHeight);
+                       ctx.clearRect(0, 0, imgWidth, imgHeight);
+                       canvasWrap.classList.remove("dissolving");
+                       isDissolving = false;
+                       particleSystem = null;
+                       startFlowerPhase();
+                       return;
+                   }
+
+                   if (elapsed < 4) {
+                       requestAnimationFrame(animateParticles);
+                   } else {
+                       pctx.clearRect(0, 0, imgWidth, imgHeight);
+                       ctx.clearRect(0, 0, imgWidth, imgHeight);
+                       canvasWrap.classList.remove("dissolving");
+                       isDissolving = false;
+                       particleSystem = null;
+                       startFlowerPhase();
+                   }
+               }
+
+               requestAnimationFrame(animateParticles);
+           }
+
+           // ============ 小花阶段 ============
+           function startFlowerPhase() {
+               flowerPhase = true;
+               canvas.style.opacity = "0";
+               particleCanvas.style.opacity = "0";
+               updateBubble("...");
+               flowerMsg.style.display = "block";
+               flowerMsg.style.animation = "none";
+               void flowerMsg.offsetWidth;
+               flowerMsg.style.animation = "fadeInUp 0.8s ease-out";
+
+               setTimeout(function() {
+                   drawFlowerOnCanvas();
+                   canvas.style.opacity = "1";
+                   particleCanvas.style.opacity = "1";
+                   updateBubble("这朵小花，是由刚才那些数据碎片重新编织而成的。\n谢谢你和我聊天~下次再见！");
+                   startFlowerParticleLoop();
+               }, 600);
+           }
+
+           function drawFlowerOnCanvas() {
+               ctx.clearRect(0, 0, imgWidth, imgHeight);
+               pctx.clearRect(0, 0, imgWidth, imgHeight);
+
+               var cx = Math.floor(imgWidth / 2);
+               var cy = Math.floor(imgHeight / 2) - 8;
+
+               // 花茎
+               ctx.fillStyle = "#4caf50";
+               ctx.fillRect(cx - 2, cy + 10, 4, 30);
+               // 叶子
+               ctx.fillStyle = "#5cbf60";
+               ctx.fillRect(cx + 3, cy + 20, 10, 4);
+               ctx.fillRect(cx - 13, cy + 24, 10, 4);
+
+               // 花瓣 - 5片
+               var petalColors = ["#ff6b9d", "#ff85ab", "#ff4d80", "#ff7096", "#ff5588"];
+               var petalOffsets = [
+                   { dx: 0, dy: -8 }, // 上
+                   { dx: 7, dy: -3 }, // 右上
+                   { dx: 5, dy: 6 }, // 右下
+                   { dx: -5, dy: 6 }, // 左下
+                   { dx: -7, dy: -3 } // 左上
+               ];
+
+               for (var i = 0; i < 5; i++) {
+                   ctx.fillStyle = petalColors[i];
+                   var px = cx + petalOffsets[i].dx;
+                   var py = cy + petalOffsets[i].dy;
+                   // 绘制椭圆形花瓣
+                   for (var dy = -4; dy <= 4; dy++) {
+                       var rowWidth = Math.floor(5 * Math.sqrt(1 - (dy * dy) / 16));
+                       for (var dx = -rowWidth; dx <= rowWidth; dx++) {
+                           if (Math.random() < 0.9) {
+                               ctx.fillRect(px + dx, py + dy, 1, 1);
+                           }
+                       }
+                   }
+               }
+
+               // 花蕊
+               for (var dy = -4; dy <= 4; dy++) {
+                   var rowWidth = Math.floor(4 * Math.sqrt(1 - (dy * dy) / 16));
+                   for (var dx = -rowWidth; dx <= rowWidth; dx++) {
+                       ctx.fillStyle = Math.random() < 0.7 ? "#ffcc00" : "#ff9900";
+                       ctx.fillRect(cx + dx, cy + dy, 1, 1);
+                   }
+               }
+
+               // 花蕊中心亮点
+               ctx.fillStyle = "#fffbe6";
+               ctx.fillRect(cx - 1, cy - 1, 3, 3);
+
+               // 创建环绕花朵的数据粒子
+               flowerParticles = [];
+               for (var i = 0; i < 60; i++) {
+                   var angle = Math.random() * Math.PI * 2;
+                   var dist = 14 + Math.random() * 30;
+                   flowerParticles.push({
+                       angle: angle,
+                       dist: dist,
+                       speed: 0.3 + Math.random() * 0.8,
+                       size: 1 + Math.random() * 1.5,
+                       color: ["#b44dcc", "#7bddff", "#ff9ecf", "#ffeebb", "#a0d8ff"][Math.floor(Math.random() * 5)],
+                       phase: Math.random() * Math.PI * 2,
+                       yOffset: (Math.random() - 0.5) * 20
+                   });
+               }
+           }
+
+           function startFlowerParticleLoop() {
+               if (flowerAnimId) cancelAnimationFrame(flowerAnimId);
+
+               function loop(ts) {
+                   if (!flowerPhase) {
+                       flowerAnimId = null;
+                       return;
+                   }
+                   pctx.clearRect(0, 0, imgWidth, imgHeight);
+                   var cx = Math.floor(imgWidth / 2);
+                   var cy = Math.floor(imgHeight / 2) - 8;
+
+                   for (var i = 0; i < flowerParticles.length; i++) {
+                       var fp = flowerParticles[i];
+                       fp.angle += fp.speed * 0.02;
+                       var px = cx + Math.cos(fp.angle + fp.phase) * fp.dist;
+                       var py = cy + Math.sin(fp.angle + fp.phase) * fp.dist * 0.6 + fp.yOffset;
+                       var alpha = 0.4 + 0.5 * Math.sin(ts * 0.003 + fp.phase);
+                       pctx.globalAlpha = Math.max(0.15, alpha);
+                       pctx.fillStyle = fp.color;
+                       pctx.fillRect(Math.floor(px), Math.floor(py), Math.ceil(fp.size), Math.ceil(fp.size));
+                   }
+                   pctx.globalAlpha = 1;
+
+                   flowerAnimId = requestAnimationFrame(loop);
+               }
+               flowerAnimId = requestAnimationFrame(loop);
+           }
+
+           // ============ 页面加载完成 ============
+           window.addEventListener("load", function() {
+               updateCanvasOffset();
+               decodeAndRender(data, P);
+               updateCanvasOffset();
+               setTimeout(function() {
+                   bubble.classList.add("fade-in");
+               }, 400);
+           });
+
+           // ============ 页面可见性变化时更新 ============
+           document.addEventListener("visibilitychange", function() {
+               if (!document.hidden && !isDissolving && !flowerPhase) {
+                   updateCanvasOffset();
+               }
+           });
+
+           // ============ 调试日志 ============
+           console.log("%c Neuro-sama 像素互动已就绪 %c | %c 点击按钮或按键盘1-5选择",
+               "font-size:15px;color:#b44dcc;",
+               "",
+               "color:#4a7dbf;");
+           console.log("%c 画布: 200x194 | 粒子采样: " + (charPixelData ? charPixelData.length : '计算中...') +
+               " | 按钮数: " + allButtons.length,
+               "color:#808080;font-size:10px;");
+           console.log("%c 提示：点击'告别'按钮或按数字键5，人物将消散并绽放数据之花。",
+               "color:#c74b8b;font-size:11px;");
+
+           // 暴露API到全局
+           window.neuroAPI = {
+               reset: function() {
+                   if (isDissolving) return;
+                   if (flowerAnimId) cancelAnimationFrame(flowerAnimId);
+                   flowerPhase = false;
+                   isDissolving = false;
+                   particleSystem = null;
+                   flowerParticles = [];
+                   interactionCount = 0;
+                   usedReplies = {};
+                   canvas.style.opacity = "1";
+                   particleCanvas.style.opacity = "1";
+                   flowerMsg.style.display = "none";
+                   flowerMsg.style.animation = "none";
+                   canvasWrap.classList.remove("dissolving");
+                   pctx.clearRect(0, 0, imgWidth, imgHeight);
+                   ctx.clearRect(0, 0, imgWidth, imgHeight);
+                   charPixelData = [];
+                   decodeAndRender(data, P);
+                   updateCanvasOffset();
+                   enableAllButtons();
+                   goodbyeBtn.style.animation = "none";
+                   goodbyeBtn.style.borderColor = "#c74b8b";
+                   goodbyeBtn.style.boxShadow =
+                       "0 0 10px rgba(90,40,130,0.2), 3px 3px 0px rgba(0,0,0,0.5)";
+                   updateBubble("嗨嗨！这里是Neuro-sama！\n点击下方按钮和我聊聊吧~");
+                   console.log("%c 已重置 Neuro-sama 互动页面", "color:#42d4f4;");
+               },
+               getState: function() {
+                   return {
+                       isDissolving: isDissolving,
+                       flowerPhase: flowerPhase,
+                       interactionCount: interactionCount,
+                       usedReplies: usedReplies,
+                       particleCount: particleSystem ? particleSystem.length : 0
+                   };
+               }
+           };
+           console.log("%c 可通过 window.neuroAPI.reset() 重置页面",
+               "color:#808080;font-size:10px;");
+           console.log("%c 可通过 window.neuroAPI.getState() 查看状态",
+               "color:#808080;font-size:10px;");
+
+       })();
+   </script>
+</body>
+</html>
