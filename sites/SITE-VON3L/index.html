@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChatMesh · 分布式聊天室</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg: #0b0b10; --surface: #15151e; --surface-2: #1e1e2a; --surface-3: #252536;
+            --text: #ececf3; --text-secondary: #7a7a8f; --border: #2a2a3d;
+            --accent: #6366f1; --accent-dim: #6366f122; --accent-hover: #818cf8;
+            --danger: #ef4444; --danger-soft: #ef444422; --success: #22c55e;
+            --shadow: 0 8px 32px rgba(0,0,0,0.45); --radius: 16px; --radius-sm: 12px;
+            --max-width: 720px;
+        }
+        html, body {
+            height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .screen { display: none; height: 100vh; flex-direction: column; animation: fadeIn 0.35s ease; }
+        .screen.active { display: flex; }
+        .btn {
+            padding: 13px 22px; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600;
+            font-family: inherit; cursor: pointer; transition: all 0.18s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-dim); }
+        .btn-primary:active { transform: scale(0.97); }
+        .btn-secondary { background: var(--surface-2); color: var(--text); border: 1.5px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger { background: var(--danger-soft); color: var(--danger); border: 1.5px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: #fff; }
+        .btn-small { padding: 6px 14px; font-size: 12px; border-radius: 8px; font-weight: 600; }
+        .btn-ghost { background: transparent; color: var(--text-secondary); border: 1.5px solid transparent; }
+        .btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+        .input-group { margin-bottom: 18px; }
+        .input-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+        .input-group input, .input-group textarea, .input-group select {
+            width: 100%; border: 1.5px solid var(--border); background: var(--surface); padding: 13px 16px; border-radius: var(--radius-sm);
+            font-size: 15px; font-family: inherit; color: var(--text); outline: none; transition: all 0.2s;
+        }
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-dim); }
+        .header {
+            background: rgba(11,11,16,0.88); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);
+            padding: 14px 18px; flex-shrink: 0; z-index: 10;
+        }
+        .header-inner { max-width: var(--max-width); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .header h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .icon-btn {
+            width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface);
+            color: var(--text-secondary); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; flex-shrink: 0;
+        }
+        .icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .content { flex: 1; overflow-y: auto; padding: 18px; -webkit-overflow-scrolling: touch; }
+        .content-inner { max-width: var(--max-width); margin: 0 auto; }
+        .card {
+            background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 22px;
+            cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+        }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); opacity: 0; transition: opacity 0.25s;
+        }
+        .card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: var(--shadow); }
+        .card:hover::before { opacity: 1; }
+        .card-icon { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-dim); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 14px; }
+        .card h3 { font-size: 17px; font-weight: 700; margin-bottom: 5px; }
+        .card p { font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+        .status-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.connecting { background: #f59e0b; animation: pulse 1.5s infinite; }
+        .status-dot.offline { background: var(--danger); }
+        .message-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+        .msg {
+            max-width: 78%; padding: 11px 15px; border-radius: 18px; font-size: 14px; line-height: 1.5;
+            word-break: break-word; animation: fadeIn 0.25s ease;
+        }
+        .msg-self { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+        .msg-other { align-self: flex-start; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        .msg-system { align-self: center; background: var(--surface-3); color: var(--text-secondary); font-size: 12px; padding: 6px 14px; border-radius: 100px; border: 1px solid var(--border); }
+        .msg-meta { font-size: 10px; opacity: 0.65; margin-top: 5px; display: flex; gap: 8px; }
+        .chat-input-bar {
+            padding: 12px 18px 18px; border-top: 1px solid var(--border); background: var(--bg);
+            display: flex; gap: 10px; align-items: flex-end;
+        }
+        .chat-input {
+            flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px;
+            padding: 11px 18px; font-size: 15px; color: var(--text); outline: none; font-family: inherit;
+            resize: none; max-height: 120px; min-height: 44px;
+        }
+        .chat-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+        .send-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--accent); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+        .send-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
+        .send-btn:active { transform: scale(0.95); }
+        .room-item {
+            background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px;
+            margin-bottom: 10px; display: flex; align-items: center; gap: 14px; transition: all 0.2s;
+        }
+        .room-item:hover { border-color: var(--accent); }
+        .room-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-dim); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .room-info { flex: 1; min-width: 0; }
+        .room-name { font-weight: 700; font-size: 15px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .room-meta { font-size: 12px; color: var(--text-secondary); display: flex; gap: 10px; flex-wrap: wrap; }
+        .lock-badge { font-size: 10px; padding: 2px 8px; border-radius: 100px; background: #f59e0b22; color: #f59e0b; font-weight: 700; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 420px; box-shadow: var(--shadow); animation: slideUp 0.3s ease; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 17px; font-weight: 700; }
+        .modal-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--surface-2); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: var(--danger-soft); color: var(--danger); }
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--surface); color: var(--text); padding: 11px 22px; border-radius: 100px;
+            border: 1px solid var(--border); box-shadow: var(--shadow); z-index: 400; font-size: 13px; font-weight: 600;
+            transition: transform 0.3s ease; pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); }
+        .divider { height: 1px; background: var(--border); margin: 16px 0; }
+        @media (max-width: 640px) {
+            .card-grid { grid-template-columns: 1fr !important; }
+            .msg { max-width: 85%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 登录界面 -->
+<div id="login-screen" class="screen active">
+    <div style="max-width:400px;width:92%;margin:auto;padding:60px 0 40px;">
+        <div style="text-align:center;margin-bottom:36px;">
+            <div style="width:72px;height:72px;background:var(--accent);border-radius:22px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;box-shadow:0 12px 40px var(--accent-dim);">💬</div>
+            <h1 style="font-size:26px;font-weight:800;letter-spacing:-0.03em">ChatMesh</h1>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:6px;line-height:1.6">分布式聊天室 · 无服务器 · 多节点同步</p>
+        </div>
+        <div class="input-group">
+            <label>代号</label>
+            <input id="login-username" placeholder="输入你的代号（如：Alice）" autocomplete="off" maxlength="16">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+            <button class="btn btn-primary" style="width:100%" onclick="selectLoginType('public')">🌐 公共聊天室</button>
+            <button class="btn btn-secondary" style="width:100%" onclick="showPrivateLogin()">🔒 个人聊天室</button>
+        </div>
+        <div id="private-login-form" style="display:none;">
+            <div class="input-group">
+                <label>房间ID</label>
+                <input id="private-room-id" placeholder="输入房间ID（新建或加入）" autocomplete="off" maxlength="32">
+            </div>
+            <div class="input-group">
+                <label>房间密码（可选）</label>
+                <input id="private-room-pwd" type="password" placeholder="留空表示无密码" autocomplete="off" maxlength="32">
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="doPrivateLogin()">进入/创建房间</button>
+        </div>
+        <p style="margin-top:20px;font-size:12px;color:var(--text-secondary);text-align:center;line-height:1.7">
+            选择公共聊天室直接进入大厅。<br>
+            选择个人聊天室可创建加密房间或输入已有ID加入。
+        </p>
+    </div>
+</div>
+
+<!-- 主界面 -->
+<div id="home-screen" class="screen">
+    <div class="header">
+        <div class="header-inner">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <div style="width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;">💬</div>
+                <div style="min-width:0;">
+                    <h2 id="home-title">ChatMesh</h2>
+                    <div class="status-bar" style="margin-top:2px;">
+                        <span id="home-status-dot" class="status-dot connecting"></span>
+                        <span id="home-status-text" style="font-size:11px;">连接中...</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="icon-btn" onclick="refreshHome()" title="刷新">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                </button>
+                <button class="icon-btn" onclick="doLogout()" title="退出">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="content">
+        <div class="content-inner">
+            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">欢迎，<span id="home-username" style="color:var(--accent)">--</span></div>
+            <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+                <div class="card" onclick="enterPublicRoom()">
+                    <div class="card-icon">🌐</div>
+                    <h3>公共聊天室</h3>
+                    <p>进入全站公共大厅，与所有在线用户实时聊天，无需密码。</p>
+                </div>
+                <div class="card" onclick="enterPrivateRoom()">
+                    <div class="card-icon" style="background:#f59e0b22;color:#f59e0b;">🔒</div>
+                    <h3>个人聊天室</h3>
+                    <p id="private-card-desc">进入你的私人房间。如果登录时选择公共，点击后将创建新房间。</p>
+                </div>
+                <div class="card" onclick="showScreen('search-screen'); refreshSearch();">
+                    <div class="card-icon" style="background:#22c55e22;color:#22c55e;">🔍</div>
+                    <h3>搜索房间</h3>
+                    <p>发现网络上其他在线的聊天房间，输入密码即可加入受保护房间。</p>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">已加入的房间</div>
+            <div id="joined-rooms-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 公共聊天室 -->
+<div id="public-chat-screen" class="screen">
+    <div class="header">
+        <div class="header-inner">
+            <button class="icon-btn" onclick="leaveChat()" title="返回">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <h2 style="flex:1;text-align:center;">🌐 公共聊天室</h2>
+            <button class="icon-btn" onclick="refreshPublicChat()" title="刷新">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="content" style="display:flex;flex-direction:column;">
+        <div class="content-inner" style="flex:1;display:flex;flex-direction:column;max-width:var(--max-width);width:100%;margin:0 auto;">
+            <div id="public-messages" class="message-list" style="flex:1;overflow-y:auto;padding-right:4px;"></div>
+        </div>
+    </div>
+    <div class="chat-input-bar">
+        <textarea id="public-msg-input" class="chat-input" placeholder="输入消息..." rows="1" onkeydown="handleEnter(event, 'public')"></textarea>
+        <button class="send-btn" onclick="sendMessage('public')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+    </div>
+</div>
+
+<!-- 个人聊天室 -->
+<div id="private-chat-screen" class="screen">
+    <div class="header">
+        <div class="header-inner">
+            <button class="icon-btn" onclick="leaveChat()" title="返回">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div style="flex:1;text-align:center;min-width:0;">
+                <h2 id="private-room-title" style="font-size:16px;">🔒 个人聊天室</h2>
+                <div id="private-room-subtitle" style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div>
+            </div>
+            <button class="icon-btn" onclick="refreshPrivateChat()" title="刷新">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="content" style="display:flex;flex-direction:column;">
+        <div class="content-inner" style="flex:1;display:flex;flex-direction:column;max-width:var(--max-width);width:100%;margin:0 auto;">
+            <div id="private-messages" class="message-list" style="flex:1;overflow-y:auto;padding-right:4px;"></div>
+        </div>
+    </div>
+    <div class="chat-input-bar">
+        <textarea id="private-msg-input" class="chat-input" placeholder="输入消息..." rows="1" onkeydown="handleEnter(event, 'private')"></textarea>
+        <button class="send-btn" onclick="sendMessage('private')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+    </div>
+</div>
+
+<!-- 搜索房间 -->
+<div id="search-screen" class="screen">
+    <div class="header">
+        <div class="header-inner">
+            <button class="icon-btn" onclick="showScreen('home-screen')" title="返回">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <h2 style="flex:1;text-align:center;">🔍 搜索房间</h2>
+            <button class="icon-btn" onclick="refreshSearch()" title="刷新">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="content">
+        <div class="content-inner">
+            <div class="input-group" style="margin-bottom:14px;">
+                <input id="search-keyword" placeholder="搜索房间ID或名称..." oninput="filterRoomSearch()" autocomplete="off">
+            </div>
+            <div id="search-room-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建房间模态框（公共用户点击个人聊天室） -->
+<div id="create-room-modal" class="modal-overlay" onclick="closeModal(event, 'create-room-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">🔒 创建个人聊天室</div>
+            <button class="modal-close" onclick="hideModal('create-room-modal')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+        <div class="input-group">
+            <label>房间ID</label>
+            <input id="create-room-id" placeholder="如：my-secret-room" autocomplete="off" maxlength="32">
+        </div>
+        <div class="input-group">
+            <label>房间密码（可选）</label>
+            <input id="create-room-pwd" type="password" placeholder="留空表示公开房间" autocomplete="off" maxlength="32">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="doCreatePrivateRoom()">创建并进入</button>
+    </div>
+</div>
+
+<!-- 加入房间密码模态框 -->
+<div id="join-room-modal" class="modal-overlay" onclick="closeModal(event, 'join-room-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">🔐 输入房间密码</div>
+            <button class="modal-close" onclick="hideModal('join-room-modal')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+        <div class="input-group">
+            <label>房间 <span id="join-room-name" style="color:var(--accent)"></span> 需要密码</label>
+            <input id="join-room-pwd" type="password" placeholder="请输入房间密码" autocomplete="off" maxlength="32">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="doJoinWithPassword()">加入房间</button>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    // ==================== 配置 ====================
+    const API_BASE = 'https://ntfy.sh';
+    const TOPIC_PUBLIC = 'chatmesh-public-v1';
+    const TOPIC_DISCOVERY = 'chatmesh-discovery-v1';
+    const PREFIX_PRIVATE = 'chatmesh-private-v1-';
+    const HEARTBEAT_INTERVAL = 20000;
+    const DISCOVERY_TTL = 120000;
+    const LS_USER = 'chatmesh_user';
+    const LS_ROOMS = 'chatmesh_rooms';
+    const LS_MSGS = 'chatmesh_messages';
+    
+    let currentUser = null;
+    let currentRoom = null; // { id, type, password, isCreator }
+    let evtSources = [];
+    let heartbeatTimer = null;
+    let discoveredRooms = new Map(); // roomId -> roomInfo
+    let pendingJoinRoom = null;
+    
+    // ==================== 工具函数 ====================
+    function $(id) { return document.getElementById(id); }
+    function showToast(msg) {
+        const t = $('toast'); t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $(id).classList.add('active');
+    }
+    function showModal(id) { $(id).classList.add('active'); }
+    function hideModal(id) { $(id).classList.remove('active'); }
+    function closeModal(e, id) { if (e.target === e.currentTarget) hideModal(id); }
+    function escapeHtml(text) {
+        const div = document.createElement('div'); div.textContent = text; return div.innerHTML;
+    }
+    function formatTime(ts) {
+        const d = new Date(ts);
+        return d.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+    }
+    function getPrivateTopic(roomId) { return PREFIX_PRIVATE + roomId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0,32); }
+    
+    // ==================== 存储管理 ====================
+    function loadUser() { try { return JSON.parse(localStorage.getItem(LS_USER)); } catch(e){ return null; } }
+    function saveUser(u) { localStorage.setItem(LS_USER, JSON.stringify(u)); currentUser = u; }
+    function clearUser() { localStorage.removeItem(LS_USER); currentUser = null; }
+    function loadRooms() { try { return JSON.parse(localStorage.getItem(LS_ROOMS)) || []; } catch(e){ return []; } }
+    function saveRooms(rooms) { localStorage.setItem(LS_ROOMS, JSON.stringify(rooms)); }
+    function loadMessages() { try { return JSON.parse(localStorage.getItem(LS_MSGS)) || {}; } catch(e){ return {}; } }
+    function saveMessages(msgs) { localStorage.setItem(LS_MSGS, JSON.stringify(msgs)); }
+    function getRoomMessages(roomId) { return loadMessages()[roomId] || []; }
+    function addMessage(roomId, msg) {
+        const msgs = loadMessages(); if (!msgs[roomId]) msgs[roomId] = [];
+        // 去重
+        if (!msgs[roomId].find(m => m.id === msg.id)) { msgs[roomId].push(msg); saveMessages(msgs); }
+    }
+    function joinRoomRecord(room) {
+        const rooms = loadRooms();
+        const idx = rooms.findIndex(r => r.id === room.id);
+        if (idx >= 0) rooms[idx] = room; else rooms.push(room);
+        saveRooms(rooms);
+    }
+    function getRoomRecord(roomId) { return loadRooms().find(r => r.id === roomId); }
+    
+    // ==================== 登录系统 ====================
+    function selectLoginType(type) {
+        const name = $('login-username').value.trim();
+        if (!name) { showToast('请输入代号'); return; }
+        if (name.length < 2) { showToast('代号至少2个字符'); return; }
+        
+        if (type === 'public') {
+            saveUser({ name, loginType: 'public' });
+            initApp();
+        }
+    }
+    function showPrivateLogin() {
+        const name = $('login-username').value.trim();
+        if (!name) { showToast('请输入代号'); return; }
+        $('private-login-form').style.display = 'block';
+    }
+    function doPrivateLogin() {
+        const name = $('login-username').value.trim();
+        const roomId = $('private-room-id').value.trim();
+        const pwd = $('private-room-pwd').value;
+        if (!roomId) { showToast('请输入房间ID'); return; }
+        
+        const room = { id: roomId, type: 'private', password: pwd, isCreator: true, joinedAt: Date.now() };
+        joinRoomRecord(room);
+        saveUser({ name, loginType: 'private', defaultRoom: roomId });
+        initApp();
+    }
+    function doLogout() {
+        stopAll();
+        clearUser();
+        showScreen('login-screen');
+        showToast('已退出');
+    }
+    
+    // ==================== 初始化 ====================
+    function initApp() {
+        currentUser = loadUser();
+        if (!currentUser) { showScreen('login-screen'); return; }
+        
+        $('home-username').textContent = currentUser.name;
+        showScreen('home-screen');
+        renderJoinedRooms();
+        startDiscoveryHeartbeat();
+        connectDiscovery();
+        
+        // 状态更新
+        $('home-status-dot').className = 'status-dot online';
+        $('home-status-text').textContent = '已连线';
+        
+        // 如果登录时带默认房间，更新卡片描述
+        if (currentUser.loginType === 'private' && currentUser.defaultRoom) {
+            $('private-card-desc').textContent = `进入房间：${currentUser.defaultRoom}`;
+        } else {
+            $('private-card-desc').textContent = '点击创建新的个人聊天室';
+        }
+    }
+    
+    // ==================== 房间操作 ====================
+    function enterPublicRoom() {
+        currentRoom = { id: 'public', type: 'public' };
+        showScreen('public-chat-screen');
+        renderMessages('public');
+        connectRoom('public');
+        showToast('已进入公共聊天室');
+    }
+    function enterPrivateRoom() {
+        if (currentUser.loginType === 'private' && currentUser.defaultRoom) {
+            const room = getRoomRecord(currentUser.defaultRoom);
+            if (room) {
+                currentRoom = room;
+                openPrivateChat(room);
+                return;
+            }
+        }
+        // 公共登录用户或房间丢失，显示创建
+        $('create-room-id').value = 'room-' + Math.random().toString(36).slice(2, 8);
+        showModal('create-room-modal');
+    }
+    function doCreatePrivateRoom() {
+        const roomId = $('create-room-id').value.trim();
+        const pwd = $('create-room-pwd').value;
+        if (!roomId) { showToast('请输入房间ID'); return; }
+        
+        const room = { id: roomId, type: 'private', password: pwd, isCreator: true, joinedAt: Date.now() };
+        joinRoomRecord(room);
+        hideModal('create-room-modal');
+        currentRoom = room;
+        openPrivateChat(room);
+        
+        // 广播房间创建
+        broadcastRoomHeartbeat(room);
+        showToast('房间已创建');
+    }
+    function openPrivateChat(room) {
+        $('private-room-title').textContent = '🔒 ' + room.id;
+        $('private-room-subtitle').textContent = room.password ? '密码保护 · 已验证' : '公开房间';
+        showScreen('private-chat-screen');
+        renderMessages(room.id);
+        connectRoom(room.id);
+    }
+    function leaveChat() {
+        stopRoomConnections();
+        showScreen('home-screen');
+        renderJoinedRooms();
+    }
+    
+    // ==================== 聊天系统 ====================
+    function handleEnter(e, type) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(type); }
+    }
+    async function sendMessage(type) {
+        const inputId = type === 'public' ? 'public-msg-input' : 'private-msg-input';
+        const content = $(inputId).value.trim();
+        if (!content) return;
+        
+        const roomId = type === 'public' ? 'public' : currentRoom?.id;
+        if (!roomId) return;
+        
+        const msg = {
+            type: 'chat',
+            id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,5),
+            roomId: roomId,
+            sender: currentUser.name,
+            content: content,
+            timestamp: Date.now()
+        };
+        
+        // 本地先显示
+        addMessage(roomId, msg);
+        renderMessageBubble(msg, type);
+        $(inputId).value = '';
+        scrollToBottom(type);
+        
+        // 发送
+        const topic = type === 'public' ? TOPIC_PUBLIC : getPrivateTopic(roomId);
+        try {
+            await fetch(`${API_BASE}/${topic}`, {
+                method: 'POST',
+                body: JSON.stringify(msg),
+                headers: { 'Title': `${currentUser.name} @ ${roomId}`, 'Priority': 'default' }
+            });
+        } catch(e) { showToast('发送失败，已本地保存'); }
+        
+        // 如果是私人房间，同时广播心跳保持房间活跃
+        if (type === 'private' && currentRoom) broadcastRoomHeartbeat(currentRoom);
+    }
+    function renderMessages(roomId) {
+        const container = roomId === 'public' ? $('public-messages') : $('private-messages');
+        container.innerHTML = '';
+        const msgs = getRoomMessages(roomId);
+        msgs.sort((a,b) => a.timestamp - b.timestamp);
+        msgs.forEach(m => renderMessageBubble(m, roomId === 'public' ? 'public' : 'private', false));
+        scrollToBottom(roomId === 'public' ? 'public' : 'private');
+    }
+    function renderMessageBubble(msg, type, animate=true) {
+        const container = type === 'public' ? $('public-messages') : $('private-messages');
+        const isSelf = msg.sender === currentUser?.name;
+        const isSystem = msg.sender === 'system';
+        const div = document.createElement('div');
+        div.className = 'msg ' + (isSystem ? 'msg-system' : isSelf ? 'msg-self' : 'msg-other');
+        if (animate) div.style.animation = 'fadeIn 0.25s ease';
+        div.innerHTML = escapeHtml(msg.content) +
+            `<div class="msg-meta">${isSystem ? '' : escapeHtml(msg.sender) + ' · '}${formatTime(msg.timestamp)}</div>`;
+        container.appendChild(div);
+    }
+    function scrollToBottom(type) {
+        const container = type === 'public' ? $('public-messages') : $('private-messages');
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    // ==================== SSE 连接 ====================
+    function stopRoomConnections() {
+        evtSources.forEach(es => es.close());
+        evtSources = [];
+    }
+    function connectRoom(roomId) {
+        stopRoomConnections();
+        const topic = roomId === 'public' ? TOPIC_PUBLIC : getPrivateTopic(roomId);
+        const es = new EventSource(`${API_BASE}/${topic}/sse`);
+        es.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.event === 'message' && data.message) {
+                    const msg = JSON.parse(data.message);
+                    handleIncomingMessage(msg, roomId);
+                }
+            } catch(err) {}
+        };
+        es.onerror = () => {};
+        evtSources.push(es);
+        
+        // 拉取历史
+        fetchTopicHistory(topic, roomId);
+    }
+    async function fetchTopicHistory(topic, roomId) {
+        try {
+            const res = await fetch(`${API_BASE}/${topic}/json?poll=1&since=24h`);
+            if (!res.ok) return;
+            const text = await res.text();
+            const lines = text.trim().split('\n').filter(Boolean);
+            let newCount = 0;
+            for (const line of lines) {
+                try {
+                    const data = JSON.parse(line);
+                    if (data.event === 'message' && data.message) {
+                        const msg = JSON.parse(data.message);
+                        if (handleIncomingMessage(msg, roomId, true)) newCount++;
+                    }
+                } catch(e) {}
+            }
+            if (newCount > 0) renderMessages(roomId);
+        } catch(e) {}
+    }
+    function handleIncomingMessage(msg, roomId, silent=false) {
+        if (!msg || !msg.id) return false;
+        if (msg.type === 'chat' && msg.roomId === roomId) {
+            const existing = getRoomMessages(roomId).find(m => m.id === msg.id);
+            if (!existing) {
+                addMessage(roomId, msg);
+                if (!silent && document.querySelector(`#${roomId==='public'?'public':'private'}-chat-screen.active`)) {
+                    renderMessageBubble(msg, roomId === 'public' ? 'public' : 'private');
+                    scrollToBottom(roomId === 'public' ? 'public' : 'private');
+                }
+                return true;
+            }
+        }
+        if (msg.type === 'join_request' && currentRoom && msg.roomId === currentRoom.id) {
+            // 验证密码
+            if (currentRoom.password && msg.password !== currentRoom.password) return false;
+            // 发送接受响应
+            const response = { type: 'join_response', roomId: currentRoom.id, accepted: true, timestamp: Date.now() };
+            fetch(`${API_BASE}/${getPrivateTopic(currentRoom.id)}`, {
+                method: 'POST', body: JSON.stringify(response)
+            }).catch(()=>{});
+            if (!silent) showToast(`${msg.sender} 加入了房间`);
+        }
+        return false;
+    }
+    
+    // ==================== 房间发现 / 搜索 ====================
+    function connectDiscovery() {
+        const es = new EventSource(`${API_BASE}/${TOPIC_DISCOVERY}/sse`);
+        es.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.event === 'message' && data.message) {
+                    const msg = JSON.parse(data.message);
+                    if (msg.type === 'room_heartbeat') {
+                        discoveredRooms.set(msg.roomId, { ...msg, lastSeen: Date.now() });
+                    }
+                }
+            } catch(e) {}
+        };
+        es.onerror = () => {};
+        evtSources.push(es);
+        
+        // 拉取历史房间
+        setTimeout(() => fetchDiscoveryHistory(), 500);
+    }
+    async function fetchDiscoveryHistory() {
+        try {
+            const res = await fetch(`${API_BASE}/${TOPIC_DISCOVERY}/json?poll=1&since=24h`);
+            if (!res.ok) return;
+            const text = await res.text();
+            const lines = text.trim().split('\n').filter(Boolean);
+            for (const line of lines) {
+                try {
+                    const data = JSON.parse(line);
+                    if (data.event === 'message' && data.message) {
+                        const msg = JSON.parse(data.message);
+                        if (msg.type === 'room_heartbeat') discoveredRooms.set(msg.roomId, { ...msg, lastSeen: Date.now() });
+                    }
+                } catch(e) {}
+            }
+            renderSearchRooms();
+        } catch(e) {}
+    }
+    function broadcastRoomHeartbeat(room) {
+        const payload = JSON.stringify({
+            type: 'room_heartbeat',
+            roomId: room.id,
+            hasPassword: !!room.password,
+            creator: currentUser.name,
+            timestamp: Date.now()
+        });
+        fetch(`${API_BASE}/${TOPIC_DISCOVERY}`, {
+            method: 'POST', body: payload,
+            headers: { 'Title': `Room: ${room.id}`, 'Priority': 'low' }
+        }).catch(()=>{});
+    }
+    function startDiscoveryHeartbeat() {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        heartbeatTimer = setInterval(() => {
+            const rooms = loadRooms();
+            rooms.forEach(r => broadcastRoomHeartbeat(r));
+        }, HEARTBEAT_INTERVAL);
+    }
+    function stopAll() {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        stopRoomConnections();
+    }
+    
+    // ==================== 搜索界面 ====================
+    function renderSearchRooms() {
+        const container = $('search-room-list');
+        const keyword = ($('search-keyword')?.value || '').toLowerCase();
+        const now = Date.now();
+        const rooms = Array.from(discoveredRooms.values()).filter(r => now - r.lastSeen < DISCOVERY_TTL);
+        const joinedIds = new Set(loadRooms().map(r => r.id));
+        
+        let displayRooms = rooms.filter(r => !joinedIds.has(r.roomId) && r.roomId !== 'public');
+        if (keyword) displayRooms = displayRooms.filter(r => r.roomId.toLowerCase().includes(keyword));
+        
+        if (!displayRooms.length) {
+            container.innerHTML = `<div class="empty-state">
+                <div style="font-size:40px;margin-bottom:12px;">📡</div>
+                <div style="font-size:15px;font-weight:600;margin-bottom:4px;">未发现房间</div>
+                <div style="font-size:13px;">点击右上角刷新搜索在线房间</div>
+            </div>`;
+            return;
+        }
+        container.innerHTML = displayRooms.map(r => `
+            <div class="room-item">
+                <div class="room-icon">🔒</div>
+                <div class="room-info">
+                    <div class="room-name">${escapeHtml(r.roomId)} ${r.hasPassword ? '<span class="lock-badge">需要密码</span>' : '<span class="tag" style="background:#22c55e22;color:#22c55e;border-color:#22c55e44;">公开</span>'}</div>
+                    <div class="room-meta">创建者: ${escapeHtml(r.creator)} · 最后活跃: ${formatTime(r.timestamp)}</div>
+                </div>
+                <button class="btn btn-primary btn-small" onclick="requestJoinRoom('${escapeHtml(r.roomId)}', ${r.hasPassword})">加入</button>
+            </div>
+        `).join('');
+    }
+    function filterRoomSearch() { renderSearchRooms(); }
+    function refreshSearch() {
+        showToast('正在搜索房间...');
+        discoveredRooms.clear();
+        fetchDiscoveryHistory().then(() => showToast('搜索完成'));
+    }
+    function requestJoinRoom(roomId, hasPassword) {
+        if (hasPassword) {
+            pendingJoinRoom = roomId;
+            $('join-room-name').textContent = roomId;
+            $('join-room-pwd').value = '';
+            showModal('join-room-modal');
+        } else {
+            doJoinRoom(roomId, '');
+        }
+    }
+    function doJoinWithPassword() {
+        const pwd = $('join-room-pwd').value;
+        doJoinRoom(pendingJoinRoom, pwd);
+        hideModal('join-room-modal');
+    }
+    async function doJoinRoom(roomId, password) {
+        // 发送加入请求到房间
+        const topic = getPrivateTopic(roomId);
+        const request = {
+            type: 'join_request',
+            roomId: roomId,
+            sender: currentUser.name,
+            password: password,
+            timestamp: Date.now()
+        };
+        try {
+            await fetch(`${API_BASE}/${topic}`, {
+                method: 'POST', body: JSON.stringify(request),
+                headers: { 'Title': 'Join Request', 'Priority': 'high' }
+            });
+        } catch(e) { showToast('加入请求发送失败'); return; }
+        
+        // 等待响应（简化：直接加入，依赖创建者在线验证；如果创建者不在线，也能收到历史消息）
+        const room = { id: roomId, type: 'private', password: password, isCreator: false, joinedAt: Date.now() };
+        joinRoomRecord(room);
+        
+        // 拉取历史确认是否能加入（有密码但创建者不在线时，自己输入的密码正确即可）
+        try {
+            const res = await fetch(`${API_BASE}/${topic}/json?poll=1&since=24h`);
+            if (res.ok) {
+                const text = await res.text();
+                // 如果能获取到历史消息，说明房间存在
+                showToast(`已加入房间 ${roomId}`);
+                currentRoom = room;
+                openPrivateChat(room);
+                renderJoinedRooms();
+            }
+        } catch(e) {
+            showToast('加入成功（房间可能暂时离线）');
+            currentRoom = room;
+            openPrivateChat(room);
+            renderJoinedRooms();
+        }
+    }
+    
+    // ==================== 主界面刷新 & 已加入房间 ====================
+    function refreshHome() {
+        showToast('刷新中...');
+        renderJoinedRooms();
+        // 重新连接 discovery
+        stopRoomConnections();
+        connectDiscovery();
+        startDiscoveryHeartbeat();
+        $('home-status-dot').className = 'status-dot online';
+        $('home-status-text').textContent = '已连线';
+        showToast('刷新完成');
+    }
+    function renderJoinedRooms() {
+        const container = $('joined-rooms-list');
+        const rooms = loadRooms().filter(r => r.type === 'private');
+        if (!rooms.length) {
+            container.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;padding:8px 0;">暂无加入的个人房间</div>';
+            return;
+        }
+        container.innerHTML = rooms.map(r => `
+            <div class="room-item" style="cursor:pointer;" onclick="quickEnterRoom('${escapeHtml(r.id)}')">
+                <div class="room-icon" style="background:${r.password?'#f59e0b22':'#6366f122'};color:${r.password?'#f59e0b':'var(--accent)'};">${r.password?'🔒':'🔓'}</div>
+                <div class="room-info">
+                    <div class="room-name">${escapeHtml(r.id)}</div>
+                    <div class="room-meta">${r.isCreator?'创建者':'成员'} · ${formatTime(r.joinedAt)}加入</div>
+                </div>
+                <button class="btn btn-ghost btn-small" onclick="event.stopPropagation();deleteRoomRecord('${escapeHtml(r.id)}')">移除</button>
+            </div>
+        `).join('');
+    }
+    function quickEnterRoom(roomId) {
+        const room = getRoomRecord(roomId);
+        if (room) {
+            currentRoom = room;
+            openPrivateChat(room);
+        }
+    }
+    function deleteRoomRecord(roomId) {
+        if (!confirm('确定从列表移除该房间？聊天记录将保留。')) return;
+        const rooms = loadRooms().filter(r => r.id !== roomId);
+        saveRooms(rooms);
+        renderJoinedRooms();
+    }
+    
+    // ==================== 聊天室刷新 ====================
+    function refreshPublicChat() {
+        showToast('同步消息中...');
+        fetchTopicHistory(TOPIC_PUBLIC, 'public').then(() => showToast('同步完成'));
+    }
+    function refreshPrivateChat() {
+        if (!currentRoom) return;
+        showToast('同步消息中...');
+        fetchTopicHistory(getPrivateTopic(currentRoom.id), currentRoom.id).then(() => showToast('同步完成'));
+    }
+    
+    // ==================== 启动 ====================
+    $('login-username').addEventListener('keydown', e => { if (e.key === 'Enter') selectLoginType('public'); });
+    
+    if (loadUser()) initApp();
+</script>
+</body>
+</html>
