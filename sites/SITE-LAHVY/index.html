@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐悬浮窗注入工具</title>
+    <style>
+        :root {
+            --tool-bg: #0f0c29;
+            --tool-surface: #1a1a2e;
+            --tool-border: rgba(255, 255, 255, 0.1);
+            --tool-accent: #c9a96e;
+            --tool-text: #e2e8f0;
+            --tool-muted: #64748b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: var(--tool-bg);
+            color: var(--tool-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            line-height: 1.6;
+        }
+        .tool-container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--tool-surface);
+            border: 1px solid var(--tool-border);
+            border-radius: 20px;
+            padding: 36px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        .tool-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .tool-header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .tool-header p {
+            color: var(--tool-muted);
+            font-size: 0.9rem;
+        }
+        .input-section {
+            margin-bottom: 24px;
+        }
+        .input-section label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--tool-muted);
+            margin-bottom: 8px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--tool-border);
+            border-radius: 12px;
+            padding: 16px;
+            color: var(--tool-text);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 200px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            border-color: var(--tool-accent);
+        }
+        textarea[readonly] {
+            background: rgba(0, 0, 0, 0.2);
+            cursor: not-allowed;
+        }
+        .input-file-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .file-name {
+            font-size: 0.85rem;
+            color: var(--tool-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 220px;
+        }
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #0f0c29;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(255, 107, 107, 0.4);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--tool-border);
+            color: var(--tool-text);
+        }
+        .btn-secondary:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .output-section {
+            margin-top: 16px;
+        }
+        .output-section label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--tool-muted);
+            margin-bottom: 8px;
+        }
+        .success-msg {
+            color: #4ade80;
+            font-size: 0.9rem;
+            margin-left: 12px;
+            display: none;
+        }
+        .success-msg.show {
+            display: inline;
+        }
+        @media (max-width: 640px) {
+            .tool-container { padding: 20px; }
+            .tool-header h1 { font-size: 1.6rem; }
+            .btn { padding: 10px 18px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="tool-container">
+        <div class="tool-header">
+            <h1>🎵 悬浮窗注入工具</h1>
+            <p>粘贴您的 HTML 代码，一键添加可拖拽的音乐播放器悬浮窗</p>
+        </div>
+
+        <div class="input-section">
+            <label for="inputHtml">📄 原始 HTML 代码</label>
+            <textarea id="inputHtml" placeholder="在此粘贴您的完整 HTML 代码..."></textarea>
+            <div class="input-file-row">
+                <button class="btn btn-secondary" id="fileBtn">📂 导入 HTML 文件</button>
+                <span class="file-name" id="fileName"></span>
+                <input type="file" id="fileInput" accept=".html,.htm,text/html" style="display:none;">
+            </div>
+        </div>
+
+        <div class="button-row">
+            <button class="btn btn-primary" id="injectBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                添加悬浮窗
+            </button>
+            <button class="btn btn-secondary" id="copyBtn">📋 复制结果</button>
+            <button class="btn btn-secondary" id="downloadBtn">⬇️ 下载 HTML</button>
+        </div>
+
+        <div class="output-section">
+            <label for="outputHtml">✅ 生成结果（已注入悬浮窗）</label>
+            <textarea id="outputHtml" readonly placeholder="注入后的代码将显示在这里..."></textarea>
+            <span class="success-msg" id="successMsg">✅ 已复制到剪贴板</span>
+        </div>
+    </div>
+
+    <!-- ==================== 悬浮窗代码模板 ==================== -->
+    <!-- 使用 script type="text/template" 避免解析，只需读取 textContent -->
+
+    <!-- 模板：悬浮窗 HTML 结构 -->
+    <script type="text/template" id="widget-html-template">
+        <!-- 自定义 Toast 提示 -->
+        <div class="fw-toast" id="fwToast"></div>
+
+        <!-- 悬浮窗主体 -->
+        <div id="floatWidget">
+            <!-- 收起状态 -->
+            <div class="collapsed-view" id="collapsedView">
+                <div class="collapsed-music-icon" id="collapsedIcon">🎵</div>
+                <button class="collapsed-arrow arrow-right" id="collapsedArrow" aria-label="展开">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <div class="collapsed-song-name" id="collapsedSongName">未播放</div>
+            </div>
+
+            <!-- 展开状态 -->
+            <div class="expanded-view" id="expandedView">
+                <!-- 头部（可拖拽） -->
+                <div class="expanded-header" id="expandedHeader">
+                    <div class="drag-handle" id="dragHandle">
+                        <span class="drag-handle-icon"></span>
+                        <span class="header-title">音乐播放器 Pro</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="icon-btn settings-btn" id="settingsToggleBtn" aria-label="设置">
+                            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                        </button>
+                        <button class="icon-btn" id="collapseBtn" aria-label="收起">
+                            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 设置面板 -->
+                <div class="settings-panel" id="settingsPanel">
+                    <div class="setting-group">
+                        <span class="setting-label">API 提供商</span>
+                        <select class="setting-select" id="apiProviderSelect">
+                            <option value="jkapi">JKAPI (jkapi.com)</option>
+                            <option value="hgovo">公益点歌台 (hgovo.cn)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group" id="jkapiSettings">
+                        <span class="setting-label">API Key</span>
+                        <input class="setting-input" id="apiKeyInput" placeholder="输入 JKAPI Key" value="9a36c99b7cf7cf30f903a182cfcd7953">
+                    </div>
+                    <div class="setting-group hidden" id="hgovoSettings">
+                        <span class="setting-label">音乐源</span>
+                        <div class="setting-row" id="hgovoSourceChips"></div>
+                    </div>
+                    <button class="save-btn" id="saveSettingsBtn">保存设置</button>
+                </div>
+
+                <!-- 搜索行 -->
+                <div class="search-row">
+                    <input type="text" id="fwSearchInput" placeholder="搜索歌曲..." onkeydown="if(event.key==='Enter')fwSearch()">
+                    <button id="fwSearchBtn" onclick="fwSearch()">搜索</button>
+                    <button class="random-btn" onclick="fwRandomPlay()" title="随机播放">🎲</button>
+                </div>
+
+                <div class="fw-loading" id="fwLoading"><span class="spinner"></span>搜索中...</div>
+                <div class="fw-error" id="fwError"></div>
+
+                <!-- 歌曲信息 -->
+                <div class="song-info-row" id="songInfoRow" style="display:none;">
+                    <div class="song-cover" id="fwCover">🎵</div>
+                    <div class="song-meta">
+                        <div class="name" id="fwSongName">--</div>
+                        <div class="artist" id="fwSongArtist">--</div>
+                    </div>
+                </div>
+
+                <!-- 歌词 -->
+                <div class="lyrics-area" id="lyricsArea">
+                    <div class="lyric-empty" id="lyricEmpty">搜索播放歌曲后显示歌词</div>
+                </div>
+
+                <!-- 进度条 -->
+                <div class="progress-section" id="progressSection" style="display:none;">
+                    <div class="progress-bar-wrap" id="progressBarWrap">
+                        <div class="progress-track">
+                            <div class="progress-fill" id="fwProgressFill"></div>
+                            <div class="progress-thumb" id="fwProgressThumb"></div>
+                        </div>
+                    </div>
+                    <div class="time-row">
+                        <span id="fwCurrentTime">0:00</span>
+                        <span id="fwDuration">0:00</span>
+                    </div>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div class="controls-row" id="controlsRow" style="display:none;">
+                    <button class="ctrl-btn volume-btn" onclick="fwToggleMute()" title="静音">
+                        <svg id="fwVolIcon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                    </button>
+                    <button class="ctrl-btn play-btn" id="fwPlayBtn" onclick="fwTogglePlay()" title="播放/暂停">
+                        <svg id="fwPlayIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <button class="ctrl-btn" onclick="fwOpenSearch()" title="搜索">
+                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </button>
+                </div>
+
+                <!-- 历史列表 -->
+                <div class="history-section" id="fwHistorySection">
+                    <div id="fwHistoryContent"></div>
+                </div>
+            </div>
+
+            <audio id="fwAudio" preload="none"></audio>
+        </div>
+    </script>
+
+    <!-- 模板：悬浮窗 CSS -->
+    <script type="text/template" id="widget-css-template">
+        /* ===== 悬浮窗样式（仅作用于悬浮窗，不污染全局） ===== */
+        #floatWidget,
+        #floatWidget * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #floatWidget .hidden {
+            display: none !important;
+        }
+
+        #floatWidget {
+            --fw-collapsed-w: 52px;
+            --fw-collapsed-h: 88px;
+            --fw-expanded-w: 360px;
+            --fw-expanded-h: 560px;
+            --fw-radius: 18px;
+            --fw-bg: rgba(20, 18, 36, 0.94);
+            --fw-border: rgba(255, 255, 255, 0.12);
+            --fw-accent1: #ff6b6b;
+            --fw-accent2: #feca57;
+            --fw-accent3: #667eea;
+            --fw-text: #fff;
+            --fw-text-dim: rgba(255, 255, 255, 0.55);
+            --fw-shadow: 0 16px 50px rgba(0, 0, 0, 0.5);
+
+            position: fixed;
+            z-index: 99999;
+            width: var(--fw-collapsed-w);
+            height: var(--fw-collapsed-h);
+            top: 50%;
+            left: auto;
+            right: 0;
+            transform: translateY(-50%);
+            cursor: grab;
+            transition: width 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                height 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                border-radius 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                box-shadow 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                left 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                right 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                top 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+                background 0.35s ease;
+            border-radius: var(--fw-radius);
+            background: var(--fw-bg);
+            border: 1px solid var(--fw-border);
+            box-shadow: var(--fw-shadow);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        #floatWidget.dragging { cursor: grabbing; }
+        #floatWidget.expanded {
+            width: var(--fw-expanded-w);
+            height: var(--fw-expanded-h);
+            border-radius: 22px;
+            cursor: default;
+        }
+
+        /* 收起状态视图 */
+        #floatWidget .collapsed-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            gap: 8px;
+            opacity: 1;
+            transition: opacity 0.25s ease;
+        }
+        #floatWidget.expanded .collapsed-view {
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #floatWidget .collapsed-music-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            animation: fwPulseIcon 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        #floatWidget .collapsed-music-icon.playing {
+            animation: fwSpinDisc 2.5s linear infinite;
+            border-radius: 50%;
+        }
+        @keyframes fwPulseIcon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        @keyframes fwSpinDisc {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        #floatWidget .collapsed-arrow {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            flex-shrink: 0;
+            border: none;
+            color: #fff;
+        }
+        #floatWidget .collapsed-arrow:hover { background: rgba(255,255,255,0.25); }
+        #floatWidget .collapsed-arrow svg {
+            width: 13px;
+            height: 13px;
+            fill: #fff;
+            transition: transform 0.3s;
+        }
+        #floatWidget .collapsed-arrow.arrow-left svg { transform: rotate(180deg); }
+        #floatWidget .collapsed-arrow.arrow-right svg { transform: rotate(0deg); }
+        #floatWidget .collapsed-song-name {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            max-width: 44px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        /* 展开状态视图 */
+        #floatWidget .expanded-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease 0.1s;
+            padding: 14px 16px 12px;
+            gap: 10px;
+        }
+        #floatWidget.expanded .expanded-view {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 展开头部 */
+        #floatWidget .expanded-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            cursor: grab;
+        }
+        #floatWidget .expanded-header:active { cursor: grabbing; }
+        #floatWidget .expanded-header .drag-handle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: grab;
+            flex: 1;
+            min-width: 0;
+        }
+        #floatWidget .expanded-header .drag-handle:active { cursor: grabbing; }
+        #floatWidget .drag-handle-icon {
+            width: 28px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.25);
+            position: relative;
+        }
+        #floatWidget .drag-handle-icon::before,
+        #floatWidget .drag-handle-icon::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 28px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.25);
+        }
+        #floatWidget .drag-handle-icon::before { top: -7px; }
+        #floatWidget .drag-handle-icon::after { top: 7px; }
+        #floatWidget .header-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.7);
+        }
+        #floatWidget .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        #floatWidget .icon-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        #floatWidget .icon-btn:hover {
+            background: rgba(255,255,255,0.22);
+            transform: scale(1.05);
+        }
+        #floatWidget .icon-btn svg { width: 14px; height: 14px; fill: #fff; }
+        #floatWidget .icon-btn.settings-btn svg { width: 16px; height: 16px; }
+
+        /* 设置面板 */
+        #floatWidget .settings-panel {
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 12px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #floatWidget .settings-panel.active { display: flex; }
+        #floatWidget .setting-group { display: flex; flex-direction: column; gap: 6px; }
+        #floatWidget .setting-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255,255,255,0.5);
+        }
+        #floatWidget .setting-select,
+        #floatWidget .setting-input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 12px;
+            outline: none;
+            font-family: inherit;
+        }
+        #floatWidget .setting-select option { background: #1e1e2d; color: #fff; }
+        #floatWidget .setting-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        #floatWidget .source-chip {
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        #floatWidget .source-chip.active {
+            background: rgba(255,107,107,0.2);
+            border-color: #ff6b6b;
+            color: #fff;
+        }
+        #floatWidget .save-btn {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        #floatWidget .save-btn:hover { opacity: 0.9; }
+
+        /* 搜索区域 */
+        #floatWidget .search-row {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        #floatWidget .search-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.07);
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.25s;
+            min-width: 0;
+        }
+        #floatWidget .search-row input::placeholder { color: rgba(255,255,255,0.35); }
+        #floatWidget .search-row input:focus {
+            border-color: rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.12);
+        }
+        #floatWidget .search-row button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        #floatWidget .search-row button:hover { box-shadow: 0 4px 16px rgba(255,107,107,0.35); }
+        #floatWidget .search-row button:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+        #floatWidget .search-row .random-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #feca57;
+        }
+
+        /* 歌曲信息 */
+        #floatWidget .song-info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+            padding: 2px 0;
+        }
+        #floatWidget .song-cover {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        #floatWidget .song-cover.playing { animation: fwCoverPulse 1.8s ease-in-out infinite; }
+        @keyframes fwCoverPulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+            50% { box-shadow: 0 4px 24px rgba(255,107,107,0.45); }
+        }
+        #floatWidget .song-meta { flex: 1; min-width: 0; }
+        #floatWidget .song-meta .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #floatWidget .song-meta .artist {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        /* 歌词区域 */
+        #floatWidget .lyrics-area {
+            flex: 1;
+            min-height: 0;
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.07);
+            overflow-y: auto;
+            padding: 12px 10px;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+        #floatWidget .lyric-line {
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255,255,255,0.4);
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: all 0.35s ease;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        #floatWidget .lyric-line.active {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(255,107,107,0.15);
+            text-shadow: 0 0 20px rgba(255,107,107,0.3);
+        }
+        #floatWidget .lyric-line:hover { color: rgba(255,255,255,0.7); }
+        #floatWidget .lyric-empty {
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+            padding: 30px 10px;
+        }
+
+        /* 进度条 */
+        #floatWidget .progress-section { flex-shrink: 0; }
+        #floatWidget .progress-bar-wrap {
+            position: relative;
+            height: 28px;
+            cursor: pointer;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+        }
+        #floatWidget .progress-track {
+            width: 100%;
+            height: 5px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 3px;
+            position: relative;
+            overflow: visible;
+        }
+        #floatWidget .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            border-radius: 3px;
+            width: 0%;
+            position: relative;
+            transition: width 0.08s linear;
+            pointer-events: none;
+        }
+        #floatWidget .progress-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 4px rgba(255,255,255,0.12);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: box-shadow 0.2s;
+        }
+        #floatWidget .time-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* 控制按钮 */
+        #floatWidget .controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-shrink: 0;
+            padding: 4px 0;
+        }
+        #floatWidget .ctrl-btn {
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        #floatWidget .ctrl-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+        #floatWidget .ctrl-btn:active { transform: scale(0.95); }
+        #floatWidget .ctrl-btn.play-btn {
+            width: 46px;
+            height: 46px;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            box-shadow: 0 4px 16px rgba(255,107,107,0.35);
+        }
+        #floatWidget .ctrl-btn.play-btn:hover { box-shadow: 0 6px 24px rgba(255,107,107,0.5); transform: scale(1.06); }
+        #floatWidget .ctrl-btn.play-btn:active { transform: scale(0.94); }
+        #floatWidget .ctrl-btn svg { width: 17px; height: 17px; fill: currentColor; }
+        #floatWidget .ctrl-btn.play-btn svg { width: 20px; height: 20px; }
+        #floatWidget .volume-btn svg { width: 16px; height: 16px; }
+
+        /* 历史列表 */
+        #floatWidget .history-section {
+            flex-shrink: 0;
+            max-height: 90px;
+            overflow-y: auto;
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.07);
+            padding: 6px 8px;
+            display: none;
+        }
+        #floatWidget .history-section.has-items { display: block; }
+        #floatWidget .history-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            min-width: 0;
+        }
+        #floatWidget .history-item:hover { background: rgba(255,255,255,0.07); }
+        #floatWidget .history-item .h-num { width: 18px; text-align: center; font-size: 10px; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+        #floatWidget .history-item .h-info { flex: 1; min-width: 0; }
+        #floatWidget .history-item .h-info .h-name { font-size: 11px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #floatWidget .history-item .h-info .h-artist { font-size: 9px; color: rgba(255,255,255,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #floatWidget .history-item .h-play { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        #floatWidget .history-item .h-play svg { width: 9px; height: 9px; fill: #fff; }
+
+        /* 加载与错误 */
+        #floatWidget .fw-loading {
+            text-align: center;
+            padding: 6px 0;
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+            flex-shrink: 0;
+            display: none;
+        }
+        #floatWidget .fw-loading.active { display: block; }
+        #floatWidget .fw-loading .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-top-color: #ff6b6b;
+            border-radius: 50%;
+            animation: fwSpin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes fwSpin { to { transform: rotate(360deg); } }
+        #floatWidget .fw-error {
+            text-align: center;
+            padding: 4px 0;
+            color: #ff6b6b;
+            font-size: 11px;
+            flex-shrink: 0;
+            display: none;
+        }
+        #floatWidget .fw-error.active { display: block; }
+
+        #fwAudio { display: none; }
+
+        /* Toast 提示 */
+        .fw-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(20, 18, 36, 0.95);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 999999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        .fw-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 响应式 */
+        @media (max-width: 420px) {
+            #floatWidget {
+                --fw-expanded-w: 310px;
+                --fw-expanded-h: 520px;
+                --fw-collapsed-w: 46px;
+                --fw-collapsed-h: 76px;
+            }
+        }
+        @media (min-width: 768px) {
+            #floatWidget {
+                --fw-expanded-w: 380px;
+                --fw-expanded-h: 580px;
+                --fw-collapsed-w: 56px;
+                --fw-collapsed-h: 92px;
+            }
+        }
+    </script>
+
+    <!-- 模板：悬浮窗 JS -->
+    <script type="text/template" id="widget-js-template">
+        (function() {
+            const HGOVO_SOURCES = ['qq', 'qs', 'wy_vip', 'wy_member', 'zxl', 'kw', 'bd'];
+            const HGOVO_SOURCE_NAMES = {
+                'qq': 'QQ音乐', 'qs': '汽水', 'wy_vip': '网易VIP', 'wy_member': '网易会员',
+                'zxl': 'QQ分支', 'kw': '酷我', 'bd': 'QQ友链'
+            };
+            const RANDOM_KEYWORDS = [
+                '周杰伦 晴天', '林俊杰 江南', '陈奕迅 十年', '薛之谦 演员',
+                '邓紫棋 光年之外', '毛不易 消愁', '李荣浩 年少有为', '张学友 吻别',
+                'Beyond 海阔天空', '五月天 倔强', '王菲 红豆', '邓丽君 月亮代表我的心',
+                '周深 大鱼', '许嵩 有何不可', '汪苏泷 有点甜', '张杰 逆战'
+            ];
+
+            let isExpanded = false;
+            let isDragging = false;
+            let dragStartX = 0, dragStartY = 0, dragStartLeft = 0, dragStartTop = 0;
+            let widgetLeft = 0, widgetTop = 0, widgetWidth = 52, widgetHeight = 88;
+            let snappedSide = 'right';
+            let isPlaying = false;
+            let currentSong = null;
+            let lyricsData = [];
+            let isProgressDragging = false;
+            let progressDragValue = 0;
+            let playHistory = [];
+            let apiProvider = localStorage.getItem('fw_api_provider') || 'jkapi';
+            let jkapiKey = localStorage.getItem('fw_jkapi_key') || '9a36c99b7cf7cf30f903a182cfcd7953';
+            let hgovoSource = localStorage.getItem('fw_hgovo_source') || 'qq';
+
+            try { playHistory = JSON.parse(localStorage.getItem('fwMusicHistory') || '[]'); if (!Array.isArray(playHistory)) playHistory = []; } catch(e) { playHistory = []; }
+
+            const widget = document.getElementById('floatWidget');
+            const collapsedView = document.getElementById('collapsedView');
+            const expandedView = document.getElementById('expandedView');
+            const collapsedArrow = document.getElementById('collapsedArrow');
+            const collapseBtn = document.getElementById('collapseBtn');
+            const settingsToggleBtn = document.getElementById('settingsToggleBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const expandedHeader = document.getElementById('expandedHeader');
+            const collapsedIcon = document.getElementById('collapsedIcon');
+            const collapsedSongName = document.getElementById('collapsedSongName');
+            const fwSearchInput = document.getElementById('fwSearchInput');
+            const fwSearchBtn = document.getElementById('fwSearchBtn');
+            const fwLoading = document.getElementById('fwLoading');
+            const fwError = document.getElementById('fwError');
+            const songInfoRow = document.getElementById('songInfoRow');
+            const fwCover = document.getElementById('fwCover');
+            const fwSongName = document.getElementById('fwSongName');
+            const fwSongArtist = document.getElementById('fwSongArtist');
+            const lyricsArea = document.getElementById('lyricsArea');
+            const lyricEmpty = document.getElementById('lyricEmpty');
+            const progressSection = document.getElementById('progressSection');
+            const progressBarWrap = document.getElementById('progressBarWrap');
+            const fwProgressFill = document.getElementById('fwProgressFill');
+            const fwProgressThumb = document.getElementById('fwProgressThumb');
+            const fwCurrentTime = document.getElementById('fwCurrentTime');
+            const fwDuration = document.getElementById('fwDuration');
+            const controlsRow = document.getElementById('controlsRow');
+            const fwPlayBtn = document.getElementById('fwPlayBtn');
+            const fwPlayIcon = document.getElementById('fwPlayIcon');
+            const fwVolIcon = document.getElementById('fwVolIcon');
+            const fwHistorySection = document.getElementById('fwHistorySection');
+            const fwHistoryContent = document.getElementById('fwHistoryContent');
+            const fwAudio = document.getElementById('fwAudio');
+            const apiProviderSelect = document.getElementById('apiProviderSelect');
+            const jkapiSettings = document.getElementById('jkapiSettings');
+            const hgovoSettings = document.getElementById('hgovoSettings');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const hgovoSourceChips = document.getElementById('hgovoSourceChips');
+            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const fwToast = document.getElementById('fwToast');
+
+            function getViewportW() { return window.innerWidth; }
+            function getViewportH() { return window.innerHeight; }
+            function getSafeTop() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fw-safe-top').trim()) || 0; }
+            function getSafeBottom() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fw-safe-bottom').trim()) || 0; }
+            function getSafeLeft() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fw-safe-left').trim()) || 0; }
+            function getSafeRight() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fw-safe-right').trim()) || 0; }
+            function getActualExpandedW() { return Math.min(parseFloat(getComputedStyle(widget).getPropertyValue('--fw-expanded-w').trim()) || 360, getViewportW() - 16); }
+            function getActualExpandedH() { return Math.min(parseFloat(getComputedStyle(widget).getPropertyValue('--fw-expanded-h').trim()) || 560, getViewportH() - 16); }
+            function getActualCollapsedW() { return parseFloat(getComputedStyle(widget).getPropertyValue('--fw-collapsed-w').trim()) || 52; }
+            function getActualCollapsedH() { return parseFloat(getComputedStyle(widget).getPropertyValue('--fw-collapsed-h').trim()) || 88; }
+
+            function setWidgetPosition(left, top, useTransition = false) {
+                if (!useTransition) {
+                    widget.style.transition = 'none';
+                } else {
+                    widget.style.transition = 'left 0.35s cubic-bezier(0.25,0.8,0.25,1), top 0.35s cubic-bezier(0.25,0.8,0.25,1), width 0.35s cubic-bezier(0.25,0.8,0.25,1), height 0.35s cubic-bezier(0.25,0.8,0.25,1), border-radius 0.35s cubic-bezier(0.25,0.8,0.25,1)';
+                }
+                widget.style.left = left + 'px';
+                widget.style.top = top + 'px';
+                widget.style.right = 'auto';
+                widgetLeft = left;
+                widgetTop = top;
+                if (!useTransition) { void widget.offsetWidth; widget.style.transition = ''; }
+            }
+
+            function snapToEdge(animate = true) {
+                const vw = getViewportW(), vh = getViewportH();
+                const safeTop = getSafeTop(), safeBottom = getSafeBottom(), safeLeft = getSafeLeft(), safeRight = getSafeRight();
+                const currentW = isExpanded ? getActualExpandedW() : getActualCollapsedW();
+                const currentH = isExpanded ? getActualExpandedH() : getActualCollapsedH();
+                widgetWidth = currentW; widgetHeight = currentH;
+                const centerX = widgetLeft + currentW / 2;
+                let newLeft;
+                if (centerX < vw / 2) {
+                    snappedSide = 'left';
+                    newLeft = isExpanded ? safeLeft + 8 : -(currentW - 40) + safeLeft;
+                } else {
+                    snappedSide = 'right';
+                    newLeft = isExpanded ? vw - safeRight - currentW - 8 : vw - safeRight - 40;
+                }
+                let maxTop = vh - safeBottom - currentH - 8;
+                let minTop = safeTop + 8;
+                let newTop = Math.max(minTop, Math.min(maxTop, widgetTop));
+                setWidgetPosition(newLeft, newTop, animate);
+                updateArrowDirections();
+            }
+
+            function updateArrowDirections() {
+                if (snappedSide === 'right') {
+                    collapsedArrow.className = 'collapsed-arrow arrow-left';
+                    collapsedArrow.querySelector('svg').style.transform = 'rotate(180deg)';
+                    collapseBtn.querySelector('svg').style.transform = 'rotate(180deg)';
+                } else {
+                    collapsedArrow.className = 'collapsed-arrow arrow-right';
+                    collapsedArrow.querySelector('svg').style.transform = 'rotate(0deg)';
+                    collapseBtn.querySelector('svg').style.transform = 'rotate(0deg)';
+                }
+            }
+
+            function expandWidget() {
+                if (isExpanded) return;
+                isExpanded = true;
+                widget.classList.add('expanded');
+                const vw = getViewportW(), safeLeft = getSafeLeft(), safeRight = getSafeRight();
+                const currentW = getActualExpandedW(), currentH = getActualExpandedH();
+                widgetWidth = currentW; widgetHeight = currentH;
+                let newLeft = snappedSide === 'left' ? safeLeft + 8 : vw - safeRight - currentW - 8;
+                const vh = getViewportH(), safeTop = getSafeTop(), safeBottom = getSafeBottom();
+                let newTop = Math.max(safeTop + 8, Math.min(vh - safeBottom - currentH - 8, widgetTop));
+                setWidgetPosition(newLeft, newTop, true);
+                updateArrowDirections();
+                renderHistory();
+                initSettingsPanel();
+            }
+
+            function collapseWidget() {
+                if (!isExpanded) return;
+                isExpanded = false;
+                widget.classList.remove('expanded');
+                const vw = getViewportW(), safeLeft = getSafeLeft(), safeRight = getSafeRight();
+                const currentW = getActualCollapsedW(), currentH = getActualCollapsedH();
+                widgetWidth = currentW; widgetHeight = currentH;
+                let newLeft = snappedSide === 'left' ? -(currentW - 40) + safeLeft : vw - safeRight - 40;
+                const vh = getViewportH(), safeTop = getSafeTop(), safeBottom = getSafeBottom();
+                let newTop = Math.max(safeTop + 8, Math.min(vh - safeBottom - currentH - 8, widgetTop));
+                setWidgetPosition(newLeft, newTop, true);
+                updateArrowDirections();
+            }
+
+            function onDragStart(e) {
+                const target = e.target;
+                if (target.closest('button') || target.closest('input') || target.closest('.lyrics-area') ||
+                    target.closest('.progress-bar-wrap') || target.closest('.history-section') || target.closest('.settings-panel') ||
+                    target.closest('.search-row') || target.closest('.controls-row')) return;
+                if (target.closest('.collapsed-arrow')) return;
+                isDragging = true;
+                dragStartX = (e.touches ? e.touches[0].clientX : e.clientX);
+                dragStartY = (e.touches ? e.touches[0].clientY : e.clientY);
+                dragStartLeft = widgetLeft; dragStartTop = widgetTop;
+                widget.classList.add('dragging');
+                widget.style.transition = 'none';
+                e.preventDefault();
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                const posX = e.touches ? e.touches[0].clientX : e.clientX;
+                const posY = e.touches ? e.touches[0].clientY : e.clientY;
+                const dx = posX - dragStartX, dy = posY - dragStartY;
+                const vw = getViewportW(), vh = getViewportH();
+                const safeTop = getSafeTop(), safeBottom = getSafeBottom(), safeLeft = getSafeLeft(), safeRight = getSafeRight();
+                let newLeft = dragStartLeft + dx;
+                let newTop = dragStartTop + dy;
+                widgetWidth = isExpanded ? getActualExpandedW() : getActualCollapsedW();
+                widgetHeight = isExpanded ? getActualExpandedH() : getActualCollapsedH();
+                const minLeft = -widgetWidth + 20 + safeLeft;
+                const maxLeft = vw - 20 - safeRight;
+                newLeft = Math.max(minLeft, Math.min(maxLeft, newLeft));
+                const minTop = safeTop + 4;
+                const maxTop = vh - safeBottom - widgetHeight - 4;
+                newTop = Math.max(minTop, Math.min(maxTop, newTop));
+                setWidgetPosition(newLeft, newTop, false);
+            }
+
+            function onDragEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                widget.classList.remove('dragging');
+                const posX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+                const posY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+                const dx = posX - dragStartX, dy = posY - dragStartY;
+                if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                    snapToEdge(true);
+                } else {
+                    widget.style.transition = '';
+                    if (!isExpanded) {
+                        setTimeout(() => { if (!isDragging) expandWidget(); }, 30);
+                    }
+                }
+            }
+
+            function initSettingsPanel() {
+                apiProviderSelect.value = apiProvider;
+                apiKeyInput.value = jkapiKey;
+                updateProviderUI();
+                renderHgovoChips();
+            }
+            function updateProviderUI() {
+                if (apiProvider === 'jkapi') {
+                    jkapiSettings.classList.remove('hidden');
+                    hgovoSettings.classList.add('hidden');
+                } else {
+                    jkapiSettings.classList.add('hidden');
+                    hgovoSettings.classList.remove('hidden');
+                }
+            }
+            function renderHgovoChips() {
+                hgovoSourceChips.innerHTML = '';
+                HGOVO_SOURCES.forEach(src => {
+                    const chip = document.createElement('button');
+                    chip.className = 'source-chip' + (src === hgovoSource ? ' active' : '');
+                    chip.textContent = HGOVO_SOURCE_NAMES[src] || src;
+                    chip.dataset.source = src;
+                    chip.addEventListener('click', () => { hgovoSource = src; renderHgovoChips(); });
+                    hgovoSourceChips.appendChild(chip);
+                });
+            }
+            function showToast(message) {
+                fwToast.textContent = message;
+                fwToast.classList.add('show');
+                clearTimeout(fwToast._timeout);
+                fwToast._timeout = setTimeout(() => fwToast.classList.remove('show'), 2000);
+            }
+            function saveSettings() {
+                apiProvider = apiProviderSelect.value;
+                jkapiKey = apiKeyInput.value.trim() || '9a36c99b7cf7cf30f903a182cfcd7953';
+                localStorage.setItem('fw_api_provider', apiProvider);
+                localStorage.setItem('fw_jkapi_key', jkapiKey);
+                localStorage.setItem('fw_hgovo_source', hgovoSource);
+                updateProviderUI();
+                settingsPanel.classList.remove('active');
+                showToast('设置已保存 ✅');
+            }
+
+            async function fwSearch() {
+                const query = fwSearchInput.value.trim();
+                if (!query) { fwError.textContent = '请输入歌名或歌手'; fwError.classList.add('active'); return; }
+                fwSearchBtn.disabled = true;
+                fwLoading.classList.add('active');
+                fwError.classList.remove('active');
+                try {
+                    let songData;
+                    if (apiProvider === 'jkapi') songData = await searchJKAPI(query);
+                    else songData = await searchHgovo(query);
+                    if (songData && songData.music_url) {
+                        loadSong(songData);
+                        addToHistory(songData);
+                    } else throw new Error('未找到可播放的歌曲');
+                } catch (err) {
+                    fwError.textContent = err.message || '搜索失败';
+                    fwError.classList.add('active');
+                } finally {
+                    fwSearchBtn.disabled = false;
+                    fwLoading.classList.remove('active');
+                }
+            }
+            async function searchJKAPI(name) {
+                const url = `https://jkapi.com/api/music?plat=wy&type=json&apiKey=${encodeURIComponent(jkapiKey)}&name=${encodeURIComponent(name)}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('网络请求失败');
+                const data = await response.json();
+                if (data.code === 1 && data.music_url) return { name: data.name || name, artist: data.artist || '未知歌手', album: data.album || '', music_url: data.music_url, cover: data.cover || '', lyric: data.lrc || data.lyric || '', source: 'jkapi' };
+                else throw new Error(data.msg || 'JKAPI 未找到歌曲');
+            }
+            async function searchHgovo(name) {
+                const url = `https://api.hgovo.cn/API/hgdydg?type=${hgovoSource}&msg=${encodeURIComponent(name)}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('网络请求失败');
+                const data = await response.json();
+                if (data.code == 200 && data.music_url) return { name: data.title || name, artist: data.singer || '未知歌手', album: data.album || '', music_url: data.music_url, cover: data.cover || '', lyric: data.lyric || '', link: data.link || '', source: 'hgovo' };
+                else throw new Error(data.msg || '公益点歌台未找到歌曲');
+            }
+            async function fwRandomPlay() {
+                if (playHistory.length > 0 && Math.random() > 0.5) {
+                    const item = playHistory[Math.floor(Math.random() * playHistory.length)];
+                    loadSong(item);
+                } else {
+                    const kw = RANDOM_KEYWORDS[Math.floor(Math.random() * RANDOM_KEYWORDS.length)];
+                    fwSearchInput.value = kw;
+                    await fwSearch();
+                }
+            }
+
+            function loadSong(data) {
+                currentSong = data;
+                fwSongName.textContent = data.name || '未知歌曲';
+                fwSongArtist.textContent = data.artist || '未知歌手';
+                const colors = [
+                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+                    'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                ];
+                fwCover.style.background = colors[Math.floor(Math.random() * colors.length)];
+                fwCover.textContent = '🎵';
+                fwAudio.src = data.music_url;
+                fwAudio.volume = 0.8;
+                fwAudio.currentTime = 0;
+                showControls(true);
+                updateCollapsedInfo();
+                resetLyrics();
+                loadLyrics(data);
+                isPlaying = false;
+                updatePlayIcon();
+                fwAudio.play().then(() => { isPlaying = true; updatePlayIcon(); }).catch(() => { isPlaying = false; updatePlayIcon(); });
+                fwError.classList.remove('active');
+            }
+            function showControls(show) {
+                songInfoRow.style.display = show ? 'flex' : 'none';
+                progressSection.style.display = show ? 'block' : 'none';
+                controlsRow.style.display = show ? 'flex' : 'none';
+            }
+            function updateCollapsedInfo() {
+                if (currentSong) { collapsedSongName.textContent = currentSong.name || '播放中'; collapsedIcon.textContent = '🎵'; }
+                else { collapsedSongName.textContent = '未播放'; collapsedIcon.textContent = '🎵'; }
+            }
+            function fwTogglePlay() {
+                if (!fwAudio.src) { fwSearchInput.focus(); return; }
+                if (isPlaying) {
+                    fwAudio.pause();
+                    isPlaying = false;
+                    updatePlayIcon();
+                } else {
+                    fwAudio.play().then(() => {
+                        isPlaying = true;
+                        updatePlayIcon();
+                    }).catch(() => {
+                        isPlaying = false;
+                        updatePlayIcon();
+                    });
+                }
+            }
+            function fwToggleMute() {
+                fwAudio.muted = !fwAudio.muted;
+                fwVolIcon.innerHTML = fwAudio.muted ?
+                    '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>' :
+                    '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+            }
+            function fwOpenSearch() { fwSearchInput.focus(); fwSearchInput.select(); }
+
+            function resetLyrics() {
+                lyricsData = [];
+                lyricEmpty.textContent = '暂无歌词';
+                lyricEmpty.style.display = 'block';
+                lyricsArea.querySelectorAll('.lyric-line').forEach(el => el.remove());
+            }
+            function parseLrc(lrcText) {
+                const lines = lrcText.split(/\r?\n/);
+                const result = [];
+                const timeRegex = /\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]/g;
+                for (const line of lines) {
+                    const textStart = line.lastIndexOf(']') + 1;
+                    const text = line.slice(textStart).trim();
+                    if (!text) continue;
+                    timeRegex.lastIndex = 0;
+                    let match;
+                    while ((match = timeRegex.exec(line)) !== null) {
+                        const min = parseInt(match[1]), sec = parseInt(match[2]);
+                        const frac = match[3] ? parseInt(match[3].padEnd(3, '0')) / 1000 : 0;
+                        result.push({ time: min * 60 + sec + frac, text });
+                    }
+                }
+                result.sort((a, b) => a.time - b.time);
+                return result;
+            }
+            function renderLyrics() {
+                lyricEmpty.style.display = 'none';
+                lyricsArea.querySelectorAll('.lyric-line').forEach(el => el.remove());
+                if (!lyricsData.length) { lyricEmpty.textContent = '暂无歌词'; lyricEmpty.style.display = 'block'; return; }
+                lyricsData.forEach((item, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'lyric-line';
+                    div.dataset.index = idx;
+                    div.dataset.time = item.time;
+                    div.textContent = item.text;
+                    div.addEventListener('click', () => {
+                        if (fwAudio.src) {
+                            fwAudio.currentTime = item.time;
+                            if (!isPlaying) { fwAudio.play().then(() => { isPlaying = true; updatePlayIcon(); }).catch(() => {}); }
+                        }
+                    });
+                    lyricsArea.appendChild(div);
+                });
+            }
+            function updateLyricsHighlight(currentTime) {
+                if (!lyricsData.length) return;
+                let activeIndex = -1;
+                for (let i = 0; i < lyricsData.length; i++) {
+                    if (lyricsData[i].time <= currentTime + 0.3) activeIndex = i;
+                    else break;
+                }
+                const allLines = lyricsArea.querySelectorAll('.lyric-line');
+                let needsScroll = false;
+                allLines.forEach((line, idx) => {
+                    if (idx === activeIndex) { if (!line.classList.contains('active')) { line.classList.add('active'); needsScroll = true; } }
+                    else line.classList.remove('active');
+                });
+                if (needsScroll && activeIndex >= 0) {
+                    const activeLine = allLines[activeIndex];
+                    if (activeLine) {
+                        const areaRect = lyricsArea.getBoundingClientRect();
+                        const lineRect = activeLine.getBoundingClientRect();
+                        lyricsArea.scrollBy({ top: lineRect.top - areaRect.top - areaRect.height / 3, behavior: 'smooth' });
+                    }
+                }
+            }
+            async function loadLyrics(songData) {
+                resetLyrics();
+                if (songData.lyric) { lyricsData = parseLrc(songData.lyric); renderLyrics(); return; }
+                try {
+                    let lrcUrl;
+                    if (apiProvider === 'jkapi') lrcUrl = `https://jkapi.com/api/music/lrc?plat=wy&type=json&apiKey=${jkapiKey}&name=${encodeURIComponent(songData.name || '')}`;
+                    else lrcUrl = `https://api.hgovo.cn/API/hgdydg?type=${hgovoSource}&msg=${encodeURIComponent(songData.name || '')}`;
+                    const resp = await fetch(lrcUrl);
+                    const lrcData = await resp.json();
+                    const lrcText = lrcData.lrc || lrcData.lyric || (lrcData.data && (lrcData.data.lrc || lrcData.data.lyric));
+                    if (lrcText) { lyricsData = parseLrc(lrcText); renderLyrics(); return; }
+                } catch (e) {}
+                lyricEmpty.textContent = '暂无歌词';
+                lyricEmpty.style.display = 'block';
+            }
+
+            function getProgressFromEvent(e) {
+                const rect = progressBarWrap.getBoundingClientRect();
+                const posX = e.touches ? e.touches[0].clientX : e.clientX;
+                let ratio = (posX - rect.left) / rect.width;
+                ratio = Math.max(0, Math.min(1, ratio));
+                return ratio;
+            }
+            function updateProgressUI(ratio) {
+                const pct = ratio * 100;
+                fwProgressFill.style.width = pct + '%';
+                fwProgressThumb.style.left = pct + '%';
+            }
+            function onProgressStart(e) {
+                if (!fwAudio.src || !fwAudio.duration) return;
+                isProgressDragging = true;
+                progressDragValue = getProgressFromEvent(e);
+                updateProgressUI(progressDragValue);
+                e.preventDefault(); e.stopPropagation();
+                document.addEventListener('touchmove', onProgressMove, { passive: false });
+                document.addEventListener('touchend', onProgressEnd);
+                document.addEventListener('mousemove', onProgressMove);
+                document.addEventListener('mouseup', onProgressEnd);
+            }
+            function onProgressMove(e) {
+                if (!isProgressDragging) return;
+                e.preventDefault();
+                progressDragValue = getProgressFromEvent(e);
+                updateProgressUI(progressDragValue);
+            }
+            function onProgressEnd(e) {
+                if (!isProgressDragging) return;
+                isProgressDragging = false;
+                document.removeEventListener('touchmove', onProgressMove);
+                document.removeEventListener('touchend', onProgressEnd);
+                document.removeEventListener('mousemove', onProgressMove);
+                document.removeEventListener('mouseup', onProgressEnd);
+                if (fwAudio.src && fwAudio.duration) fwAudio.currentTime = progressDragValue * fwAudio.duration;
+                progressDragValue = 0;
+            }
+
+            function addToHistory(data) {
+                playHistory = playHistory.filter(item => item.name !== data.name);
+                playHistory.unshift({ name: data.name, artist: data.artist, album: data.album || '', music_url: data.music_url, cover: data.cover || '', lyric: data.lyric || '', source: data.source || apiProvider });
+                if (playHistory.length > 30) playHistory = playHistory.slice(0, 30);
+                try { localStorage.setItem('fwMusicHistory', JSON.stringify(playHistory)); } catch(e) {}
+                renderHistory();
+            }
+            function renderHistory() {
+                if (!playHistory.length) { fwHistorySection.classList.remove('has-items'); fwHistoryContent.innerHTML = ''; return; }
+                fwHistorySection.classList.add('has-items');
+                fwHistoryContent.innerHTML = playHistory.slice(0, 10).map((item, i) => `
+                    <div class="history-item" data-index="${i}">
+                        <div class="h-num">${i + 1}</div>
+                        <div class="h-info">
+                            <div class="h-name">${escapeHtml(item.name)}</div>
+                            <div class="h-artist">${escapeHtml(item.artist || '未知歌手')}</div>
+                        </div>
+                        <div class="h-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+                    </div>
+                `).join('');
+                fwHistoryContent.querySelectorAll('.history-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const idx = parseInt(el.dataset.index);
+                        const item = playHistory[idx];
+                        if (item) loadSong(item);
+                    });
+                });
+            }
+            function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+
+            fwAudio.addEventListener('timeupdate', () => {
+                if (isProgressDragging) return;
+                const ratio = fwAudio.duration ? fwAudio.currentTime / fwAudio.duration : 0;
+                updateProgressUI(ratio);
+                fwCurrentTime.textContent = formatTime(fwAudio.currentTime);
+                fwDuration.textContent = formatTime(fwAudio.duration);
+                updateLyricsHighlight(fwAudio.currentTime);
+            });
+            fwAudio.addEventListener('loadedmetadata', () => { fwDuration.textContent = formatTime(fwAudio.duration); updateProgressUI(0); });
+            fwAudio.addEventListener('play', () => { isPlaying = true; updatePlayIcon(); });
+            fwAudio.addEventListener('pause', () => { isPlaying = false; updatePlayIcon(); });
+            fwAudio.addEventListener('ended', () => { isPlaying = false; updatePlayIcon(); updateProgressUI(0); fwCurrentTime.textContent = '0:00'; });
+            fwAudio.addEventListener('error', () => { isPlaying = false; updatePlayIcon(); fwError.textContent = '音频加载失败'; fwError.classList.add('active'); });
+
+            function formatTime(sec) {
+                if (!sec || isNaN(sec) || sec < 0) return '0:00';
+                const m = Math.floor(sec / 60); const s = Math.floor(sec % 60);
+                return m + ':' + s.toString().padStart(2, '0');
+            }
+            function updatePlayIcon() {
+                fwPlayIcon.innerHTML = isPlaying ?
+                    '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>' :
+                    '<path d="M8 5v14l11-7z"/>';
+                if (isPlaying) { collapsedIcon.classList.add('playing'); fwCover.classList.add('playing'); }
+                else { collapsedIcon.classList.remove('playing'); fwCover.classList.remove('playing'); }
+            }
+
+            // 暴露全局函数
+            window.fwSearch = fwSearch;
+            window.fwRandomPlay = fwRandomPlay;
+            window.fwTogglePlay = fwTogglePlay;
+            window.fwToggleMute = fwToggleMute;
+            window.fwOpenSearch = fwOpenSearch;
+
+            // 事件绑定
+            widget.addEventListener('touchstart', onDragStart, { passive: false });
+            widget.addEventListener('mousedown', onDragStart);
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('touchend', onDragEnd);
+            document.addEventListener('mouseup', onDragEnd);
+
+            collapsedArrow.addEventListener('click', (e) => { e.stopPropagation(); expandWidget(); });
+            collapseBtn.addEventListener('click', (e) => { e.stopPropagation(); collapseWidget(); });
+            settingsToggleBtn.addEventListener('click', () => settingsPanel.classList.toggle('active'));
+            apiProviderSelect.addEventListener('change', () => { apiProvider = apiProviderSelect.value; updateProviderUI(); });
+            saveSettingsBtn.addEventListener('click', saveSettings);
+
+            progressBarWrap.addEventListener('touchstart', onProgressStart, { passive: false });
+            progressBarWrap.addEventListener('mousedown', onProgressStart);
+
+            window.addEventListener('resize', () => {
+                snapToEdge(false);
+                if (isExpanded) {
+                    const vw = getViewportW(), safeLeft = getSafeLeft(), safeRight = getSafeRight();
+                    const currentW = getActualExpandedW();
+                    let newLeft = snappedSide === 'left' ? safeLeft + 8 : vw - safeRight - currentW - 8;
+                    setWidgetPosition(newLeft, widgetTop, false);
+                }
+            });
+
+            // 初始化
+            const vw = getViewportW(), vh = getViewportH();
+            const safeRight = getSafeRight(), safeTop = getSafeTop();
+            widgetWidth = getActualCollapsedW(); widgetHeight = getActualCollapsedH();
+            snappedSide = 'right';
+            const initLeft = vw - safeRight - 40;
+            const initTop = Math.max(safeTop + 8, (vh - widgetHeight) / 2);
+            setWidgetPosition(initLeft, initTop, false);
+            updateArrowDirections();
+            renderHistory();
+            updatePlayIcon();
+            updateCollapsedInfo();
+            showControls(false);
+            initSettingsPanel();
+        })();
+    </script>
+
+    <script>
+        (function() {
+            const injectBtn = document.getElementById('injectBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const inputHtml = document.getElementById('inputHtml');
+            const outputHtml = document.getElementById('outputHtml');
+            const successMsg = document.getElementById('successMsg');
+            const fileBtn = document.getElementById('fileBtn');
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+
+            function getWidgetHtml() {
+                return document.getElementById('widget-html-template').textContent.trim();
+            }
+            function getWidgetCss() {
+                return document.getElementById('widget-css-template').textContent.trim();
+            }
+            function getWidgetJs() {
+                return document.getElementById('widget-js-template').textContent.trim();
+            }
+
+            function inject() {
+                const userHtml = inputHtml.value;
+                if (!userHtml.trim()) {
+                    alert('请先粘贴 HTML 代码');
+                    return;
+                }
+
+                const widgetHtml = getWidgetHtml();
+                const widgetCss = getWidgetCss();
+                const widgetJs = getWidgetJs();
+
+                // 构建注入块
+                const injection = `
+<!-- ========== 悬浮音乐播放器注入开始 ========== -->
+${widgetHtml}
+<style>${widgetCss}</style>
+<script>
+${widgetJs}
+<\/script>
+<!-- ========== 悬浮音乐播放器注入结束 ========== -->`;
+
+                let resultHtml;
+                // 如果存在 </body>，插入到之前；否则直接追加
+                if (userHtml.includes('</body>')) {
+                    resultHtml = userHtml.replace('</body>', injection + '\n</body>');
+                } else {
+                    resultHtml = userHtml + '\n' + injection;
+                }
+
+                outputHtml.value = resultHtml;
+                successMsg.classList.remove('show');
+                // 自动滚动到输出框
+                outputHtml.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            function copyResult() {
+                if (!outputHtml.value) {
+                    alert('请先点击“添加悬浮窗”生成结果');
+                    return;
+                }
+                navigator.clipboard.writeText(outputHtml.value).then(() => {
+                    successMsg.textContent = '✅ 已复制到剪贴板';
+                    successMsg.classList.add('show');
+                    setTimeout(() => successMsg.classList.remove('show'), 2000);
+                }).catch(() => {
+                    // 降级方案
+                    outputHtml.select();
+                    document.execCommand('copy');
+                    successMsg.textContent = '✅ 已复制到剪贴板';
+                    successMsg.classList.add('show');
+                    setTimeout(() => successMsg.classList.remove('show'), 2000);
+                });
+            }
+
+            function downloadResult() {
+                if (!outputHtml.value) {
+                    alert('请先点击“添加悬浮窗”生成结果');
+                    return;
+                }
+                const blob = new Blob([outputHtml.value], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'index_with_widget.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            fileBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    inputHtml.value = ev.target.result;
+                    fileName.textContent = file.name;
+                };
+                reader.onerror = () => {
+                    alert('文件读取失败');
+                };
+                reader.readAsText(file);
+                fileInput.value = '';
+            });
+
+            injectBtn.addEventListener('click', inject);
+            copyBtn.addEventListener('click', copyResult);
+            downloadBtn.addEventListener('click', downloadResult);
+        })();
+    </script>
+</body>
+</html>
