@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>iOS 26 真实桌面 — 还原版</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+html,body { width:100%; height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#000; touch-action:none; }
+
+.desktop-bg {
+  position:fixed; inset:-30px; z-index:0;
+  background:url('https://kimi-web-img.kimi.ai/img/cdn.osxdaily.com/5c7af4cc54381816363f592356f42ae17b67c870.jpg') center/cover no-repeat;
+  will-change:transform, filter;
+  transform:translateZ(0);
+}
+.desktop {
+  position:fixed; inset:0; z-index:1;
+  overflow:hidden; padding:50px 12px 30px;
+  will-change:filter, transform;
+  transform:translateZ(0);
+}
+.status-bar {
+  position:fixed; top:0; left:0; right:0; height:44px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 25px; font-size:14px; font-weight:600; color:#fff;
+  z-index:10; pointer-events:none;
+}
+.icon-grid {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(6,1fr); gap:0;
+  width:100%; height:100%;
+}
+.app-icon {
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  cursor:pointer;
+  position:relative;
+}
+/* ========== iOS 真实 Jiggle 晃动 ========== */
+.app-icon.wiggle .icon-wrap {
+  animation: wiggle-rotate 0.25s ease-in-out infinite;
+  transform-origin: 50% 10%;
+}
+.app-icon.wiggle:nth-child(2n) .icon-wrap {
+  animation-name: wiggle-rotate-alt;
+  animation-duration: 0.30s;
+  animation-delay: -0.50s;
+  transform-origin: 30% 5%;
+}
+.app-icon.wiggle:nth-child(3n) .icon-wrap {
+  animation-duration: 0.27s;
+  animation-delay: -0.05s;
+  transform-origin: 60% 8%;
+}
+.app-icon.wiggle:nth-child(4n) .icon-wrap {
+  animation-name: wiggle-rotate;
+  animation-duration: 0.33s;
+  animation-delay: -0.20s;
+  transform-origin: 40% 12%;
+}
+.app-icon.wiggle:nth-child(5n) .icon-wrap {
+  animation-name: wiggle-rotate-alt;
+  animation-duration: 0.24s;
+  animation-delay: -0.31s;
+  transform-origin: 55% 3%;
+}
+.app-icon.wiggle:nth-child(6n) .icon-wrap {
+  animation-duration: 0.28s;
+  animation-delay: -0.15s;
+  transform-origin: 45% 7%;
+}
+@keyframes wiggle-rotate {
+  0%   { transform: rotate(-1.5deg); animation-timing-function: ease-in; }
+  50%  { transform: rotate(1.5deg);  animation-timing-function: ease-out; }
+  100% { transform: rotate(-1.5deg); }
+}
+@keyframes wiggle-rotate-alt {
+  0%   { transform: rotate(1.5deg);  animation-timing-function: ease-in; }
+  50%  { transform: rotate(-1.5deg); animation-timing-function: ease-out; }
+  100% { transform: rotate(1.5deg); }
+}
+/* 拖拽时停止晃动并放大 */
+.app-icon.dragging .icon-wrap {
+  animation:none !important;
+  transform:scale(1.15);
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+}
+/* ========== 图标容器（无 overflow:hidden） ========== */
+.icon-wrap {
+  width:58px; height:58px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 15px rgba(0,0,0,.3);
+  position:relative;
+  transition:transform .2s, box-shadow .2s;
+  will-change:transform;
+}
+.icon-wrap img {
+  width:100%; height:100%;
+  object-fit:cover;
+  border-radius:inherit;
+  display:block;
+  -webkit-user-drag:none;
+  pointer-events:none;
+}
+.app-icon span {
+  color:#fff; font-size:10px;
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+  margin-top:4px; white-space:nowrap;
+  pointer-events:none;
+}
+/* ========== 删除按钮：减号（−），Material 模糊材质 ========== */
+.delete-badge {
+  position:absolute;
+  top:-6px;
+  left:-6px;
+  width:20px; height:20px; border-radius:50%;
+  background:rgba(120,120,128,0.72);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px;
+  font-weight:600;
+  line-height:1;
+  box-shadow:0 1px 3px rgba(0,0,0,0.2);
+  opacity:0; transform:scale(0);
+  transition:opacity .2s, transform .2s;
+  z-index:20;
+  pointer-events:auto;
+}
+.delete-badge::after {
+  content:'−';
+  display:block;
+  margin-top:-1px;
+}
+.app-icon.wiggle .delete-badge {
+  opacity:1; transform:scale(1);
+}
+
+.edit-hint {
+  position:fixed; top:50px; left:0; right:0;
+  text-align:center; color:#fff; font-size:13px;
+  font-weight:500; text-shadow:0 1px 4px rgba(0,0,0,.6);
+  opacity:0; transition:opacity .3s; z-index:20; pointer-events:none;
+}
+.edit-hint.show { opacity:1; }
+
+/* ========== 连续避让动画 ========== */
+.app-icon {
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0.35, 1.0);
+  will-change: transform;
+}
+
+.stage {
+  position:fixed; inset:0; z-index:100;
+  pointer-events:none; perspective:1200px;
+  -webkit-perspective:1200px;
+  transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
+}
+.app-window {
+  position:absolute; left:0; top:0; width:100%; height:100%;
+  background:#fff; overflow:hidden;
+  will-change:transform, filter, border-radius, opacity;
+  transform-origin:center center;
+  visibility:hidden; pointer-events:none;
+  transform-style:preserve-3d;
+  -webkit-transform-style:preserve-3d;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  border-radius:0;
+}
+.app-window.open { visibility:visible; pointer-events:auto; }
+
+.app-launch-screen {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  z-index:5; pointer-events:none;
+}
+.launch-icon {
+  width:120px; height:120px;
+  object-fit:cover;
+  border-radius:22%;
+  filter:drop-shadow(0 4px 20px rgba(0,0,0,.3));
+  transform-origin:center center;
+  will-change:transform;
+  -webkit-user-drag:none;
+}
+
+.app-header {
+  height:44px; display:flex; align-items:center; justify-content:center;
+  background:#f8f8f8; border-bottom:1px solid #e0e0e0;
+  position:relative; font-size:16px; font-weight:600;
+  color:#000; flex-shrink:0;
+}
+.app-body {
+  height:calc(100% - 44px); overflow-y:auto;
+  background:#fff; -webkit-overflow-scrolling:touch;
+}
+.app-body-inner { padding:20px; }
+.app-body-inner h2 { margin-bottom:10px; color:#333; }
+.app-body-inner p { color:#666; line-height:1.7; margin-bottom:15px; }
+
+.gesture-bar {
+  position:absolute; bottom:8px; left:50%;
+  transform:translateX(-50%); width:130px; height:5px;
+  background:#000; border-radius:3px; opacity:.25; z-index:10;
+}
+
+.trigger-zone {
+  position:absolute; bottom:0; left:0; right:0;
+  height:140px; z-index:200; pointer-events:none;
+  background:linear-gradient(to top, rgba(0,122,255,.06), transparent);
+  opacity:0; transition:opacity .15s;
+}
+.trigger-zone.active { opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="desktop-bg" id="desktopBg"></div>
+
+<div class="status-bar">
+  <span id="clock">12:09</span>
+  <div><span>📶</span><span style="margin-left:4px">🔋</span></div>
+</div>
+
+<div class="edit-hint" id="editHint">完成</div>
+
+<div class="desktop" id="desktop">
+  <div class="icon-grid" id="iconGrid"></div>
+</div>
+
+<div class="trigger-zone" id="triggerZone"></div>
+
+<div class="stage" id="stage">
+  <div class="app-window" id="appWindow">
+    <div class="app-launch-screen" id="appLaunchScreen">
+      <img class="launch-icon" id="launchIcon" src="" alt="">
+    </div>
+    <div class="app-header">
+      <span id="appTitle">应用</span>
+    </div>
+    <div class="app-body" id="appBody">
+      <div class="app-body-inner" id="appContent"></div>
+    </div>
+    <div class="gesture-bar" id="gestureBar"></div>
+  </div>
+</div>
+
+<script>
+// ==================== Apple 官方弹簧模型 ====================
+function makeSpringParams(response, dampingRatio, mass = 1) {
+  const stiffness = mass * Math.pow((2 * Math.PI) / response, 2);
+  const damping = 2 * dampingRatio * Math.sqrt(stiffness * mass);
+  return { mass, stiffness, damping };
+}
+
+const OPEN_PARAMS = makeSpringParams(0.40, 0.72, 1);
+const CLOSE_PARAMS = makeSpringParams(0.40, 0.82, 1);
+
+// ==================== RK4 弹簧 ====================
+class Spring {
+  constructor({ mass, stiffness, damping, initialValue = 0, initialVelocity = 0 }) {
+    this.mass = mass; this.stiffness = stiffness; this.damping = damping;
+    this.x = initialValue; this.v = initialVelocity; this.target = initialValue;
+  }
+  setTarget(target, initialVelocity = 0) {
+    this.target = target; this.v = initialVelocity;
+  }
+  reconfigure({ mass, stiffness, damping }) {
+    this.mass = mass; this.stiffness = stiffness; this.damping = damping;
+  }
+  update(dt) {
+    const m = this.mass, k = this.stiffness, c = this.damping;
+    const f = (x, v) => { const disp = x - this.target; return (-k * disp - c * v) / m; };
+    const k1v = f(this.x, this.v), k1x = this.v;
+    const k2v = f(this.x + 0.5 * dt * k1x, this.v + 0.5 * dt * k1v), k2x = this.v + 0.5 * dt * k1v;
+    const k3v = f(this.x + 0.5 * dt * k2x, this.v + 0.5 * dt * k2v), k3x = this.v + 0.5 * dt * k2v;
+    const k4v = f(this.x + dt * k3x, this.v + dt * k3v), k4x = this.v + dt * k3v;
+    this.v += (dt / 6) * (k1v + 2 * k2v + 2 * k3v + k4v);
+    this.x += (dt / 6) * (k1x + 2 * k2x + 2 * k3x + k4x);
+  }
+  isSettled(posEps, velEps) {
+    return Math.abs(this.x - this.target) < posEps && Math.abs(this.v) < velEps;
+  }
+}
+
+class Spring2D {
+  constructor(params, x = 0, y = 0, vx = 0, vy = 0) {
+    this.x = new Spring({ ...params, initialValue: x, initialVelocity: vx });
+    this.y = new Spring({ ...params, initialValue: y, initialVelocity: vy });
+  }
+  setTarget(tx, ty, vx = 0, vy = 0) {
+    this.x.setTarget(tx, vx); this.y.setTarget(ty, vy);
+  }
+  reconfigure(params) { this.x.reconfigure(params); this.y.reconfigure(params); }
+  update(dt) { this.x.update(dt); this.y.update(dt); }
+  get px() { return this.x.x; } get py() { return this.y.x; }
+  get vx() { return this.x.v; } get vy() { return this.y.v; }
+  isSettled(posEps, velEps) { return this.x.isSettled(posEps, velEps) && this.y.isSettled(posEps, velEps); }
+}
+
+// ==================== 应用数据 ====================
+const apps = [
+  { name: '信息', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/b06f2db339d62d17d54e5ab32668c09fd02a9c38.png', content: '<h2>信息</h2><p><b>长按桌面空白处</b>进入编辑模式！</p><p>拖拽图标时其他图标会<b>连续滑动避让</b>。</p>' },
+  { name: '邮件', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/7dde1712afdada771e6b5c9cd3885cb0c4a5ec3b.png', content: '<h2>邮件</h2><p>收件箱为空。</p>' },
+  { name: '照片', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/4f3273d1ab1e581e8a7f68020692e86b4f6dcd3b.png', content: '<h2>照片</h2><p>图库、为你推荐、相簿、搜索</p>' },
+  { name: '设置', iconUrl: 'https://kimi-web-img.kimi.ai/img/upload.wikimedia.org/b62095afbd96900b66205e80a3f23c142e1cf810.png', content: '<h2>设置</h2><p>飞行模式、Wi-Fi、蓝牙、蜂窝网络</p>' },
+  { name: '音乐', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/50c45ae3431fb979f621260279bb22eeb6a0eec6.png', content: '<h2>音乐</h2><p>资料库、现在就听、浏览、广播、搜索</p>' },
+  { name: '地图', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/7533dc8b1fa98b1e538960a8f957b271a331212e.png', content: '<h2>地图</h2><p>探索、导航、我的指南</p>' },
+  { name: '天气', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/7c819d7926a5d77ebe09ab0169edbcf44dd87ae4.png', content: '<h2>天气</h2><p>当前位置天气状况</p>' },
+  { name: '日历', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/c7648ba99c222272a9d9dc48561a7f275e3a8291.png', content: '<h2>日历</h2><p>今天没有日程。</p>' },
+  { name: '相册', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/4f3273d1ab1e581e8a7f68020692e86b4f6dcd3b.png', content: '<h2>相册</h2><p>最近项目、个人收藏、回忆</p>' },
+  { name: '相机', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/8e1b8d446952ec9f5feb83c4402b21152358debb.png', content: '<h2>相机</h2><p>照片、视频、人像、全景</p>' },
+  { name: '时钟', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/395edbbc54f7ae645df75f3c80cec79ab15b7893.png', content: '<h2>时钟</h2><p>世界时钟、闹钟、秒表、计时器</p>' },
+  { name: '备忘录', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/7b239a8128e40f4cdb786321ee40a88e6685720b.png', content: '<h2>备忘录</h2><p>所有备忘录</p>' },
+  { name: '提醒', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/0c2355e07931693f797bd3b4ad264370f0f53e3a.png', content: '<h2>提醒事项</h2><p>今天、计划、全部、已标记</p>' },
+  { name: '健康', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/b9768089c552666d16e4e74634f187dc690afe1a.png', content: '<h2>健康</h2><p>今日摘要、浏览、共享</p>' },
+  { name: '钱包', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/02fe074ea64d237fabd90cab6d52cfe69fec626b.png', content: '<h2>钱包</h2><p>卡片与凭证</p>' },
+  { name: 'App Store', iconUrl: 'https://kimi-web-img.kimi.ai/img/upload.wikimedia.org/6e1699d4ff09ae0927e55e61ef08b9b1590fd28e.png', content: '<h2>App Store</h2><p>今日推荐、游戏、App、搜索</p>' },
+  { name: 'Safari', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/b751cd4a71af0752dce1249ad72dd4ed9263e17c.png', content: '<h2>Safari</h2><p>浏览网页</p>' },
+  { name: '电话', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/f228b3e102aa83a8defb350c4e634cc668285155.png', content: '<h2>电话</h2><p>最近通话、通讯录、拨号键盘、语音留言</p>' },
+  { name: 'FaceTime', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/dcd6fbe5510d4cfc6c6d4ed8b0cff032e2d79395.png', content: '<h2>FaceTime</h2><p>视频通话和音频通话</p>' },
+  { name: '通讯录', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/7552fa64f3d922c5c60a7cac0aab36d939b6eb61.png', content: '<h2>通讯录</h2><p>所有联系人</p>' },
+  { name: '查找', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/d1c6de506718433d891573494f6aac7d6c915fed.png', content: '<h2>查找</h2><p>设备、物品、联系人</p>' },
+  { name: '翻译', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/5232dde7854663e89e954d06d63dbbb002e91530.png', content: '<h2>翻译</h2><p>文本翻译和对话翻译</p>' },
+  { name: '播客', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/bd92edb9e3734c58e59ecaea365f481f13081788.png', content: '<h2>播客</h2><p>现在收听、浏览、资料库、搜索</p>' },
+  { name: '图书', iconUrl: 'https://kimi-web-img.kimi.ai/img/cdn.jim-nielsen.com/415c04fb1b3c04eb2360460d7ae064fb5e562e15.png', content: '<h2>图书</h2><p>书库、书店、有声书、搜索</p>' },
+];
+
+// ==================== DOM 引用 ====================
+const iconGrid = document.getElementById('iconGrid');
+const appWindow = document.getElementById('appWindow');
+const appLaunchScreen = document.getElementById('appLaunchScreen');
+const launchIcon = document.getElementById('launchIcon');
+const appTitle = document.getElementById('appTitle');
+const appContent = document.getElementById('appContent');
+const desktopBg = document.getElementById('desktopBg');
+const editHint = document.getElementById('editHint');
+const clock = document.getElementById('clock');
+const triggerZone = document.getElementById('triggerZone');
+const desktop = document.getElementById('desktop');
+
+// ==================== 状态 ====================
+let currentIconEl = null;
+let currentApp = null;
+let isOpen = false;
+let isDragging = false;
+let rafId = null;
+let iconCX = 0, iconCY = 0;
+let iconW = 58, iconH = 58;
+
+let posSpring = new Spring2D(OPEN_PARAMS, 0, 0, 0, 0);
+let scaleSpring = new Spring({ ...OPEN_PARAMS, initialValue: 0, initialVelocity: 0 });
+
+// 编辑模式
+let isEditMode = false;
+let longPressTimer = null;
+
+// 拖拽重排状态
+let appEls = [];       // DOM元素数组（按DOM顺序）
+let slotRects = [];    // 每个固定网格slot的中心坐标
+let visualOrder = [];  // visualOrder[pos] = appIdx，第pos个slot当前由哪个app占据
+let dragSrcEl = null;
+let dragGhost = null;
+let srcAppIdx = -1;
+let dragStartX = 0, dragStartY = 0;
+
+// ==================== 手势参数 ====================
+const BOTTOM_TRIGGER = 140;
+const MAX_DRAG_RATIO = 0.75;
+const DISMISS_DIST_RATIO = 0.28;
+const DISMISS_VEL = 1000;
+const VEL_SCALE = 0.001;
+const SCALE_VEL_SCALE = 0.001;
+const MAX_INITIAL_VEL = 15;
+const LONG_PRESS_DURATION = 600;
+
+// ==================== 工具函数 ====================
+function updateClock() {
+  const n = new Date();
+  clock.textContent = n.getHours().toString().padStart(2,'0') + ':' + n.getMinutes().toString().padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 1000);
+
+function smoothstep(t, e0, e1) {
+  t = Math.max(0, Math.min(1, (t - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function getIconRect(el) {
+  return el.querySelector('.icon-wrap').getBoundingClientRect();
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+// ==================== 渲染 ====================
+function render(progress, cx, cy) {
+  const p = clamp(progress, 0, 1);
+  const screenW = window.innerWidth, screenH = window.innerHeight;
+
+  const iconScaleX = iconW / screenW;
+  const iconScaleY = iconH / screenH;
+  const sx = iconScaleX + (1 - iconScaleX) * p;
+  const sy = iconScaleY + (1 - iconScaleY) * p;
+
+  const tx = cx - screenW / 2;
+  const ty = cy - screenH / 2;
+
+  const cornerProgress = smoothstep(1 - p, 0, 0.5);
+  const visualR = 14 * cornerProgress;
+  const rx = visualR / sx;
+  const ry = visualR / sy;
+
+  appWindow.style.transform = `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`;
+  appWindow.style.borderRadius = `${rx}px / ${ry}px`;
+
+  const fullIconSize = 120;
+  const targetIconSize = 58;
+  const iconTargetScale = (targetIconSize / fullIconSize) + (1 - targetIconSize / fullIconSize) * p;
+  const launchTx = iconTargetScale / sx;
+  const launchTy = iconTargetScale / sy;
+  launchIcon.style.transform = `scale(${launchTx}, ${launchTy})`;
+
+  const contentOp = smoothstep(p, 0.5, 0.8);
+  appWindow.querySelector('.app-header').style.opacity = contentOp;
+  appWindow.querySelector('.app-body').style.opacity = contentOp;
+  appWindow.querySelector('.gesture-bar').style.opacity = contentOp * 0.25;
+
+  appLaunchScreen.style.opacity = 1 - smoothstep(p, 0.5, 0.8);
+
+  const bgProgress = easeOutCubic(p);
+  const bgScale = 1 + 0.08 * bgProgress;
+  const bgBlur = 20 * bgProgress;
+  const bgBright = 1 - 0.15 * bgProgress;
+  desktopBg.style.transform = `scale(${bgScale})`;
+  desktopBg.style.filter = `blur(${bgBlur}px) brightness(${bgBright})`;
+
+  const otherIconScale = 1 - 0.08 * bgProgress;
+  const otherIconOp = 1 - 0.25 * bgProgress;
+  document.querySelectorAll('.app-icon').forEach(el => {
+    if (el !== currentIconEl && !el.classList.contains('dragging')) {
+      el.style.transform = `scale(${otherIconScale})`;
+      el.style.opacity = otherIconOp;
+    }
+  });
+}
+
+// ==================== 动画循环 ====================
+function startLoop(params) {
+  if (rafId) cancelAnimationFrame(rafId);
+  if (params) {
+    posSpring.reconfigure(params);
+    scaleSpring.reconfigure(params);
+  }
+
+  const STEP = 1 / 120;
+  let lastTime = performance.now();
+
+  function frame(now) {
+    const rawDt = (now - lastTime) / 1000;
+    lastTime = now;
+    const dt = Math.min(rawDt, 0.05);
+
+    let steps = Math.ceil(dt / STEP);
+    steps = Math.min(steps, 10);
+    for (let i = 0; i < steps; i++) {
+      posSpring.update(STEP);
+      scaleSpring.update(STEP);
+    }
+
+    const curCX = iconCX + posSpring.px;
+    const curCY = iconCY + posSpring.py;
+
+    render(scaleSpring.x, curCX, curCY);
+
+    if (scaleSpring.isSettled(0.005, 0.5) && posSpring.isSettled(1.0, 2.0)) {
+      finishAnim();
+      return;
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+  rafId = requestAnimationFrame(frame);
+}
+
+function finishAnim() {
+  cancelAnimationFrame(rafId); rafId = null;
+
+  if (scaleSpring.target === 1) {
+    appWindow.style.transform = '';
+    appWindow.style.borderRadius = '';
+    launchIcon.style.transform = '';
+    desktopBg.style.transform = 'scale(1.08)';
+    desktopBg.style.filter = 'blur(20px) brightness(0.85)';
+    document.querySelectorAll('.app-icon').forEach(el => {
+      if (el !== currentIconEl) {
+        el.style.transform = 'scale(0.92)';
+        el.style.opacity = '0.75';
+      }
+    });
+  } else {
+    appWindow.classList.remove('open');
+    appWindow.style.transform = '';
+    appWindow.style.borderRadius = '';
+    launchIcon.style.transform = '';
+    desktopBg.style.transform = '';
+    desktopBg.style.filter = '';
+    if (currentIconEl) currentIconEl.style.visibility = '';
+    document.querySelectorAll('.app-icon').forEach(el => {
+      el.style.transform = '';
+      el.style.opacity = '';
+    });
+    appWindow.querySelector('.app-header').style.opacity = '';
+    appWindow.querySelector('.app-body').style.opacity = '';
+    appWindow.querySelector('.gesture-bar').style.opacity = '';
+    appLaunchScreen.style.opacity = '';
+    isOpen = false;
+    currentIconEl = null;
+    currentApp = null;
+  }
+}
+
+// ==================== 打开应用 ====================
+function openApp(appIdx, iconEl) {
+  if (currentIconEl === iconEl) return;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (currentIconEl) currentIconEl.style.visibility = '';
+  
+  exitEditMode();
+  
+  appWindow.classList.remove('open');
+  appWindow.style.transform = '';
+  appWindow.style.borderRadius = '';
+  launchIcon.style.transform = '';
+  desktopBg.style.transform = '';
+  desktopBg.style.filter = '';
+  appWindow.querySelector('.app-header').style.opacity = '';
+  appWindow.querySelector('.app-body').style.opacity = '';
+  appWindow.querySelector('.gesture-bar').style.opacity = '';
+  appLaunchScreen.style.opacity = '';
+
+  isOpen = true;
+  currentIconEl = iconEl;
+  currentApp = apps[appIdx];
+
+  const rect = getIconRect(iconEl);
+  iconCX = rect.left + rect.width / 2;
+  iconCY = rect.top + rect.height / 2;
+  iconW = rect.width;
+  iconH = rect.height;
+
+  appTitle.textContent = currentApp.name;
+  appContent.innerHTML = currentApp.content;
+
+  iconEl.style.visibility = 'hidden';
+
+  launchIcon.src = currentApp.iconUrl;
+  launchIcon.style.transform = '';
+  appLaunchScreen.style.backgroundColor = '#fff';
+
+  appWindow.classList.add('open');
+
+  posSpring = new Spring2D(OPEN_PARAMS, 0, 0, 0, 0);
+  scaleSpring = new Spring({ ...OPEN_PARAMS, initialValue: 0, initialVelocity: 0 });
+
+  render(0, iconCX, iconCY);
+
+  const screenCX = window.innerWidth / 2, screenCY = window.innerHeight / 2;
+  posSpring.setTarget(screenCX - iconCX, screenCY - iconCY, 0, 0);
+  scaleSpring.setTarget(1, 0);
+  startLoop();
+}
+
+// ==================== 关闭应用 ====================
+function closeApp(vx = 0, vy = 0, vs = 0) {
+  if (!isOpen) return;
+  const cvx = clamp(vx, -MAX_INITIAL_VEL, MAX_INITIAL_VEL);
+  const cvy = clamp(vy, -MAX_INITIAL_VEL, MAX_INITIAL_VEL);
+  const cvs = clamp(vs, -MAX_INITIAL_VEL, MAX_INITIAL_VEL);
+
+  posSpring.setTarget(0, 0, cvx, cvy);
+  scaleSpring.setTarget(0, cvs);
+  startLoop(CLOSE_PARAMS);
+}
+
+// ==================== 编辑模式 ====================
+function enterEditMode() {
+  if (isEditMode || isOpen) return;
+  isEditMode = true;
+  editHint.classList.add('show');
+  document.querySelectorAll('.app-icon').forEach(el => {
+    el.classList.add('wiggle');
+  });
+}
+
+function exitEditMode() {
+  if (!isEditMode) return;
+  isEditMode = false;
+  editHint.classList.remove('show');
+  document.querySelectorAll('.app-icon').forEach(el => {
+    el.classList.remove('wiggle', 'dragging');
+    el.style.transform = '';
+    el.style.opacity = '';
+  });
+  if (dragGhost) {
+    dragGhost.remove();
+    dragGhost = null;
+  }
+  dragSrcEl = null;
+}
+
+// ==================== 连续避让重排系统（基于固定slot坐标） ====================
+function computeSlotRects() {
+  const grid = document.getElementById('iconGrid');
+  const r = grid.getBoundingClientRect();
+  const cols = 4;
+  const cellW = r.width / cols;
+  const cellH = r.height / 6;
+  slotRects = [];
+  for (let i = 0; i < apps.length; i++) {
+    slotRects.push({
+      x: r.left + (i % cols) * cellW + cellW / 2,
+      y: r.top + Math.floor(i / cols) * cellH + cellH / 2
+    });
+  }
+}
+
+function recordLayoutRects() {
+  appEls = Array.from(document.querySelectorAll('.app-icon'));
+  computeSlotRects();
+  visualOrder = appEls.map(e => parseInt(e.dataset.appidx));
+}
+
+function updateIconPositions() {
+  appEls.forEach((el, i) => {
+    if (el === dragSrcEl) return;
+    const appIdx = parseInt(el.dataset.appidx);
+    const targetPos = visualOrder.indexOf(appIdx);
+    if (targetPos === -1) return;
+    // 从当前slot(i)移动到目标slot(targetPos)
+    const dx = slotRects[targetPos].x - slotRects[i].x;
+    const dy = slotRects[targetPos].y - slotRects[i].y;
+    el.style.transform = (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)
+      ? `translate(${dx}px, ${dy}px)`
+      : '';
+  });
+}
+
+function commitOrder() {
+  const grid = document.getElementById('iconGrid');
+  const newOrderEls = [];
+  visualOrder.forEach(appIdx => {
+    const el = appEls.find(e => parseInt(e.dataset.appidx) === appIdx);
+    if (el) {
+      grid.appendChild(el);
+      newOrderEls.push(el);
+    }
+  });
+  appEls = newOrderEls;
+  // 不修改 dataset.appidx 和 apps 数组
+  appEls.forEach(el => {
+    el.style.transition = '';
+    el.style.transform = '';
+    el.style.opacity = '';
+  });
+  requestAnimationFrame(() => {
+    appEls.forEach(el => {
+      el.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0.35, 1.0)';
+    });
+  });
+}
+
+// ==================== 图标拖拽 ====================
+function initIconDrag(el) {
+  let hasMoved = false;
+
+  el.addEventListener('touchstart', e => {
+    if (isOpen) return;
+    if (!isEditMode) {
+      if (e.target.closest('.icon-wrap')) return;
+      return;
+    }
+    if (!e.target.closest('.icon-wrap')) return;
+    
+    const t = e.touches[0];
+    dragStartX = t.clientX;
+    dragStartY = t.clientY;
+    hasMoved = false;
+    dragSrcEl = el;
+    srcAppIdx = parseInt(el.dataset.appidx);
+    
+    recordLayoutRects();
+    
+    const rect = el.getBoundingClientRect();
+    dragGhost = el.cloneNode(true);
+    dragGhost.style.position = 'fixed';
+    dragGhost.style.left = rect.left + 'px';
+    dragGhost.style.top = rect.top + 'px';
+    dragGhost.style.width = rect.width + 'px';
+    dragGhost.style.height = rect.height + 'px';
+    dragGhost.style.zIndex = '200';
+    dragGhost.style.pointerEvents = 'none';
+    dragGhost.classList.add('dragging');
+    document.body.appendChild(dragGhost);
+    
+    el.style.opacity = '0';
+    el.classList.add('dragging');
+  }, { passive: true });
+
+  el.addEventListener('touchmove', e => {
+    if (!isEditMode || !dragGhost) return;
+    const t = e.touches[0];
+    const dx = t.clientX - dragStartX;
+    const dy = t.clientY - dragStartY;
+    if (Math.hypot(dx, dy) > 5) hasMoved = true;
+    
+    dragGhost.style.transform = `translate(${dx}px, ${dy}px) scale(1.15)`;
+    
+    const ghostRect = dragGhost.getBoundingClientRect();
+    const ghostCX = ghostRect.left + ghostRect.width / 2;
+    const ghostCY = ghostRect.top + ghostRect.height / 2;
+    
+    // 找到最近的 slot
+    let insertPos = 0;
+    let minDist = Infinity;
+    slotRects.forEach((pos, i) => {
+      const dist = Math.hypot(ghostCX - pos.x, ghostCY - pos.y);
+      if (dist < minDist) {
+        minDist = dist;
+        insertPos = i;
+      }
+    });
+    
+    const srcPos = visualOrder.indexOf(srcAppIdx);
+    if (srcPos !== insertPos) {
+      visualOrder.splice(srcPos, 1);
+      visualOrder.splice(insertPos, 0, srcAppIdx);
+      updateIconPositions();
+    }
+  }, { passive: true });
+
+  el.addEventListener('touchend', e => {
+    if (!isEditMode) {
+      if (!hasMoved && e.target.closest('.icon-wrap')) {
+        const appIdx = parseInt(el.dataset.appidx);
+        openApp(appIdx, el);
+      }
+      return;
+    }
+    
+    if (dragGhost) {
+      dragGhost.remove();
+      dragGhost = null;
+    }
+    el.classList.remove('dragging');
+    el.style.opacity = '';
+    
+    commitOrder();
+    
+    if (!hasMoved && e.target.closest('.icon-wrap')) {
+      const appIdx = parseInt(el.dataset.appidx);
+      openApp(appIdx, el);
+    }
+    
+    dragSrcEl = null;
+    srcAppIdx = -1;
+  });
+}
+
+// ==================== 长按空白处进入编辑模式 ====================
+desktop.addEventListener('touchstart', e => {
+  if (isOpen || isEditMode) return;
+  if (e.target.closest('.icon-wrap')) return;
+  longPressTimer = setTimeout(() => enterEditMode(), LONG_PRESS_DURATION);
+}, { passive: true });
+
+desktop.addEventListener('touchmove', () => {
+  clearTimeout(longPressTimer);
+});
+
+desktop.addEventListener('touchend', () => {
+  clearTimeout(longPressTimer);
+});
+
+// 点击空白处退出编辑模式
+desktop.addEventListener('click', e => {
+  if (isEditMode && !e.target.closest('.icon-wrap')) {
+    exitEditMode();
+  }
+});
+
+// ==================== App 内手势关闭 ====================
+let drag = {
+  active: false,
+  startX: 0, startY: 0,
+  offsetX: 0, offsetY: 0,
+  history: [],
+};
+
+function recordHistory(x, y, t) {
+  drag.history.push({ x, y, t });
+  if (drag.history.length > 6) drag.history.shift();
+}
+
+function getReleaseVelocity() {
+  const h = drag.history;
+  if (h.length < 2) return { vx: 0, vy: 0 };
+  let vx = 0, vy = 0, w = 0;
+  for (let i = h.length - 1; i > 0; i--) {
+    const dt = (h[i].t - h[i-1].t) / 1000;
+    if (dt <= 0) continue;
+    vx += (h[i].x - h[i-1].x) / dt;
+    vy += (h[i].y - h[i-1].y) / dt;
+    w++;
+  }
+  if (!w) return { vx: 0, vy: 0 };
+  return { vx: vx / w, vy: vy / w };
+}
+
+function isBottom(y) {
+  return y > window.innerHeight - BOTTOM_TRIGGER;
+}
+
+function onDown(x, y) {
+  if (!isOpen || isDragging) return;
+  if (!isBottom(y)) return;
+
+  const curCX = iconCX + posSpring.px;
+  const curCY = iconCY + posSpring.py;
+
+  drag = {
+    active: true,
+    startX: x, startY: y,
+    offsetX: curCX - x,
+    offsetY: curCY - y,
+    history: [{ x, y, t: performance.now() }],
+  };
+  isDragging = true;
+  triggerZone.classList.add('active');
+  cancelAnimationFrame(rafId); rafId = null;
+}
+
+function onMove(x, y) {
+  if (!drag.active) return;
+
+  const now = performance.now();
+  recordHistory(x, y, now);
+
+  const fingerCX = x + drag.offsetX;
+  const fingerCY = y + drag.offsetY;
+
+  const dragDist = Math.hypot(x - drag.startX, y - drag.startY);
+  const maxDrag = window.innerHeight * MAX_DRAG_RATIO;
+  const rawP = 1 - dragDist / maxDrag;
+  const p = clamp(rawP, -0.3, 1.2);
+
+  posSpring.x.x = fingerCX - iconCX;
+  posSpring.x.v = 0;
+  posSpring.x.target = fingerCX - iconCX;
+  posSpring.y.x = fingerCY - iconCY;
+  posSpring.y.v = 0;
+  posSpring.y.target = fingerCY - iconCY;
+  scaleSpring.x = p;
+  scaleSpring.v = 0;
+  scaleSpring.target = p;
+
+  render(p, fingerCX, fingerCY);
+}
+
+function onUp() {
+  if (!drag.active) return;
+  drag.active = false;
+  isDragging = false;
+  triggerZone.classList.remove('active');
+
+  const { vx, vy } = getReleaseVelocity();
+  const speed = Math.hypot(vx, vy);
+  const last = drag.history[drag.history.length - 1];
+  const first = drag.history[0];
+  const dragDist = Math.hypot(last.x - first.x, last.y - first.y);
+
+  const distThresh = window.innerHeight * DISMISS_DIST_RATIO;
+  const velThresh = DISMISS_VEL;
+
+  const shouldDismiss = dragDist > distThresh || speed > velThresh;
+
+  if (shouldDismiss) {
+    closeApp(vx * VEL_SCALE, vy * VEL_SCALE, -speed * SCALE_VEL_SCALE);
+  } else {
+    const screenCX = window.innerWidth / 2, screenCY = window.innerHeight / 2;
+    posSpring.setTarget(screenCX - iconCX, screenCY - iconCY, vx * VEL_SCALE, vy * VEL_SCALE);
+    scaleSpring.setTarget(1, speed * SCALE_VEL_SCALE);
+    startLoop(OPEN_PARAMS);
+  }
+}
+
+window.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  onDown(t.clientX, t.clientY);
+}, { passive: true });
+
+window.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  onMove(t.clientX, t.clientY);
+  if (isDragging && e.cancelable) e.preventDefault();
+}, { passive: false });
+
+window.addEventListener('touchend', onUp, { passive: true });
+window.addEventListener('touchcancel', onUp, { passive: true });
+
+let mouseDown = false;
+window.addEventListener('mousedown', e => {
+  mouseDown = true;
+  onDown(e.clientX, e.clientY);
+});
+window.addEventListener('mousemove', e => {
+  if (!mouseDown) return;
+  onMove(e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', () => {
+  if (!mouseDown) return;
+  mouseDown = false;
+  onUp();
+});
+
+// ==================== 初始化图标 ====================
+function renderIcons() {
+  iconGrid.innerHTML = '';
+  appEls = [];
+  apps.forEach((app, i) => {
+    const div = document.createElement('div');
+    div.className = 'app-icon';
+    div.dataset.appidx = i;
+    div.innerHTML = `
+      <div class="icon-wrap">
+        <div class="delete-badge"></div>
+        <img src="${app.iconUrl}" alt="${app.name}" loading="lazy">
+      </div>
+      <span>${app.name}</span>
+    `;
+    initIconDrag(div);
+    iconGrid.appendChild(div);
+    appEls.push(div);
+  });
+  visualOrder = apps.map((_, i) => i);
+}
+
+renderIcons();
+</script>
+</body>
+</html>
