@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素农场物语 - Pixel Farm Story</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pixel-bg: #8bac0f;
+            --pixel-dark: #0f380f;
+            --pixel-light: #9bbc0f;
+            --pixel-accent: #306230;
+        }
+
+        body {
+            font-family: 'VT323', monospace;
+            background-color: #202020;
+            color: var(--pixel-dark);
+            overflow: hidden; /* Prevent body scroll, handle in app */
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #306230; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8bac0f; 
+        }
+
+        /* Pixel Art Rendering */
+        .pixel-art {
+            image-rendering: pixelated;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+        }
+
+        .pixel-btn {
+            box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.2), inset 4px 4px 0px 0px rgba(255,255,255,0.2);
+            transition: transform 0.1s;
+            cursor: pointer;
+        }
+        .pixel-btn:active {
+            transform: translateY(2px);
+            box-shadow: inset -2px -2px 0px 0px rgba(0,0,0,0.2), inset 2px 2px 0px 0px rgba(255,255,255,0.2);
+        }
+        .pixel-btn:disabled {
+            filter: grayscale(100%);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% { transform: translateY(0px); opacity: 1; }
+            100% { transform: translateY(-20px); opacity: 0; }
+        }
+        .float-text {
+            position: absolute;
+            animation: float 1s ease-out forwards;
+            pointer-events: none;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #fff;
+            z-index: 50;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .pop-anim {
+            animation: pop 0.2s ease-in-out;
+        }
+
+        /* Game Grid */
+        .farm-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .plot {
+            aspect-ratio: 1;
+            background-color: #5c4033; /* Soil */
+            border: 4px solid #3e2b22;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .plot:hover {
+            filter: brightness(1.1);
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .plot.planted {
+            background-color: #4a6b2f; /* Grass */
+            border-color: #2d421b;
+        }
+
+        /* Crop Stages (CSS Art) */
+        .crop-sprite {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        /* UI Panels */
+        .panel {
+            background-color: #e0f8cf;
+            border: 4px solid #0f380f;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.5);
+        }
+
+        .nav-item.active {
+            background-color: #306230;
+            color: #9bbc0f;
+        }
+
+        /* Weather Overlay */
+        .weather-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 20;
+            opacity: 0.3;
+        }
+        .rain {
+            background: repeating-linear-gradient(180deg, transparent, transparent 10px, #aaddff 10px, #aaddff 12px);
+            animation: rain 0.5s linear infinite;
+        }
+        @keyframes rain {
+            from { background-position: 0 0; }
+            to { background-position: 0 20px; }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            visibility: hidden;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f380f;
+            color: #9bbc0f;
+            padding: 4px 8px;
+            border: 2px solid #fff;
+            white-space: nowrap;
+            z-index: 100;
+            font-size: 0.9rem;
+        }
+        .has-tooltip:hover .tooltip {
+            visibility: visible;
+        }
+
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center bg-gray-900">
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="relative w-full max-w-4xl h-full max-h-[900px] bg-[#8bac0f] flex flex-col border-8 border-[#0f380f] shadow-2xl overflow-hidden">
+        
+        <!-- Header / HUD -->
+        <header class="bg-[#306230] text-[#9bbc0f] p-2 flex justify-between items-center border-b-4 border-[#0f380f] z-30">
+            <div class="flex items-center gap-4">
+                <div class="text-2xl font-bold tracking-widest">PIXEL FARM</div>
+                <div class="bg-[#0f380f] px-3 py-1 text-xl flex items-center gap-2">
+                    <span>💰</span> <span id="gold-display">0</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-xl">
+                <div class="flex items-center gap-1" title="Season">
+                    <span id="season-icon">☀️</span> <span id="season-name">Summer</span>
+                </div>
+                <div class="flex items-center gap-1" title="Day">
+                    <span>📅</span> <span id="day-display">1</span>
+                </div>
+                <div class="flex items-center gap-1" title="Weather">
+                    <span id="weather-icon">☀️</span> <span id="weather-name">Sunny</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Notification Area -->
+        <div id="notification-area" class="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none flex flex-col gap-2 w-full max-w-md px-4"></div>
+
+        <!-- Main Content Area (Dynamic Views) -->
+        <main id="main-view" class="flex-1 relative overflow-hidden bg-[#8bac0f] p-4">
+            <!-- Views will be injected here by JS -->
+        </main>
+
+        <!-- Weather Overlay -->
+        <div id="weather-fx" class="weather-overlay"></div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bg-[#0f380f] p-2 grid grid-cols-5 gap-2 z-30">
+            <button onclick="game.switchView('farm')" class="nav-btn pixel-btn bg-[#9bbc0f] p-2 flex flex-col items-center justify-center gap-1 hover:bg-[#8bac0f] active-view" data-view="farm">
+                <span class="text-2xl">🚜</span>
+                <span class="text-sm">农场</span>
+            </button>
+            <button onclick="game.switchView('barn')" class="nav-btn pixel-btn bg-[#9bbc0f] p-2 flex flex-col items-center justify-center gap-1 hover:bg-[#8bac0f]" data-view="barn">
+                <span class="text-2xl">🏠</span>
+                <span class="text-sm">牧场</span>
+            </button>
+            <button onclick="game.switchView('market')" class="nav-btn pixel-btn bg-[#9bbc0f] p-2 flex flex-col items-center justify-center gap-1 hover:bg-[#8bac0f]" data-view="market">
+                <span class="text-2xl">🏪</span>
+                <span class="text-sm">商店</span>
+            </button>
+            <button onclick="game.switchView('craft')" class="nav-btn pixel-btn bg-[#9bbc0f] p-2 flex flex-col items-center justify-center gap-1 hover:bg-[#8bac0f]" data-view="craft">
+                <span class="text-2xl">🍳</span>
+                <span class="text-sm">工坊</span>
+            </button>
+            <button onclick="game.switchView('map')" class="nav-btn pixel-btn bg-[#9bbc0f] p-2 flex flex-col items-center justify-center gap-1 hover:bg-[#8bac0f]" data-view="map">
+                <span class="text-2xl">🗺️</span>
+                <span class="text-sm">探索</span>
+            </button>
+        </nav>
+
+        <!-- Modals -->
+        <div id="modal-overlay" class="absolute inset-0 bg-black bg-opacity-70 z-40 hidden flex items-center justify-center p-4">
+            <div class="panel w-full max-w-lg p-4 relative">
+                <button onclick="ui.closeModal()" class="absolute top-2 right-2 text-2xl hover:text-red-600">✖</button>
+                <div id="modal-content"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Game Configuration & Data ---
+        const CONFIG = {
+            tickRate: 1000, // 1 second
+            dayLength: 60, // 60 seconds per day
+            seasons: ['Spring', 'Summer', 'Fall', 'Winter'],
+            weatherTypes: ['Sunny', 'Rainy', 'Cloudy'],
+            crops: {
+                wheat: { name: '小麦', icon: '🌾', cost: 10, sell: 18, growthTime: 5, seasons: ['Spring', 'Summer'] },
+                corn: { name: '玉米', icon: '🌽', cost: 25, sell: 45, growthTime: 10, seasons: ['Summer', 'Fall'] },
+                carrot: { name: '胡萝卜', icon: '🥕', cost: 15, sell: 28, growthTime: 7, seasons: ['Spring', 'Winter'] },
+                pumpkin: { name: '南瓜', icon: '🎃', cost: 50, sell: 120, growthTime: 20, seasons: ['Fall'] },
+                strawberry: { name: '草莓', icon: '🍓', cost: 40, sell: 90, growthTime: 15, seasons: ['Spring'] }
+            },
+            animals: {
+                chicken: { name: '母鸡', icon: '🐔', cost: 200, product: 'egg', productIcon: '🥚', productPrice: 25, interval: 10 },
+                cow: { name: '奶牛', icon: '🐮', cost: 800, product: 'milk', productIcon: '🥛', productPrice: 80, interval: 20 },
+                sheep: { name: '绵羊', icon: '🐑', cost: 600, product: 'wool', productIcon: '🧶', productPrice: 120, interval: 30 }
+            },
+            recipes: {
+                bread: { name: '面包', icon: '🍞', ingredients: { wheat: 2 }, sell: 60, time: 5 },
+                cake: { name: '蛋糕', icon: '🍰', ingredients: { wheat: 2, egg: 2, milk: 1 }, sell: 250, time: 15 },
+                sweater: { name: '毛衣', icon: '🧥', ingredients: { wool: 3 }, sell: 500, time: 20 }
+            }
+        };
+
+        // --- Game State ---
+        let state = {
+            gold: 100,
+            day: 1,
+            seasonIndex: 1, // Summer
+            weatherIndex: 0, // Sunny
+            timeOfDay: 0,
+            inventory: {}, // { wheat: 5, egg: 2 }
+            plots: Array(12).fill(null).map(() => ({ status: 'empty', cropId: null, plantTime: 0, progress: 0 })),
+            animals: [],
+            craftingQueue: [],
+            unlockedAreas: ['farm'],
+            lastTick: Date.now()
+        };
+
+        // --- Audio Context (Simple Beeps) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'coin') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'pop') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
+        // --- Core Logic ---
+        const game = {
+            init() {
+                this.load();
+                this.startLoop();
+                this.switchView('farm');
+                this.updateHUD();
+                
+                // Handle offline progress
+                const now = Date.now();
+                const diff = Math.floor((now - state.lastTick) / 1000);
+                if (diff > 5) {
+                    this.processOfflineTime(diff);
+                }
+            },
+
+            save() {
+                localStorage.setItem('pixelFarmSave', JSON.stringify(state));
+            },
+
+            load() {
+                const saved = localStorage.getItem('pixelFarmSave');
+                if (saved) {
+                    const loaded = JSON.parse(saved);
+                    // Merge carefully to ensure new fields in updates are kept
+                    state = { ...state, ...loaded, lastTick: Date.now() };
+                }
+            },
+
+            startLoop() {
+                setInterval(() => this.tick(), CONFIG.tickRate);
+            },
+
+            tick() {
+                state.timeOfDay++;
+                state.lastTick = Date.now();
+
+                // Day Cycle
+                if (state.timeOfDay >= CONFIG.dayLength) {
+                    state.timeOfDay = 0;
+                    state.day++;
+                    this.newDay();
+                }
+
+                // Crop Growth
+                state.plots.forEach(plot => {
+                    if (plot.status === 'planted') {
+                        const crop = CONFIG.crops[plot.cropId];
+                        // Weather affects growth: Rain = 1.5x, Sunny = 1x
+                        const speed = state.weatherIndex === 1 ? 1.5 : 1.0;
+                        plot.progress += (1 / crop.growthTime) * speed;
+                        if (plot.progress >= 1) {
+                            plot.progress = 1;
+                            plot.status = 'mature';
+                        }
+                    }
+                });
+
+                // Animal Production
+                state.animals.forEach(animal => {
+                    animal.timer -= 1;
+                    if (animal.timer <= 0) {
+                        animal.ready = true;
+                    }
+                });
+
+                // Crafting
+                if (state.craftingQueue.length > 0) {
+                    const task = state.craftingQueue[0];
+                    task.timeLeft -= 1;
+                    if (task.timeLeft <= 0) {
+                        this.finishCrafting(task);
+                        state.craftingQueue.shift();
+                    }
+                }
+
+                // Random Weather Change
+                if (Math.random() < 0.001) this.randomizeWeather();
+
+                // Update UI if in specific views
+                if (this.currentView === 'farm') ui.renderFarm();
+                if (this.currentView === 'barn') ui.renderBarn();
+                if (this.currentView === 'craft') ui.renderCrafting();
+                
+                this.updateHUD();
+                this.save();
+            },
+
+            processOfflineTime(seconds) {
+                // Simplified offline logic: calculate potential earnings/growth
+                // In a real app, this would simulate the whole loop.
+                // Here we just give a small bonus to be nice.
+                const bonus = Math.floor(seconds / 10);
+                if (bonus > 0) {
+                    state.gold += bonus;
+                    ui.showNotification(`离线收益: +${bonus}G`, 'info');
+                }
+            },
+
+            newDay() {
+                // Change season every 10 days
+                if (state.day % 10 === 0) {
+                    state.seasonIndex = (state.seasonIndex + 1) % 4;
+                    ui.showNotification(`季节变更: ${CONFIG.seasons[state.seasonIndex]}!`, 'warning');
+                }
+                this.randomizeWeather();
+                
+                // Daily quest reset logic could go here
+            },
+
+            randomizeWeather() {
+                const r = Math.random();
+                if (r < 0.6) state.weatherIndex = 0; // Sunny
+                else if (r < 0.9) state.weatherIndex = 1; // Rain
+                else state.weatherIndex = 2; // Cloudy
+                
+                this.updateWeatherFX();
+            },
+
+            updateWeatherFX() {
+                const fx = document.getElementById('weather-fx');
+                const wType = CONFIG.weatherTypes[state.weatherIndex];
+                fx.className = 'weather-overlay';
+                if (wType === 'Rainy') fx.classList.add('rain');
+                
+                document.getElementById('weather-icon').innerText = wType === 'Sunny' ? '☀️' : wType === 'Rainy' ? '🌧️' : '☁️';
+                document.getElementById('weather-name').innerText = wType;
+            },
+
+            updateHUD() {
+                document.getElementById('gold-display').innerText = state.gold;
+                document.getElementById('day-display').innerText = state.day;
+                document.getElementById('season-name').innerText = CONFIG.seasons[state.seasonIndex];
+                document.getElementById('season-icon').innerText = CONFIG.seasons[state.seasonIndex] === 'Spring' ? '🌸' : 
+                                                                    CONFIG.seasons[state.seasonIndex] === 'Summer' ? '☀️' : 
+                                                                    CONFIG.seasons[state.seasonIndex] === 'Fall' ? '🍁' : '❄️';
+            },
+
+            switchView(viewName) {
+                this.currentView = viewName;
+                
+                // Update Nav Buttons
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    if (btn.dataset.view === viewName) {
+                        btn.classList.add('bg-[#8bac0f]', 'border-b-4', 'border-[#0f380f]');
+                        btn.classList.remove('bg-[#9bbc0f]');
+                    } else {
+                        btn.classList.remove('bg-[#8bac0f]', 'border-b-4', 'border-[#0f380f]');
+                        btn.classList.add('bg-[#9bbc0f]');
+                    }
+                });
+
+                // Render Content
+                const main = document.getElementById('main-view');
+                main.innerHTML = '';
+                
+                switch(viewName) {
+                    case 'farm': ui.renderFarm(); break;
+                    case 'barn': ui.renderBarn(); break;
+                    case 'market': ui.renderMarket(); break;
+                    case 'craft': ui.renderCrafting(); break;
+                    case 'map': ui.renderMap(); break;
+                }
+            },
+
+            // --- Actions ---
+            plantCrop(plotIndex, cropId) {
+                const plot = state.plots[plotIndex];
+                const crop = CONFIG.crops[cropId];
+                
+                if (plot.status !== 'empty') return;
+                if (state.gold < crop.cost) {
+                    playSound('error');
+                    ui.showNotification("金币不足!", "error");
+                    return;
+                }
+
+                state.gold -= crop.cost;
+                plot.status = 'planted';
+                plot.cropId = cropId;
+                plot.progress = 0;
+                playSound('pop');
+                ui.closeModal();
+                ui.renderFarm();
+                this.save();
+            },
+
+            harvestCrop(index) {
+                const plot = state.plots[index];
+                if (plot.status !== 'mature') return;
+
+                const crop = CONFIG.crops[plot.cropId];
+                
+                // Add to inventory
+                state.inventory[plot.cropId] = (state.inventory[plot.cropId] || 0) + 1;
+                
+                // Reset plot
+                plot.status = 'empty';
+                plot.cropId = null;
+                plot.progress = 0;
+
+                playSound('coin');
+                ui.showFloatText(event.clientX, event.clientY, `+1 ${crop.name}`);
+                ui.renderFarm();
+                this.save();
+            },
+
+            buyAnimal(animalId) {
+                const animal = CONFIG.animals[animalId];
+                if (state.gold < animal.cost) {
+                    playSound('error');
+                    return;
+                }
+
+                state.gold -= animal.cost;
+                state.animals.push({
+                    type: animalId,
+                    timer: animal.interval,
+                    ready: false
+                });
+                playSound('coin');
+                ui.closeModal();
+                ui.renderBarn();
+                this.save();
+            },
+
+            collectProduct(index) {
+                const animal = state.animals[index];
+                const data = CONFIG.animals[animal.type];
+                
+                if (!animal.ready) return;
+
+                state.inventory[data.product] = (state.inventory[data.product] || 0) + 1;
+                animal.ready = false;
+                animal.timer = data.interval;
+
+                playSound('pop');
+                ui.showFloatText(event.clientX, event.clientY, `+1 ${data.productIcon}`);
+                ui.renderBarn();
+                this.save();
+            },
+
+            sellItem(itemId, amount = 1) {
+                let price = 0;
+                let name = '';
+
+                // Check if crop
+                if (CONFIG.crops[itemId]) {
+                    price = CONFIG.crops[itemId].sell;
+                    name = CONFIG.crops[itemId].name;
+                } else {
+                    // Check animal product
+                    for(let key in CONFIG.animals) {
+                        if(CONFIG.animals[key].product === itemId) {
+                            price = CONFIG.animals[key].productPrice;
+                            name = CONFIG.animals[key].productIcon;
+                        }
+                    }
+                    // Check recipe
+                    if (CONFIG.recipes[itemId]) {
+                        price = CONFIG.recipes[itemId].sell;
+                        name = CONFIG.recipes[itemId].name;
+                    }
+                }
+
+                const currentAmt = state.inventory[itemId] || 0;
+                if (currentAmt >= amount) {
+                    state.inventory[itemId] -= amount;
+                    state.gold += price * amount;
+                    playSound('coin');
+                    ui.showNotification(`卖出 ${name} x${amount} (+${price*amount}G)`);
+                    ui.renderMarket();
+                    this.save();
+                }
+            },
+
+            craftItem(recipeId) {
+                const recipe = CONFIG.recipes[recipeId];
+                
+                // Check ingredients
+                for (let [ing, count] of Object.entries(recipe.ingredients)) {
+                    if ((state.inventory[ing] || 0) < count) {
+                        playSound('error');
+                        ui.showNotification("材料不足!", "error");
+                        return;
+                    }
+                }
+
+                // Deduct ingredients
+                for (let [ing, count] of Object.entries(recipe.ingredients)) {
+                    state.inventory[ing] -= count;
+                }
+
+                // Add to queue
+                state.craftingQueue.push({
+                    id: recipeId,
+                    timeLeft: recipe.time,
+                    totalTime: recipe.time
+                });
+
+                playSound('pop');
+                ui.renderCrafting();
+                this.save();
+            },
+
+            finishCrafting(task) {
+                const recipe = CONFIG.recipes[task.id];
+                state.inventory[task.id] = (state.inventory[task.id] || 0) + 1;
+                ui.showNotification(`${recipe.name} 制作完成!`);
+                playSound('coin');
+                this.save();
+            },
+            
+            explore(areaId) {
+                if (state.gold < 50) {
+                    ui.showNotification("需要 50G 路费!", "error");
+                    return;
+                }
+                state.gold -= 50;
+                
+                // Simulate finding items
+                const finds = ['wheat', 'carrot', 'egg', 'milk'];
+                const find = finds[Math.floor(Math.random() * finds.length)];
+                const amt = Math.floor(Math.random() * 3) + 1;
+                
+                state.inventory[find] = (state.inventory[find] || 0) + amt;
+                
+                ui.showNotification(`探索发现: ${find} x${amt}!`);
+                playSound('coin');
+                this.save();
+            }
+        };
+
+        // --- UI Rendering ---
+        const ui = {
+            showNotification(msg, type = 'success') {
+                const area = document.getElementById('notification-area');
+                const el = document.createElement('div');
+                const colors = type === 'error' ? 'bg-red-600 text-white' : type === 'warning' ? 'bg-yellow-500 text-black' : 'bg-[#0f380f] text-[#9bbc0f]';
+                el.className = `${colors} px-4 py-2 border-2 border-white shadow-lg text-center font-bold animate-bounce`;
+                el.innerText = msg;
+                area.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            },
+
+            showFloatText(x, y, text) {
+                const el = document.createElement('div');
+                el.className = 'float-text text-2xl text-yellow-300';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                el.innerText = text;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 1000);
+            },
+
+            closeModal() {
+                document.getElementById('modal-overlay').classList.add('hidden');
+            },
+
+            openSeedShop() {
+                const content = document.getElementById('modal-content');
+                let html = `<h2 class="text-2xl font-bold mb-4 border-b-2 border-[#0f380f] pb-2">种子商店</h2><div class="grid grid-cols-2 gap-4">`;
+                
+                for (let [id, crop] of Object.entries(CONFIG.crops)) {
+                    const inSeason = crop.seasons.includes(CONFIG.seasons[state.seasonIndex]);
+                    const seasonText = inSeason ? '<span class="text-green-700">当季</span>' : '<span class="text-red-700">过季</span>';
+                    
+                    html += `
+                        <div class="bg-[#9bbc0f] p-2 border-2 border-[#0f380f] flex flex-col items-center ${!inSeason ? 'opacity-50' : ''}">
+                            <div class="text-4xl mb-1">${crop.icon}</div>
+                            <div class="font-bold">${crop.name}</div>
+                            <div class="text-sm">成本: ${crop.cost}G</div>
+                            <div class="text-xs mb-2">${seasonText}</div>
+                            <button onclick="game.plantCrop(${ui.selectedPlot}, '${id}')" class="pixel-btn bg-[#306230] text-[#9bbc0f] px-3 py-1 w-full" ${!inSeason ? 'disabled' : ''}>种植</button>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+                content.innerHTML = html;
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
+            // --- View Renderers ---
+
+            renderFarm() {
+                const main = document.getElementById('main-view');
+                let html = `
+                    <div class="h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-2xl font-bold">我的田地</h2>
+                            <div class="text-sm bg-[#306230] text-[#9bbc0f] px-2 py-1">点击空地种植 / 点击成熟作物收获</div>
+                        </div>
+                        <div class="farm-grid flex-1">
+                `;
+
+                state.plots.forEach((plot, index) => {
+                    let content = '';
+                    let bgClass = '';
+                    let clickAction = '';
+
+                    if (plot.status === 'empty') {
+                        content = '<span class="text-[#3e2b22] text-4xl opacity-20">🌱</span>';
+                        clickAction = `onclick="ui.selectedPlot=${index}; ui.openSeedShop()"`;
+                    } else if (plot.status === 'planted') {
+                        const crop = CONFIG.crops[plot.cropId];
+                        // Simple growth visualization
+                        const stage = plot.progress < 0.3 ? '🌱' : plot.progress < 0.6 ? '🌿' : '🌾';
+                        content = `
+                            <div class="crop-sprite">${stage}</div>
+                            <div class="absolute bottom-0 left-0 h-2 bg-[#0f380f] w-full">
+                                <div class="h-full bg-[#9bbc0f]" style="width: ${plot.progress * 100}%"></div>
+                            </div>
+                        `;
+                    } else if (plot.status === 'mature') {
+                        const crop = CONFIG.crops[plot.cropId];
+                        content = `<div class="crop-sprite pop-anim cursor-pointer">${crop.icon}</div>`;
+                        clickAction = `onclick="game.harvestCrop(${index})"`;
+                    }
+
+                    html += `
+                        <div class="plot pixel-art ${plot.status !== 'empty' ? 'planted' : ''}" ${clickAction}>
+                            ${content}
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+                main.innerHTML = html;
+            },
+
+            renderBarn() {
+                const main = document.getElementById('main-view');
+                let html = `
+                    <div class="h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold">动物牧场</h2>
+                            <button onclick="ui.openAnimalShop()" class="pixel-btn bg-[#306230] text-[#9bbc0f] px-4 py-1 text-xl">+ 购买动物</button>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto p-2">
+                `;
+
+                if (state.animals.length === 0) {
+                    html += `<div class="col-span-full text-center opacity-50 text-xl mt-10">牧场空空如也...</div>`;
+                }
+
+                state.animals.forEach((animal, index) => {
+                    const data = CONFIG.animals[animal.type];
+                    const isReady = animal.ready;
+                    
+                    html += `
+                        <div class="bg-[#9bbc0f] border-4 border-[#0f380f] p-4 flex flex-col items-center relative pixel-art">
+                            <div class="text-5xl mb-2">${data.icon}</div>
+                            <div class="font-bold text-lg">${data.name}</div>
+                            
+                            ${isReady ? `
+                                <button onclick="game.collectProduct(${index})" class="mt-2 pixel-btn bg-yellow-400 border-2 border-black px-3 py-1 animate-bounce font-bold">
+                                    收取 ${data.productIcon}
+                                </button>
+                            ` : `
+                                <div class="w-full bg-[#0f380f] h-3 mt-2">
+                                    <div class="bg-[#8bac0f] h-full" style="width: ${(1 - animal.timer/data.interval)*100}%"></div>
+                                </div>
+                                <div class="text-xs mt-1">生产中...</div>
+                            `}
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+                main.innerHTML = html;
+            },
+
+            openAnimalShop() {
+                const content = document.getElementById('modal-content');
+                let html = `<h2 class="text-2xl font-bold mb-4 border-b-2 border-[#0f380f] pb-2">动物市场</h2><div class="grid grid-cols-1 gap-4">`;
+                
+                for (let [id, animal] of Object.entries(CONFIG.animals)) {
+                    html += `
+                        <div class="bg-[#9bbc0f] p-3 border-2 border-[#0f380f] flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="text-4xl">${animal.icon}</div>
+                                <div>
+                                    <div class="font-bold text-xl">${animal.name}</div>
+                                    <div class="text-sm">产出: ${animal.productIcon} / ${animal.interval}秒</div>
+                                </div>
+                            </div>
+                            <button onclick="game.buyAnimal('${id}')" class="pixel-btn bg-[#306230] text-[#9bbc0f] px-4 py-2 font-bold">
+                                ${animal.cost}G
+                            </button>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+                document.getElementById('modal-content').innerHTML = html;
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
+            renderMarket() {
+                const main = document.getElementById('main-view');
+                let html = `
+                    <div class="h-full flex flex-col">
+                        <h2 class="text-2xl font-bold mb-4">农场商店</h2>
+                        <div class="bg-[#0f380f] text-[#9bbc0f] p-2 mb-4 text-center">
+                            当前物价倍数: 1.0x (实时波动模拟)
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto p-2">
+                `;
+
+                let hasItems = false;
+                // Crops
+                for (let [id, count] of Object.entries(state.inventory)) {
+                    if (count > 0) {
+                        hasItems = true;
+                        let itemData = CONFIG.crops[id] || CONFIG.recipes[id];
+                        let price = 0;
+                        let icon = '';
+                        let name = '';
+
+                        if (CONFIG.crops[id]) {
+                            price = CONFIG.crops[id].sell;
+                            icon = CONFIG.crops[id].icon;
+                            name = CONFIG.crops[id].name;
+                        } else if (CONFIG.recipes[id]) {
+                            price = CONFIG.recipes[id].sell;
+                            icon = CONFIG.recipes[id].icon;
+                            name = CONFIG.recipes[id].name;
+                        } else {
+                            // Animal products
+                            for(let k in CONFIG.animals) {
+                                if(CONFIG.animals[k].product === id) {
+                                    price = CONFIG.animals[k].productPrice;
+                                    icon = CONFIG.animals[k].productIcon;
+                                    name = id;
+                                }
+                            }
+                        }
+
+                        html += `
+                            <div class="bg-[#9bbc0f] border-4 border-[#0f380f] p-2 flex flex-col items-center">
+                                <div class="text-3xl">${icon}</div>
+                                <div class="font-bold">${name}</div>
+                                <div class="text-sm">拥有: ${count}</div>
+                                <div class="text-[#306230] font-bold">${price}G</div>
+                                <div class="flex gap-2 mt-2 w-full">
+                                    <button onclick="game.sellItem('${id}', 1)" class="pixel-btn flex-1 bg-red-700 text-white py-1 text-sm">卖1</button>
+                                    <button onclick="game.sellItem('${id}', ${count})" class="pixel-btn flex-1 bg-red-900 text-white py-1 text-sm">全卖</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                if (!hasItems) {
+                    html += `<div class="col-span-full text-center text-xl opacity-50 mt-10">背包里没有东西可卖...</div>`;
+                }
+
+                html += `</div></div>`;
+                main.innerHTML = html;
+            },
+
+            renderCrafting() {
+                const main = document.getElementById('main-view');
+                let html = `
+                    <div class="h-full flex flex-col">
+                        <h2 class="text-2xl font-bold mb-2">制作工坊</h2>
+                        
+                        <!-- Active Queue -->
+                        <div class="bg-[#0f380f] p-2 mb-4 min-h-[60px] flex gap-2 items-center">
+                            ${state.craftingQueue.length === 0 ? '<span class="text-[#9bbc0f] opacity-50">制作队列为空...</span>' : ''}
+                            ${state.craftingQueue.map((task, i) => {
+                                const r = CONFIG.recipes[task.id];
+                                return `
+                                    <div class="bg-[#9bbc0f] p-1 border-2 border-white flex items-center gap-2 w-48">
+                                        <span class="text-2xl">${r.icon}</span>
+                                        <div class="w-full">
+                                            <div class="text-xs font-bold">${r.name}</div>
+                                            <div class="w-full bg-[#306230] h-2">
+                                                <div class="bg-[#8bac0f] h-full" style="width: ${(1 - task.timeLeft/task.totalTime)*100}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto">
+                `;
+
+                for (let [id, recipe] of Object.entries(CONFIG.recipes)) {
+                    // Check ingredients
+                    let canCraft = true;
+                    let ingHtml = '';
+                    for (let [ing, count] of Object.entries(recipe.ingredients)) {
+                        const has = state.inventory[ing] || 0;
+                        if (has < count) canCraft = false;
+                        
+                        let ingName = ing;
+                        let ingIcon = ing;
+                        if(CONFIG.crops[ing]) { ingName = CONFIG.crops[ing].name; ingIcon = CONFIG.crops[ing].icon; }
+                        else {
+                             for(let k in CONFIG.animals) { if(CONFIG.animals[k].product === ing) { ingIcon = CONFIG.animals[k].productIcon; break; } }
+                        }
+
+                        ingHtml += `<span class="${has >= count ? 'text-[#0f380f]' : 'text-red-700'} mr-2">${ingIcon}x${count}</span>`;
+                    }
+
+                    html += `
+                        <div class="bg-[#9bbc0f] border-4 border-[#0f380f] p-3 flex justify-between items-center opacity-${canCraft ? '100' : '60'}">
+                            <div class="flex items-center gap-3">
+                                <div class="text-4xl">${recipe.icon}</div>
+                                <div>
+                                    <div class="font-bold text-lg">${recipe.name}</div>
+                                    <div class="text-xs flex flex-wrap">${ingHtml}</div>
+                                    <div class="text-xs mt-1 text-[#306230]">耗时: ${recipe.time}s | 售价: ${recipe.sell}G</div>
+                                </div>
+                            </div>
+                            <button onclick="game.craftItem('${id}')" class="pixel-btn bg-[#306230] text-[#9bbc0f] px-3 py-2 font-bold" ${!canCraft ? 'disabled' : ''}>
+                                制作
+                            </button>
+                        </div>
+                    `;
+                }
+
+                html += `</div></div>`;
+                main.innerHTML = html;
+            },
+
+            renderMap() {
+                const main = document.getElementById('main-view');
+                main.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center relative">
+                        <h2 class="text-2xl font-bold mb-8 absolute top-0 left-0">岛屿探索</h2>
+                        
+                        <div class="relative w-full max-w-md aspect-square bg-blue-300 border-4 border-[#0f380f] p-4">
+                            <!-- Simple Map Representation -->
+                            <div class="w-full h-full bg-[#8bac0f] relative pixel-art">
+                                <!-- Forest -->
+                                <div class="absolute top-4 left-4 w-24 h-24 bg-[#306230] flex items-center justify-center cursor-pointer hover:brightness-110 border-2 border-black" onclick="game.explore('forest')">
+                                    <span class="text-4xl">🌲</span>
+                                    <span class="absolute bottom-1 text-xs font-bold bg-white px-1">森林</span>
+                                </div>
+                                <!-- Mountain -->
+                                <div class="absolute bottom-4 right-4 w-24 h-24 bg-gray-500 flex items-center justify-center cursor-pointer hover:brightness-110 border-2 border-black" onclick="game.explore('mountain')">
+                                    <span class="text-4xl">⛰️</span>
+                                    <span class="absolute bottom-1 text-xs font-bold bg-white px-1">山脉</span>
+                                </div>
+                                <!-- Home -->
+                                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-[#9bbc0f] flex items-center justify-center border-2 border-black">
+                                    <span class="text-2xl">🏠</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 bg-[#0f380f] text-[#9bbc0f] p-2 text-center">
+                            点击区域进行探索 (花费 50G)
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // Start Game
+        window.onload = () => game.init();
+
+    </script>
+</body>
+</html>
