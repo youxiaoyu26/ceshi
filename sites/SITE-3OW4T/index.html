@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>2048 Material Design 3 动态壁纸版</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --md-primary: #2d6a4f; --md-on-primary: #fff; --md-primary-container: #d8f3dc; --md-on-primary-container: #081c15;
+      --md-secondary: #40916c; --md-secondary-container: #e8f5e9; --md-on-secondary-container: #1b4332;
+      --md-tertiary: #52b788; --md-tertiary-container: #f0fdf4; --md-on-tertiary-container: #002e1a;
+      --md-surface: #f4f9f4; --md-surface-variant: #e0ece0; --md-board-bg: #cadbc8; --md-cell-bg: rgba(255,255,255,0.45);
+      --md-text-main: #1b261b;
+      --board-padding: 14px; --grid-gap: 12px; --cell-size: 80px; --slide-speed: 40ms;
+      --font-family: 'Quicksand', 'Noto Serif SC', sans-serif;
+    }
+
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; font-family: var(--font-family); }
+    body { background-color: var(--md-surface); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; color: var(--md-text-main); transition: background-color 0.4s, color 0.4s; position: relative; overflow: hidden; }
+
+    .wallpaper-backdrop { position: absolute; inset: -5%; background: center/cover; filter: blur(45px) brightness(0.92) opacity(0.35); z-index: 0; transition: background-image 0.5s; display: none; }
+    .container { width: 380px; display: flex; flex-direction: column; align-items: center; padding: 10px; position: relative; z-index: 1; }
+
+    header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .title { font-size: 44px; font-weight: 900; color: var(--md-primary); transition: color 0.4s; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .scores-container { display: flex; gap: 6px; }
+    .score-box { background: var(--md-primary-container); color: var(--md-on-primary-container); padding: 6px 14px; border-radius: 12px; text-align: center; min-width: 68px; transition: all 0.4s; }
+    .score-label { font-size: 10px; opacity: 0.8; font-weight: 700; letter-spacing: 0.5px; }
+    .score-value { font-size: 18px; font-weight: 700; }
+
+    .top-controls { display: flex; gap: 5px; }
+    .btn-top { background: var(--md-surface-variant); border: none; border-radius: 20px; padding: 6px 10px; color: var(--md-text-main); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s; }
+    .btn-top:hover { filter: brightness(0.95); transform: translateY(-1px); }
+    .btn-top.active { background: var(--md-tertiary); color: #fff; }
+    .btn-top svg, .prop-icon svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .tip-bar { height: 26px; font-size: 14px; color: var(--md-text-main); font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; }
+
+    .game-board { width: 380px; height: 380px; background-color: var(--md-board-bg); border-radius: 28px; padding: var(--board-padding); position: relative; touch-action: none; box-shadow: 0 10px 30px rgba(0,0,0,0.06); transition: background-color 0.4s; }
+    .grid-background { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: var(--grid-gap); width: 100%; height: 100%; }
+    .grid-cell { background-color: var(--md-cell-bg); border-radius: 16px; }
+    .tile-container { position: absolute; inset: var(--board-padding); pointer-events: none; }
+
+    .tile { position: absolute; width: var(--cell-size); height: var(--cell-size); transition: transform var(--slide-speed, 40ms) cubic-bezier(0.25, 1, 0.5, 1); will-change: transform; z-index: 2; pointer-events: auto; cursor: pointer; }
+    .tile.no-transition { transition: none !important; }
+    .tile.is-merged-source { z-index: 1; }
+    .tile-inner { width: 100%; height: 100%; border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 34px; font-weight: 700; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: background-color 0.3s, color 0.3s; }
+
+    .pop .tile-inner { animation: qPop 0.16s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .bounce .tile-inner { animation: qBounce 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.35) forwards; }
+    .shrink .tile-inner { animation: qShrink 0.12s ease-in forwards; }
+    .selected .tile-inner { outline: 4px solid var(--md-primary); animation: pulse 0.8s infinite alternate; }
+
+    @keyframes qPop { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes qBounce { 0% { transform: scale(0.8); } 50% { transform: scale(1.24); } 100% { transform: scale(1); } }
+    @keyframes qShrink { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+    @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+
+    /* 动态方块样式映射 */
+    .tile-2 .tile-inner { background: var(--tile-2-bg); color: var(--tile-2-color); }
+    .tile-4 .tile-inner { background: var(--tile-4-bg); color: var(--tile-4-color); }
+    .tile-8 .tile-inner { background: var(--tile-8-bg); color: var(--tile-8-color); }
+    .tile-16 .tile-inner { background: var(--tile-16-bg); color: var(--tile-16-color); }
+    .tile-32 .tile-inner { background: var(--tile-32-bg); color: var(--tile-32-color); }
+    .tile-64 .tile-inner { background: var(--tile-64-bg); color: var(--tile-64-color); }
+    .tile-128 .tile-inner { background: var(--tile-128-bg); color: var(--tile-128-color); font-size: 30px; }
+    .tile-256 .tile-inner { background: var(--tile-256-bg); color: var(--tile-256-color); font-size: 30px; }
+    .tile-512 .tile-inner { background: var(--tile-512-bg); color: var(--tile-512-color); font-size: 30px; }
+    .tile-1024 .tile-inner { background: var(--tile-1024-bg); color: var(--tile-1024-color); font-size: 24px; }
+    .tile-2048 .tile-inner { background: var(--tile-2048-bg); color: var(--tile-2048-color); font-size: 24px; }
+    .tile-super .tile-inner { background: var(--tile-super-bg); color: var(--tile-super-color); font-size: 20px; }
+
+    .props-bar { margin-top: 18px; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .prop-btn { background: var(--md-secondary-container); border: none; border-radius: 16px; padding: 10px 4px; color: var(--md-on-secondary-container); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s; }
+    .prop-btn:hover:not(:disabled) { filter: brightness(0.95); transform: translateY(-2px); }
+    .prop-btn.active { background: var(--md-primary); color: var(--md-on-primary); }
+    .prop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .prop-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+    .prop-icon svg { width: 20px; height: 20px; }
+    .prop-name { font-size: 12px; font-weight: 700; }
+    .prop-count { font-size: 10px; font-weight: 700; background: rgba(0,0,0,0.1); padding: 1px 7px; border-radius: 10px; }
+
+    .game-over { position: absolute; inset: 0; background: var(--md-surface); opacity: 0; border-radius: 28px; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; transition: opacity 0.3s; z-index: 100; }
+    .game-over.show { opacity: 0.96; pointer-events: auto; }
+    .game-over h1 { font-size: 38px; color: var(--md-text-main); margin-bottom: 15px; font-weight: 900; }
+    .restart-btn { background: var(--md-primary); color: var(--md-on-primary); border: none; padding: 10px 24px; border-radius: 20px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 200; }
+    .modal-overlay.show { opacity: 1; pointer-events: auto; }
+    .theme-modal { background: var(--md-surface); border-radius: 28px; width: 340px; padding: 22px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); transform: translateY(15px); transition: transform 0.25s; color: var(--md-text-main); }
+    .modal-overlay.show .theme-modal { transform: translateY(0); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--md-text-main); opacity: 0.7; }
+    .upload-box { margin-bottom: 14px; }
+    .btn-upload { width: 100%; background: var(--md-primary); color: var(--md-on-primary); border: none; border-radius: 20px; padding: 12px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
+    .btn-upload:hover { filter: brightness(1.08); }
+    .btn-upload svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+    .theme-grid { display: flex; flex-direction: column; gap: 10px; }
+    .theme-card { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 16px; background: var(--md-surface-variant); border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+    .theme-card:hover { transform: translateX(2px); }
+    .theme-card.active { border-color: var(--md-primary); }
+    .theme-info { display: flex; align-items: center; gap: 10px; }
+    .theme-name { font-size: 14px; font-weight: 700; }
+    .theme-swatches { display: flex; gap: 4px; }
+    .swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+
+<div class="wallpaper-backdrop" id="wallpaper-bg"></div>
+
+<div class="container">
+  <header>
+    <div class="title">2048</div>
+    <div class="header-right">
+      <div class="scores-container">
+        <div class="score-box"><div class="score-label">SCORE</div><div class="score-value" id="score">0</div></div>
+        <div class="score-box"><div class="score-label">BEST</div><div class="score-value" id="best">0</div></div>
+      </div>
+      <div class="top-controls">
+        <button class="btn-top" onclick="game.restart()">
+          <svg viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>重置
+        </button>
+        <button class="btn-top" id="btn-theme" onclick="game.openThemeModal()">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor" opacity="0.3"/></svg>主题
+        </button>
+        <button class="btn-top" id="btn-speed" onclick="game.cycleAiSpeed()">
+          <span id="speed-text">⚡ 闪电</span>
+        </button>
+        <button class="btn-top" id="btn-ai" onclick="game.toggleAI()">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/></svg>
+          <span id="ai-text">AI 模式</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="tip-bar" id="tip-bar">滑动方向进行合并</div>
+
+  <div class="game-board" id="board">
+    <div class="grid-background">
+      <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+      <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+      <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+      <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+    </div>
+    <div class="tile-container" id="tile-container"></div>
+    <div class="game-over" id="game-over">
+      <h1>Game Over!</h1>
+      <button class="restart-btn" onclick="game.restart()">重新开始</button>
+    </div>
+  </div>
+
+  <div class="props-bar">
+    <button class="prop-btn" id="btn-undo" onclick="game.useUndo()">
+      <span class="prop-icon"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>
+      <span class="prop-name">撤销</span><span class="prop-count" id="count-undo">3</span>
+    </button>
+    <button class="prop-btn" id="btn-swap" onclick="game.toggleProp('swap')">
+      <span class="prop-icon"><svg viewBox="0 0 24 24"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg></span>
+      <span class="prop-name">交换</span><span class="prop-count" id="count-swap">2</span>
+    </button>
+    <button class="prop-btn" id="btn-bomb" onclick="game.toggleProp('bomb')">
+      <span class="prop-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="7"/><path d="M16 8l3.5-3.5"/><path d="M15 3.5l2 2"/><path d="M20.5 9L18.5 7"/></svg></span>
+      <span class="prop-name">消除</span><span class="prop-count" id="count-bomb">2</span>
+    </button>
+    <button class="prop-btn" id="btn-double" onclick="game.toggleProp('double')">
+      <span class="prop-icon"><svg viewBox="0 0 24 24"><path d="M4.5 16.5L12 3l7.5 13.5H15v4.5H9V16.5H4.5z"/></svg></span>
+      <span class="prop-name">翻倍</span><span class="prop-count" id="count-double">2</span>
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="theme-modal">
+  <div class="theme-modal">
+    <div class="modal-header">
+      <div class="modal-title">Material You 动态主题</div>
+      <button class="close-btn" onclick="game.closeThemeModal()">&times;</button>
+    </div>
+    <div class="upload-box">
+      <input type="file" id="wallpaper-input" accept="image/*" style="display:none">
+      <button class="btn-upload" onclick="document.getElementById('wallpaper-input').click()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        上传壁纸提取 MD3 配色
+      </button>
+    </div>
+    <div class="theme-grid" id="theme-grid"></div>
+  </div>
+</div>
+
+<script>
+// Zero-GC 内存池与蛇形矩阵映射
+const AI_STACK_BUFFERS = Array.from({ length: 12 }, () => new Int32Array(16));
+const SNAKE_CORNER_MAPS = [
+  [15, 14, 13, 12,  8,  9, 10, 11,  7,  6,  5,  4,  0,  1,  2,  3],
+  [12, 13, 14, 15, 11, 10,  9,  8,  4,  5,  6,  7,  3,  2,  1,  0],
+  [ 0,  1,  2,  3,  7,  6,  5,  4,  8,  9, 10, 11, 15, 14, 13, 12],
+  [ 3,  2,  1,  0,  4,  5,  6,  7, 11, 10,  9,  8, 12, 13, 14, 15]
+];
+
+const MD3_PRESETS = [
+  { id: 'mint', name: '翡翠薄荷', h: 160, s: 60, l: 40, colors: ['#2d6a4f', '#52b788', '#d8f3dc'] },
+  { id: 'violet', name: '莫奈紫罗兰', h: 270, s: 65, l: 45, colors: ['#6c5ce7', '#a29bfe', '#e8e5ff'] },
+  { id: 'sunset', name: '落日暖阳', h: 22, s: 80, l: 45, colors: ['#d97706', '#f59e0b', '#fef3c7'] },
+  { id: 'ocean', name: '深海蓝调', h: 210, s: 75, l: 40, colors: ['#0284c7', '#38bdf8', '#e0f2fe'] }
+];
+
+class Game2048 {
+  constructor() {
+    this.size = 4;
+    this.tiles = [];
+    this.score = 0;
+    this.bestScore = parseInt(localStorage.getItem('2048_best')) || 0;
+    this.currentThemePreset = localStorage.getItem('2048_md3_preset') || 'mint';
+    
+    this.props = { undo: 3, swap: 2, bomb: 2, double: 2 };
+    this.activeProp = null;
+    this.selectedTiles = [];
+    this.history = [];
+    this.tileIdCounter = 1;
+    this.isAnimating = false;
+    
+    this.aiTimer = null;
+    this.isAiRunning = false;
+    this.aiSpeedLevel = 4;
+
+    this.container = document.getElementById('tile-container');
+    this.tipBar = document.getElementById('tip-bar');
+    
+    this.initTheme();
+    this.initTouch();
+    this.initKeyboard();
+    this.restart();
+  }
+
+  /* ---------------- MD3 动态主题与壁纸色彩提取引擎 ---------------- */
+  initTheme() {
+    const custom = localStorage.getItem('2048_md3_custom');
+    if (this.currentThemePreset === 'custom' && custom) {
+      const data = JSON.parse(custom);
+      this.applyMD3DynamicTheme(data.h, data.s, data.l, data.bg);
+    } else {
+      const p = MD3_PRESETS.find(x => x.id === this.currentThemePreset) || MD3_PRESETS[0];
+      this.applyMD3DynamicTheme(p.h, p.s, p.l, null);
+    }
+
+    document.getElementById('wallpaper-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+          const [r, g, b] = this.extractDominantRGB(img);
+          const [h, s, l] = this.rgbToHsl(r, g, b);
+          this.currentThemePreset = 'custom';
+          localStorage.setItem('2048_md3_preset', 'custom');
+          localStorage.setItem('2048_md3_custom', JSON.stringify({ h, s, l, bg: evt.target.result }));
+          this.applyMD3DynamicTheme(h, s, l, evt.target.result);
+          this.closeThemeModal();
+          this.setTip("壁纸色彩提取成功！MD3 动态主题已生成");
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    this.renderThemeModalCards();
+  }
+
+  extractDominantRGB(img) {
+    const cvs = document.createElement('canvas'), ctx = cvs.getContext('2d');
+    cvs.width = cvs.height = 50;
+    ctx.drawImage(img, 0, 0, 50, 50);
+    const data = ctx.getImageData(0, 0, 50, 50).data;
+    let rS = 0, gS = 0, bS = 0, cnt = 0;
+    for (let i = 0; i < data.length; i += 16) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      if (Math.max(r, g, b) - Math.min(r, g, b) < 12) continue;
+      rS += r; gS += g; bS += b; cnt++;
+    }
+    return cnt ? [Math.round(rS/cnt), Math.round(gS/cnt), Math.round(bS/cnt)] : [100, 150, 120];
+  }
+
+  rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (d !== 0) {
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+  }
+
+  applyMD3DynamicTheme(h, s, l, bgDataUrl) {
+    const r = document.documentElement.style;
+    const priH = h, secH = (h + 35) % 360, triH = (h + 130) % 360;
+    const sat = Math.max(s, 40);
+
+    const HSL = (hue, satScale, lightness) => `hsl(${hue}, ${Math.max(sat * satScale, 20)}%, ${lightness}%)`;
+
+    r.setProperty('--md-primary', HSL(priH, 1, 38));
+    r.setProperty('--md-on-primary', '#ffffff');
+    r.setProperty('--md-primary-container', HSL(priH, 0.6, 91));
+    r.setProperty('--md-on-primary-container', HSL(priH, 1, 15));
+
+    r.setProperty('--md-secondary', HSL(secH, 0.6, 42));
+    r.setProperty('--md-secondary-container', HSL(secH, 0.5, 89));
+    r.setProperty('--md-on-secondary-container', HSL(secH, 1, 18));
+
+    r.setProperty('--md-tertiary', HSL(triH, 0.8, 40));
+    r.setProperty('--md-tertiary-container', HSL(triH, 0.6, 88));
+    r.setProperty('--md-on-tertiary-container', HSL(triH, 1, 15));
+
+    r.setProperty('--md-surface', HSL(priH, 0.2, 96));
+    r.setProperty('--md-surface-variant', HSL(priH, 0.15, 88));
+    r.setProperty('--md-board-bg', HSL(priH, 0.18, 82));
+    r.setProperty('--md-cell-bg', HSL(priH, 0.12, 74));
+    r.setProperty('--md-text-main', HSL(priH, 0.35, 15));
+
+    // 动态生成 2 ~ 2048 色阶
+    const tileThemes = [
+      { val: 2, bg: HSL(priH, 0.25, 94), c: HSL(priH, 0.4, 20) },
+      { val: 4, bg: HSL(priH, 0.35, 88), c: HSL(priH, 0.45, 20) },
+      { val: 8, bg: HSL(secH, 0.65, 78), c: HSL(secH, 0.7, 15) },
+      { val: 16, bg: HSL(secH, 0.7, 65), c: '#fff' },
+      { val: 32, bg: HSL(priH, 0.75, 52), c: '#fff' },
+      { val: 64, bg: HSL(priH, 0.85, 42), c: '#fff' },
+      { val: 128, bg: HSL(triH, 0.7, 55), c: '#fff' },
+      { val: 256, bg: HSL(triH, 0.8, 45), c: '#fff' },
+      { val: 512, bg: HSL(secH, 0.85, 40), c: '#fff' },
+      { val: 1024, bg: HSL(priH, 0.9, 35), c: '#fff' },
+      { val: 2048, bg: HSL(triH, 0.95, 32), c: '#fff' },
+      { val: 'super', bg: HSL(priH, 0.95, 20), c: '#fff' }
+    ];
+
+    tileThemes.forEach(t => {
+      r.setProperty(`--tile-${t.val}-bg`, t.bg);
+      r.setProperty(`--tile-${t.val}-color`, t.c);
+    });
+
+    const bgEl = document.getElementById('wallpaper-bg');
+    bgEl.style.backgroundImage = bgDataUrl ? `url(${bgDataUrl})` : 'none';
+    bgEl.style.display = bgDataUrl ? 'block' : 'none';
+
+    this.renderThemeModalCards();
+  }
+
+  openThemeModal() { document.getElementById('theme-modal').classList.add('show'); }
+  closeThemeModal() { document.getElementById('theme-modal').classList.remove('show'); }
+
+  renderThemeModalCards() {
+    const grid = document.getElementById('theme-grid');
+    grid.innerHTML = '';
+    MD3_PRESETS.forEach(p => {
+      const card = document.createElement('div');
+      card.className = `theme-card ${p.id === this.currentThemePreset ? 'active' : ''}`;
+      card.onclick = () => {
+        this.currentThemePreset = p.id;
+        localStorage.setItem('2048_md3_preset', p.id);
+        this.applyMD3DynamicTheme(p.h, p.s, p.l, null);
+        this.closeThemeModal();
+      };
+      card.innerHTML = `
+        <div class="theme-info"><span class="theme-name">${p.name}</span></div>
+        <div class="theme-swatches">${p.colors.map(c => `<span class="swatch" style="background:${c}"></span>`).join('')}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  /* ---------------- 游戏核心逻辑 ---------------- */
+  getAnimDuration() {
+    if (this.isAiRunning) return [100, 40, 15, 0][this.aiSpeedLevel - 1];
+    return 110;
+  }
+
+  cycleAiSpeed() {
+    this.aiSpeedLevel = (this.aiSpeedLevel % 4) + 1;
+    document.getElementById('speed-text').textContent = ['1x 优雅', '2x 极速', '3x 飞速', '⚡ 闪电'][this.aiSpeedLevel - 1];
+  }
+
+  restart() {
+    this.stopAI();
+    this.tiles = [];
+    this.score = 0;
+    this.history = [];
+    this.activeProp = null;
+    this.selectedTiles = [];
+    this.props = { undo: 3, swap: 2, bomb: 2, double: 2 };
+
+    this.container.innerHTML = '';
+    document.getElementById('game-over').classList.remove('show');
+    
+    this.updateScore(0);
+    this.updatePropsUI();
+    this.setTip("滑动方向进行合并");
+
+    this.addRandomTile('pop');
+    this.addRandomTile('pop');
+  }
+
+  getTranslateStyle(r, c) { return `translate3d(${c * 92}px, ${r * 92}px, 0px)`; }
+
+  createTileDOM(tile, animClass = '') {
+    const el = document.createElement('div');
+    el.dataset.id = tile.id;
+    el.className = `tile tile-${tile.value <= 2048 ? tile.value : 'super'} ${animClass}`;
+    el.style.transform = this.getTranslateStyle(tile.r, tile.c);
+    el.innerHTML = `<div class="tile-inner">${tile.value}</div>`;
+    el.addEventListener('click', () => this.handleTileClick(tile));
+    this.container.appendChild(el);
+    return el;
+  }
+
+  addRandomTile(animClass = '') {
+    const occupied = new Set(this.tiles.map(t => `${t.r},${t.c}`));
+    const empty = [];
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        if (!occupied.has(`${r},${c}`)) empty.push({ r, c });
+      }
+    }
+    if (!empty.length) return null;
+    const { r, c } = empty[Math.floor(Math.random() * empty.length)];
+    const tile = { id: this.tileIdCounter++, value: Math.random() < 0.9 ? 2 : 4, r, c };
+    this.tiles.push(tile);
+    this.createTileDOM(tile, animClass);
+    return tile;
+  }
+
+  snapshotState() {
+    return { score: this.score, tiles: this.tiles.map(t => ({ ...t })) };
+  }
+
+  saveState() {
+    if (this.history.length >= 10) this.history.shift();
+    this.history.push(this.snapshotState());
+    this.updatePropsUI();
+  }
+
+  move(dir) {
+    if (this.isAnimating || this.activeProp) return false;
+    const vector = { Up: { r: -1, c: 0 }, Down: { r: 1, c: 0 }, Left: { r: 0, c: -1 }, Right: { r: 0, c: 1 } }[dir];
+    const rOrder = vector.r === 1 ? [3,2,1,0] : [0,1,2,3];
+    const cOrder = vector.c === 1 ? [3,2,1,0] : [0,1,2,3];
+
+    let moved = false, scoreGained = 0;
+    this.tiles.forEach(t => { delete t.toDelete; delete t.toR; delete t.toC; delete t.mergedFrom; });
+
+    const grid = Array.from({ length: 4 }, () => Array(4).fill(null));
+    this.tiles.forEach(t => grid[t.r][t.c] = t);
+    const merges = [];
+
+    rOrder.forEach(r => {
+      cOrder.forEach(c => {
+        const tile = grid[r][c];
+        if (!tile) return;
+        let nextR = r, nextC = c;
+
+        while (true) {
+          const testR = nextR + vector.r, testC = nextC + vector.c;
+          if (testR < 0 || testR >= 4 || testC < 0 || testC >= 4) break;
+          const target = grid[testR][testC];
+          if (!target) { nextR = testR; nextC = testC; }
+          else if (target.value === tile.value && !target.mergedFrom && !target.toDelete) {
+            nextR = testR; nextC = testC; break;
+          } else break;
+        }
+
+        if (nextR !== r || nextC !== c) {
+          moved = true;
+          const target = grid[nextR][nextC];
+          if (target && target.value === tile.value && !target.mergedFrom && !target.toDelete) {
+            grid[r][c] = null;
+            tile.toR = nextR; tile.toC = nextC; tile.toDelete = true;
+            target.toDelete = true;
+
+            const newMergedTile = { id: this.tileIdCounter++, value: tile.value * 2, r: nextR, c: nextC, mergedFrom: true };
+            grid[nextR][nextC] = newMergedTile;
+            merges.push({ sources: [tile, target], resultTile: newMergedTile });
+            scoreGained += newMergedTile.value;
+          } else {
+            grid[r][c] = null;
+            grid[nextR][nextC] = tile;
+            tile.toR = nextR; tile.toC = nextC;
+          }
+        }
+      });
+    });
+
+    if (moved) {
+      this.isAnimating = true;
+      const duration = this.getAnimDuration();
+      document.documentElement.style.setProperty('--slide-speed', `${duration}ms`);
+
+      this.tiles.forEach(t => {
+        if (t.toR !== undefined) {
+          const el = this.container.querySelector(`[data-id="${t.id}"]`);
+          if (el) {
+            if (!duration) el.classList.add('no-transition'); else el.classList.remove('no-transition');
+            el.style.transform = this.getTranslateStyle(t.toR, t.c !== undefined ? t.toC : t.c);
+            if (t.toDelete) el.classList.add('is-merged-source');
+          }
+        }
+      });
+
+      const finalize = () => {
+        this.tiles.forEach(t => {
+          if (t.toDelete) {
+            const el = this.container.querySelector(`[data-id="${t.id}"]`);
+            if (el) el.remove();
+          }
+        });
+
+        const nextTiles = [];
+        this.tiles.forEach(t => {
+          if (!t.toDelete) {
+            if (t.toR !== undefined) { t.r = t.toR; t.c = t.toC; }
+            delete t.toR; delete t.toC; delete t.mergedFrom;
+            nextTiles.push(t);
+          }
+        });
+
+        merges.forEach(m => {
+          delete m.resultTile.mergedFrom;
+          nextTiles.push(m.resultTile);
+          this.createTileDOM(m.resultTile, !duration ? '' : 'bounce');
+        });
+
+        this.tiles = nextTiles;
+        this.score += scoreGained;
+        this.updateScore(this.score);
+        this.addRandomTile(!duration ? '' : 'pop');
+        this.isAnimating = false;
+
+        if (this.checkGameOver()) {
+          this.stopAI();
+          document.getElementById('game-over').classList.add('show');
+        }
+      };
+
+      if (!duration) finalize();
+      else setTimeout(finalize, duration);
+    }
+    return moved;
+  }
+
+  /* ---------------- Expectimax AI & 死局自动救援引擎 ---------------- */
+  toggleAI() { this.isAiRunning ? this.stopAI() : this.startAI(); }
+
+  startAI() {
+    this.isAiRunning = true;
+    document.getElementById('btn-ai').classList.add('active');
+    document.getElementById('ai-text').textContent = '停止 AI';
+    this.setTip("🧠 零延迟 Expectimax 深度推演中...");
+    this.runAiStep();
+  }
+
+  stopAI() {
+    this.isAiRunning = false;
+    if (this.aiTimer) clearTimeout(this.aiTimer);
+    document.getElementById('btn-ai').classList.remove('active');
+    document.getElementById('ai-text').textContent = 'AI 模式';
+    this.setTip("滑动方向进行合并");
+  }
+
+  runAiStep() {
+    if (!this.isAiRunning) return;
+    if (!this.isAnimating) {
+      const bestMove = this.getBestAiMove();
+      if (bestMove) {
+        this.move(bestMove);
+      } else {
+        const rescue = this.getBestAiPropRescue();
+        if (rescue) {
+          this.executeAiRescue(rescue);
+        } else {
+          this.stopAI();
+          if (this.checkGameOver()) document.getElementById('game-over').classList.add('show');
+          return;
+        }
+      }
+    }
+    this.aiTimer = setTimeout(() => this.runAiStep(), this.aiSpeedLevel === 4 ? 0 : 4);
+  }
+
+  getBestAiPropRescue() {
+    const board = AI_STACK_BUFFERS[0];
+    board.fill(0);
+    this.tiles.forEach(t => board[t.r * 4 + t.c] = t.value);
+
+    let bestAction = null, maxScore = -Infinity;
+    const canMove = (b) => {
+      const tmp = AI_STACK_BUFFERS[10];
+      for (let dir = 0; dir < 4; dir++) if (this.simulate1D(b, dir, tmp)) return true;
+      return false;
+    };
+
+    if (this.props.bomb > 0) {
+      for (let i = 0; i < 16; i++) {
+        if (board[i] > 0) {
+          const b = AI_STACK_BUFFERS[1]; b.set(board); b[i] = 0;
+          if (canMove(b)) {
+            const sc = this.evaluateBoard1D(b) + 200000;
+            if (sc > maxScore) {
+              maxScore = sc;
+              bestAction = { type: 'bomb', tile1: this.tiles.find(t => t.r === Math.floor(i/4) && t.c === (i%4)) };
+            }
+          }
+        }
+      }
+    }
+
+    if (this.props.double > 0) {
+      for (let i = 0; i < 16; i++) {
+        if (board[i] > 0) {
+          const b = AI_STACK_BUFFERS[1]; b.set(board); b[i] *= 2;
+          if (canMove(b)) {
+            const sc = this.evaluateBoard1D(b) + 150000;
+            if (sc > maxScore) {
+              maxScore = sc;
+              bestAction = { type: 'double', tile1: this.tiles.find(t => t.r === Math.floor(i/4) && t.c === (i%4)) };
+            }
+          }
+        }
+      }
+    }
+
+    if (this.props.swap > 0) {
+      for (let i = 0; i < 16; i++) {
+        for (let j = i + 1; j < 16; j++) {
+          if (board[i] > 0 && board[j] > 0 && board[i] !== board[j]) {
+            const b = AI_STACK_BUFFERS[1]; b.set(board);
+            const tmp = b[i]; b[i] = b[j]; b[j] = tmp;
+            if (canMove(b)) {
+              const sc = this.evaluateBoard1D(b) + 100000;
+              if (sc > maxScore) {
+                maxScore = sc;
+                bestAction = {
+                  type: 'swap',
+                  tile1: this.tiles.find(t => t.r === Math.floor(i/4) && t.c === (i%4)),
+                  tile2: this.tiles.find(t => t.r === Math.floor(j/4) && t.c === (j%4))
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (this.props.undo > 0 && this.history.length > 0 && maxScore < 80000) {
+      bestAction = { type: 'undo' };
+    }
+    return bestAction;
+  }
+
+  executeAiRescue(action) {
+    const msgs = {
+      bomb: "AI 走投无路，智能选择【消除】拯救死局！",
+      double: "AI 走投无路，智能选择【翻倍】拯救死局！",
+      swap: "AI 走投无路，智能选择【交换】拯救死局！",
+      undo: "AI 走投无路，智能选择【撤销】拯救死局！"
+    };
+    this.setTip(msgs[action.type]);
+    if (action.type === 'bomb') this.executeBomb(action.tile1);
+    else if (action.type === 'double') this.executeDouble(action.tile1);
+    else if (action.type === 'swap') this.executeSwap(action.tile1, action.tile2);
+    else if (action.type === 'undo') this.useUndo();
+  }
+
+  getBestAiMove() {
+    const root = AI_STACK_BUFFERS[0]; root.fill(0);
+    this.tiles.forEach(t => root[t.r * 4 + t.c] = t.value);
+
+    let empty = 0;
+    for (let i = 0; i < 16; i++) if (!root[i]) empty++;
+    const depth = empty <= 2 ? 5 : (empty <= 5 ? 4 : 3);
+    const dirs = ['Up', 'Right', 'Down', 'Left'];
+    let bestMove = null, bestScore = -Infinity;
+
+    for (let d = 0; d < 4; d++) {
+      const child = AI_STACK_BUFFERS[1];
+      if (this.simulate1D(root, d, child)) {
+        const sc = this.expectimax1D(child, depth - 1, false, 1.0, 1);
+        if (sc > bestScore) { bestScore = sc; bestMove = dirs[d]; }
+      }
+    }
+    return bestMove;
+  }
+
+  expectimax1D(board, depth, isPlayer, prob, stackDepth) {
+    if (depth === 0 || prob < 0.0003) return this.evaluateBoard1D(board);
+
+    if (isPlayer) {
+      let maxSc = -Infinity, movedAny = false;
+      for (let d = 0; d < 4; d++) {
+        const nextB = AI_STACK_BUFFERS[stackDepth + 1];
+        if (this.simulate1D(board, d, nextB)) {
+          movedAny = true;
+          const sc = this.expectimax1D(nextB, depth - 1, false, prob, stackDepth + 1);
+          if (sc > maxSc) maxSc = sc;
+        }
+      }
+      return movedAny ? maxSc : -1000000;
+    } else {
+      const empty = [];
+      for (let i = 0; i < 16; i++) if (!board[i]) empty.push(i);
+      if (!empty.length) return this.evaluateBoard1D(board);
+
+      let totSc = 0;
+      const samples = empty.length > 4 ? empty.slice(0, 4) : empty;
+      const p2 = 0.9 / samples.length, p4 = 0.1 / samples.length;
+      const workB = AI_STACK_BUFFERS[stackDepth + 1];
+      workB.set(board);
+
+      for (const idx of samples) {
+        workB[idx] = 2;
+        totSc += p2 * this.expectimax1D(workB, depth - 1, true, prob * p2, stackDepth + 1);
+        if (depth > 1) {
+          workB[idx] = 4;
+          totSc += p4 * this.expectimax1D(workB, depth - 1, true, prob * p4, stackDepth + 1);
+        }
+        workB[idx] = 0;
+      }
+      return totSc;
+    }
+  }
+
+  simulate1D(inB, dir, outB) {
+    outB.set(inB);
+    let moved = false;
+
+    const slide = (i0, i1, i2, i3) => {
+      let v0 = outB[i0], v1 = outB[i1], v2 = outB[i2], v3 = outB[i3];
+      let o0 = v0, o1 = v1, o2 = v2, o3 = v3;
+      let a = 0, b = 0, c = 0, d = 0, cnt = 0;
+
+      if (v0) { a = v0; cnt++; }
+      if (v1) { if (!cnt) a = v1; else if (cnt === 1) b = v1; cnt++; }
+      if (v2) { if (!cnt) a = v2; else if (cnt === 1) b = v2; else if (cnt === 2) c = v2; cnt++; }
+      if (v3) { if (!cnt) a = v3; else if (cnt === 1) b = v3; else if (cnt === 2) c = v3; else if (cnt === 3) d = v3; cnt++; }
+
+      if (a && a === b) { a *= 2; b = c; c = d; d = 0; }
+      if (b && b === c) { b *= 2; c = d; d = 0; }
+      if (c && c === d) { c *= 2; d = 0; }
+
+      outB[i0] = a; outB[i1] = b; outB[i2] = c; outB[i3] = d;
+      return (a !== o0 || b !== o1 || c !== o2 || d !== o3);
+    };
+
+    if (dir === 0) { for (let c = 0; c < 4; c++) if (slide(c, c+4, c+8, c+12)) moved = true; }
+    else if (dir === 1) { for (let r = 0; r < 16; r += 4) if (slide(r+3, r+2, r+1, r)) moved = true; }
+    else if (dir === 2) { for (let c = 0; c < 4; c++) if (slide(c+12, c+8, c+4, c)) moved = true; }
+    else if (dir === 3) { for (let r = 0; r < 16; r += 4) if (slide(r, r+1, r+2, r+3)) moved = true; }
+
+    return moved;
+  }
+
+  evaluateBoard1D(board) {
+    let maxVal = 0, empty = 0;
+    for (let i = 0; i < 16; i++) {
+      if (board[i] > maxVal) maxVal = board[i];
+      if (!board[i]) empty++;
+    }
+
+    let bestSnake = -Infinity;
+    const corners = [0, 3, 15, 12];
+
+    for (let k = 0; k < 4; k++) {
+      let snake = 0, cmap = SNAKE_CORNER_MAPS[k];
+      for (let i = 0; i < 16; i++) if (board[i]) snake += board[i] * Math.pow(3.5, cmap[i]);
+      snake += (board[corners[k]] === maxVal) ? maxVal * 80000 : -maxVal * 500000;
+      if (snake > bestSnake) bestSnake = snake;
+    }
+
+    let mono = [0, 0, 0, 0];
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 3; c++) {
+        const curr = board[r*4+c] ? Math.log2(board[r*4+c]) : 0;
+        const next = board[r*4+c+1] ? Math.log2(board[r*4+c+1]) : 0;
+        if (curr > next) mono[0] += next - curr; else mono[1] += curr - next;
+      }
+    }
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 3; r++) {
+        const curr = board[r*4+c] ? Math.log2(board[r*4+c]) : 0;
+        const next = board[(r+1)*4+c] ? Math.log2(board[(r+1)*4+c]) : 0;
+        if (curr > next) mono[2] += next - curr; else mono[3] += curr - next;
+      }
+    }
+    const monotonicity = (Math.max(mono[0], mono[1]) + Math.max(mono[2], mono[3])) * 15000;
+
+    let smoothness = 0, mergePotential = 0;
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const val = board[r*4+c];
+        if (val) {
+          const logV = Math.log2(val);
+          if (c < 3 && board[r*4+c+1]) {
+            smoothness -= Math.abs(logV - Math.log2(board[r*4+c+1])) * 2000;
+            if (val === board[r*4+c+1]) mergePotential += val * 10;
+          }
+          if (r < 3 && board[(r+1)*4+c]) {
+            smoothness -= Math.abs(logV - Math.log2(board[(r+1)*4+c])) * 2000;
+            if (val === board[(r+1)*4+c]) mergePotential += val * 10;
+          }
+        }
+      }
+    }
+    return bestSnake + monotonicity + smoothness + mergePotential + empty * empty * 45000;
+  }
+
+  /* ---------------- 道具与交互逻辑 ---------------- */
+  executeBomb(tile) {
+    if (this.props.bomb <= 0) return;
+    this.saveState();
+    this.isAnimating = true;
+    const el = this.container.querySelector(`[data-id="${tile.id}"]`);
+    if (el) el.classList.add('shrink');
+    setTimeout(() => {
+      if (el) el.remove();
+      this.tiles = this.tiles.filter(t => t !== tile);
+      this.props.bomb--;
+      this.exitPropMode();
+      this.isAnimating = false;
+    }, 180);
+  }
+
+  executeDouble(tile) {
+    if (this.props.double <= 0) return;
+    this.saveState();
+    tile.value *= 2;
+    this.score += tile.value;
+    this.updateScore(this.score);
+
+    const el = this.container.querySelector(`[data-id="${tile.id}"]`);
+    if (el) {
+      el.className = `tile tile-${tile.value <= 2048 ? tile.value : 'super'} bounce`;
+      el.querySelector('.tile-inner').textContent = tile.value;
+    }
+    this.props.double--;
+    this.exitPropMode();
+  }
+
+  executeSwap(t1, t2) {
+    if (this.props.swap <= 0) return;
+    this.saveState();
+    this.isAnimating = true;
+    const el1 = this.container.querySelector(`[data-id="${t1.id}"]`);
+    const el2 = this.container.querySelector(`[data-id="${t2.id}"]`);
+
+    const tempR = t1.r, tempC = t1.c;
+    t1.r = t2.r; t1.c = t2.c; t2.r = tempR; t2.c = tempC;
+
+    if (el1) { el1.classList.remove('selected'); el1.style.transform = this.getTranslateStyle(t1.r, t1.c); }
+    if (el2) { el2.classList.remove('selected'); el2.style.transform = this.getTranslateStyle(t2.r, t2.c); }
+
+    setTimeout(() => {
+      this.props.swap--;
+      this.exitPropMode();
+      this.isAnimating = false;
+    }, 120);
+  }
+
+  handleTileClick(tile) {
+    if (!this.activeProp || this.isAnimating) return;
+    if (this.activeProp === 'bomb') { this.executeBomb(tile); this.setTip("方块已消除！"); }
+    else if (this.activeProp === 'double') { this.executeDouble(tile); this.setTip("方块成功翻倍！"); }
+    else if (this.activeProp === 'swap') {
+      const el = this.container.querySelector(`[data-id="${tile.id}"]`);
+      if (this.selectedTiles.includes(tile)) {
+        this.selectedTiles = [];
+        if (el) el.classList.remove('selected');
+      } else {
+        this.selectedTiles.push(tile);
+        if (el) el.classList.add('selected');
+      }
+      if (this.selectedTiles.length === 2) {
+        this.executeSwap(this.selectedTiles[0], this.selectedTiles[1]);
+        this.setTip("位置交换成功！");
+      }
+    }
+  }
+
+  toggleProp(prop) {
+    if (this.props[prop] <= 0 || this.isAnimating) return;
+    if (this.activeProp === prop) {
+      this.exitPropMode();
+    } else {
+      this.stopAI();
+      this.exitPropMode();
+      this.activeProp = prop;
+      this.updatePropsUI();
+      const tips = { swap: "请点击选择【两个】要交换位置的方块", bomb: "请点击选择【一个】要消除的方块", double: "请点击选择【一个】要数值翻倍的方块" };
+      this.setTip(tips[prop]);
+    }
+  }
+
+  exitPropMode() {
+    this.activeProp = null;
+    this.selectedTiles = [];
+    this.container.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+    this.updatePropsUI();
+    this.setTip("滑动方向进行合并");
+  }
+
+  useUndo() {
+    if (this.props.undo <= 0 || !this.history.length || this.isAnimating) return;
+    this.stopAI();
+    const prev = this.history.pop();
+    this.score = prev.score;
+    this.tiles = prev.tiles.map(t => ({ ...t }));
+    this.props.undo--;
+
+    this.container.innerHTML = '';
+    this.tiles.forEach(t => this.createTileDOM(t));
+    this.updateScore(this.score);
+    this.exitPropMode();
+    this.setTip("已撤销到上一步");
+  }
+
+  updateScore(val) {
+    this.score = val;
+    document.getElementById('score').textContent = this.score;
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+      localStorage.setItem('2048_best', this.bestScore);
+    }
+    document.getElementById('best').textContent = this.bestScore;
+  }
+
+  updatePropsUI() {
+    ['undo', 'swap', 'bomb', 'double'].forEach(type => {
+      const btn = document.getElementById(`btn-${type}`);
+      document.getElementById(`count-${type}`).textContent = this.props[type];
+      btn.disabled = this.props[type] <= 0 || (type === 'undo' && !this.history.length);
+      btn.classList.toggle('active', this.activeProp === type);
+    });
+  }
+
+  setTip(msg) { this.tipBar.textContent = msg; }
+
+  checkGameOver() {
+    const board = AI_STACK_BUFFERS[0]; board.fill(0);
+    this.tiles.forEach(t => board[t.r * 4 + t.c] = t.value);
+    const tmp = AI_STACK_BUFFERS[10];
+
+    for (let d = 0; d < 4; d++) if (this.simulate1D(board, d, tmp)) return false;
+    const remainingProps = this.props.undo + this.props.swap + this.props.bomb + this.props.double;
+    if (remainingProps > 0) {
+      if (!this.isAiRunning) this.setTip("已无路可走！请使用下方道具救援破局！");
+      return false;
+    }
+    return true;
+  }
+
+  initTouch() {
+    let sX, sY;
+    const boardEl = document.getElementById('board');
+    boardEl.addEventListener('touchstart', e => {
+      if (e.touches.length > 1) return;
+      sX = e.touches[0].clientX; sY = e.touches[0].clientY;
+    }, { passive: true });
+
+    boardEl.addEventListener('touchend', e => {
+      if (!sX || !sY) return;
+      const dX = e.changedTouches[0].clientX - sX, dY = e.changedTouches[0].clientY - sY;
+      if (Math.max(Math.abs(dX), Math.abs(dY)) > 30) {
+        this.stopAI();
+        if (Math.abs(dX) > Math.abs(dY)) this.move(dX > 0 ? 'Right' : 'Left');
+        else this.move(dY > 0 ? 'Down' : 'Up');
+      }
+      sX = sY = null;
+    });
+  }
+
+  initKeyboard() {
+    window.addEventListener('keydown', e => {
+      const map = { ArrowUp: 'Up', KeyW: 'Up', ArrowDown: 'Down', KeyS: 'Down', ArrowLeft: 'Left', KeyA: 'Left', ArrowRight: 'Right', KeyD: 'Right' };
+      if (map[e.code]) {
+        e.preventDefault();
+        this.stopAI();
+        this.move(map[e.code]);
+      }
+    });
+  }
+}
+
+const game = new Game2048();
+</script>
+</body>
+</html>
