@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Kerr Black Hole Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #fff; font-size: 14px; letter-spacing: 2px; text-transform: uppercase;
+            pointer-events: none; transition: opacity 0.5s ease;
+        }
+        /* 美化 lil-gui 面板位置与半透明质感 */
+        .lil-gui {
+            --background-color: rgba(15, 18, 24, 0.85) !important;
+            --text-color: #e0e6ed !important;
+            --title-background-color: rgba(25, 30, 40, 0.95) !important;
+            --widget-color: rgba(255, 255, 255, 0.08) !important;
+            --hover-color: rgba(255, 255, 255, 0.15) !important;
+            --focus-color: #3b82f6 !important;
+            font-family: inherit !important;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+          "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm"
+        }
+      }
+    </script>
+</head>
+<body>
+    <div id="loading">Initializing Spacetime Curvature...</div>
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import GUI from 'lil-gui';
+
+        // 1. 初始化场景与渲染器
+        const container = document.getElementById('canvas-container');
+        const loading = document.getElementById('loading');
+        
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0.0, 3.5, 16.0);
+
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: false
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.04;
+        controls.minDistance = 3.2;
+        controls.maxDistance = 45.0;
+
+        // 2. 调参参数定义 (Params)
+        const params = {
+            // 物理参数
+            rs: 1.0,               // 史瓦西半径
+            spin: 0.65,            // 自旋参数 a (克尔拖拽)
+            lensingStrength: 1.0,  // 引力透镜弯曲倍率
+            // 吸积盘
+            diskInner: 2.6,        // 内径 (ISCO)
+            diskOuter: 11.5,       // 外径
+            diskDensity: 1.2,      // 物质浓度
+            diskSpeed: 1.0,        // 旋转转速
+            diskThickness: 0.14,   // 垂直厚度
+            diskHue: 0.08,         // 主色调偏移 (0.08 暖金, 0.6 炽蓝)
+            temperature: 1.3,      // 色温与辐射能级
+            dopplerFactor: 1.1,    // 相对论多普勒增亮强度
+            // 光学与后处理
+            exposure: 1.4,         // 曝光度
+            bloomIntensity: 0.8,   // 辉光强度
+            chromaticAberration: 0.003, // 边缘色散
+            rayQuality: 96,        // 步进精度 (Max Steps)
+            // 预设选择
+            preset: 'Gargantua (Interstellar)'
+        };
+
+        // 3. 高精度 Raymarching Shader
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position.xy, 0.0, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            uniform vec3 uCameraPos;
+            uniform mat4 uInvViewMatrix;
+            uniform mat4 uInvProjMatrix;
+            uniform vec2 uResolution;
+            uniform float uTime;
+
+            // 物理与外观 Uniforms
+            uniform float uRs;
+            uniform float uSpin;
+            uniform float uLensingStrength;
+            uniform float uDiskInner;
+            uniform float uDiskOuter;
+            uniform float uDiskDensity;
+            uniform float uDiskSpeed;
+            uniform float uDiskThickness;
+            uniform float uDiskHue;
+            uniform float uTemperature;
+            uniform float uDopplerFactor;
+            uniform float uExposure;
+            uniform float uBloomIntensity;
+            uniform float uChromaticAberration;
+            uniform int uMaxSteps;
+
+            varying vec2 vUv;
+
+            #define PI 3.14159265359
+
+            // 快速高品质噪声生成
+            float hash(vec2 p) {
+                p = fract(p * vec2(234.34, 435.345));
+                p += dot(p, p + 34.23);
+                return fract(p.x * p.y);
+            }
+
+            float hash3(vec3 p) {
+                p = fract(p * vec3(443.897, 441.423, 437.195));
+                p += dot(p, p.yzx + 19.19);
+                return fract((p.x + p.y) * p.z);
+            }
+
+            float noise2D(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                float a = hash(i);
+                float b = hash(i + vec2(1.0, 0.0));
+                float c = hash(i + vec2(0.0, 1.0));
+                float d = hash(i + vec2(1.0, 1.0));
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+
+            // 畴扭曲分形涡流 (Domain Warped FBM)
+            float fbmTurbulence(vec2 p) {
+                vec2 q = vec2(noise2D(p + vec2(0.0, 0.0)), noise2D(p + vec2(5.2, 1.3)));
+                vec2 r = vec2(noise2D(p + 3.0 * q + vec2(1.7, 9.2)), noise2D(p + 3.0 * q + vec2(8.3, 2.8)));
+                
+                float f = 0.5000 * noise2D(p + 2.0 * r);
+                p *= 2.02;
+                f += 0.2500 * noise2D(p + 2.0 * r);
+                p *= 2.03;
+                f += 0.1250 * noise2D(p + 2.0 * r);
+                p *= 2.01;
+                f += 0.0625 * noise2D(p);
+                return f;
+            }
+
+            // 色相转换辅助函数
+            vec3 hueShift(vec3 col, float hue) {
+                vec3 k = vec3(0.57735, 0.57735, 0.57735);
+                float cosAngle = cos(hue * 2.0 * PI);
+                return vec3(col * cosAngle + cross(k, col) * sin(hue * 2.0 * PI) + k * dot(k, col) * (1.0 - cosAngle));
+            }
+
+            // 深空背景生成（含银河系星云与恒星微粒）
+            vec3 getDeepSpace(vec3 rayDir) {
+                vec2 skyUv = vec2(atan(rayDir.z, rayDir.x) / (2.0 * PI) + 0.5, asin(clamp(rayDir.y, -1.0, 1.0)) / PI + 0.5);
+                
+                // 宇宙背景辐射与星云
+                float neb = fbmTurbulence(skyUv * 8.0);
+                vec3 col = mix(vec3(0.01, 0.015, 0.03), vec3(0.12, 0.09, 0.22), pow(neb, 2.5));
+
+                // 恒星生成 (带有色温微调)
+                float sHash = hash(floor(skyUv * 450.0));
+                if (sHash > 0.982) {
+                    float starBright = pow((sHash - 0.982) / 0.018, 5.0) * 1.8;
+                    vec3 starColor = mix(vec3(1.0, 0.8, 0.6), vec3(0.7, 0.85, 1.0), hash(floor(skyUv * 450.0) + 12.0));
+                    col += starColor * starBright;
+                }
+                return col;
+            }
+
+            // 计算测地线引力加速度 (Schwarzschild + Kerr Frame-dragging 近似)
+            vec3 getGeodesicAcceleration(vec3 pos, vec3 dir) {
+                float r = length(pos);
+                if (r < 0.001) return vec3(0.0);
+
+                // 1. 史瓦西光子角动量偏折
+                vec3 hVec = cross(pos, dir);
+                float h2 = dot(hVec, hVec);
+                vec3 gravAccel = -1.5 * uRs * uLensingStrength * h2 * pos / pow(r, 5.0);
+
+                // 2. 克尔自旋拖拽参考系 (Spin Frame-Dragging) 作用于赤道面
+                vec3 spinAxis = vec3(0.0, 1.0, 0.0);
+                vec3 lenseThirring = cross(spinAxis, pos) * (2.0 * uRs * uSpin / pow(r, 4.0));
+
+                return gravAccel + lenseThirring;
+            }
+
+            // 吸积盘体积采样与相对论色温积分
+            vec4 sampleAccretionDisk(vec3 pos, vec3 rayDir) {
+                float r = length(pos.xz);
+                float h = abs(pos.y);
+
+                // 边界剔除
+                if (r < uDiskInner || r > uDiskOuter) return vec4(0.0);
+
+                // 高斯垂直厚度衰减
+                float hScale = uDiskThickness * (0.4 + 0.6 * (r / uDiskInner));
+                float density = exp(-0.5 * pow(h / hScale, 2.0));
+                if (density < 0.005) return vec4(0.0);
+
+                // 开普勒差动自转角速度 omega ~ r^(-1.5)
+                float omega = 2.4 * uDiskSpeed / (pow(r, 1.25) + 0.1);
+                float angle = atan(pos.z, pos.x) - uTime * omega;
+
+                // 极坐标采样多重湍流
+                vec2 polarUv = vec2(r * 1.5, angle * 2.0 / PI);
+                float spiral = fbmTurbulence(polarUv);
+                density *= (0.25 + 0.75 * spiral) * uDiskDensity;
+
+                // 3. 相对论洛伦兹变换与多普勒增亮
+                // 轨道运动切线速度 (接近光速)
+                float vOrbital = clamp(0.65 / sqrt(max(1.0, r / uRs)), 0.0, 0.88);
+                vec3 velDir = normalize(vec3(-pos.z, 0.0, pos.x));
+                
+                // 视向速度投影
+                float cosTheta = dot(velDir, -rayDir);
+                float gamma = 1.0 / sqrt(1.0 - vOrbital * vOrbital);
+                // 多普勒因子 delta = 1 / (gamma * (1 - v*cosTheta))
+                float dopplerFactor = 1.0 / (gamma * (1.0 - vOrbital * cosTheta));
+                float beaming = pow(dopplerFactor, 3.5 * uDopplerFactor);
+
+                // 4. 物理色温梯度与引力红移 (越往内越白炽蓝，往外越红)
+                float tempGrad = clamp((uDiskOuter - r) / (uDiskOuter - uDiskInner), 0.0, 1.0);
+                tempGrad = pow(tempGrad, 1.4) * uTemperature;
+
+                // 基础等离子辐射色彩映射
+                vec3 emitColor = mix(vec3(0.9, 0.25, 0.03), vec3(1.0, 0.75, 0.3), clamp(tempGrad, 0.0, 1.0));
+                emitColor = mix(emitColor, vec3(0.8, 0.95, 1.2), clamp((tempGrad - 1.0) * 1.5, 0.0, 1.0));
+                
+                // 注入色调偏移与色温加强
+                emitColor = hueShift(emitColor, uDiskHue);
+
+                vec3 finalRgb = emitColor * beaming * 3.5;
+                float finalAlpha = clamp(density * 0.35, 0.0, 1.0);
+
+                return vec4(finalRgb, finalAlpha);
+            }
+
+            void main() {
+                // 重建带微小抖动 (Dither) 的视线射线，消除条带伪影
+                float dither = hash3(vec3(gl_FragCoord.xy, uTime));
+                vec2 ndc = (gl_FragCoord.xy / uResolution.xy) * 2.0 - 1.0;
+                vec4 target = uInvProjMatrix * vec4(ndc, 1.0, 1.0);
+                vec3 rayDir = normalize((uInvViewMatrix * vec4(target.xyz, 0.0)).xyz);
+                vec3 rayPos = uCameraPos;
+
+                vec3 accumulatedColor = vec3(0.0);
+                float transmittance = 1.0;
+                float minDistanceToCenter = 1000.0;
+
+                // 射线初始抖动偏移
+                rayPos += rayDir * (dither * 0.08);
+
+                // 光线步进 (Runge-Kutta 2阶数值积分)
+                for (int i = 0; i < 160; i++) {
+                    if (i >= uMaxSteps) break;
+
+                    float r = length(rayPos);
+                    minDistanceToCenter = min(minDistanceToCenter, r);
+
+                    // 1. 光子坠入视界阴影 (Horizon Shadow)
+                    if (r < uRs * 1.01) {
+                        transmittance = 0.0;
+                        break;
+                    }
+
+                    // 2. 逃逸至深空
+                    if (r > 38.0) {
+                        break;
+                    }
+
+                    // 自适应动态步长 (靠近强引力场时微步细分)
+                    float dt = max(0.035, 0.075 * (r - uRs * 0.95));
+
+                    // 吸积盘体积采样
+                    vec4 diskSample = sampleAccretionDisk(rayPos, rayDir);
+                    if (diskSample.a > 0.0) {
+                        accumulatedColor += diskSample.rgb * diskSample.a * transmittance;
+                        transmittance *= (1.0 - diskSample.a);
+                        if (transmittance < 0.008) break;
+                    }
+
+                    // RK2 测地线偏折推进
+                    vec3 a1 = getGeodesicAcceleration(rayPos, rayDir);
+                    vec3 midPos = rayPos + 0.5 * rayDir * dt;
+                    vec3 midDir = normalize(rayDir + 0.5 * a1 * dt);
+
+                    vec3 a2 = getGeodesicAcceleration(midPos, midDir);
+                    rayPos += midDir * dt;
+                    rayDir = normalize(rayDir + a2 * dt);
+                }
+
+                // 3. 极细光子球透镜薄壳 (Photon Ring Enhancement)
+                if (minDistanceToCenter > uRs && minDistanceToCenter < uRs * 2.8 && transmittance > 0.05) {
+                    float ringIntensity = pow(1.0 - abs(minDistanceToCenter - uRs * 1.55) / (uRs * 1.25), 16.0);
+                    accumulatedColor += vec3(1.0, 0.85, 0.6) * ringIntensity * 0.9 * transmittance;
+                }
+
+                // 4. 合成扭曲的深空星系背景
+                if (transmittance > 0.0) {
+                    accumulatedColor += getDeepSpace(rayDir) * transmittance;
+                }
+
+                // 5. 影视级光学后处理 (Lens Optical Glare & ACES Tone Mapping)
+                // 变形镜头纵向眩光 (Anamorphic horizontal glow streak)
+                float glow = max(0.0, dot(accumulatedColor, vec3(0.299, 0.587, 0.114)));
+                accumulatedColor += vec3(0.3, 0.5, 1.0) * pow(glow, 3.0) * 0.15 * uBloomIntensity;
+
+                // 曝光调节
+                vec3 col = accumulatedColor * uExposure;
+
+                // 边缘径向色散 (Chromatic Aberration)
+                vec2 distUv = (vUv - 0.5) * 2.0;
+                float ca = dot(distUv, distUv) * uChromaticAberration;
+                col.r = col.r * (1.0 + ca * 1.5);
+                col.b = col.b * (1.0 - ca * 1.5);
+
+                // ACES Filmic Tone Mapping 曲线
+                col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+                col = clamp(col, 0.0, 1.0);
+
+                // 伽马校正
+                col = pow(col, vec3(1.0 / 2.2));
+
+                // 胶片微粒暗角 (Vignette)
+                float vignette = 1.0 - 0.35 * dot(distUv, distUv);
+                col *= vignette;
+
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        // 4. 构建全屏 Mesh & Uniforms
+        const uniforms = {
+            uCameraPos: { value: camera.position },
+            uInvViewMatrix: { value: new THREE.Matrix4() },
+            uInvProjMatrix: { value: new THREE.Matrix4() },
+            uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            uTime: { value: 0 },
+            // 绑定所有调节参数
+            uRs: { value: params.rs },
+            uSpin: { value: params.spin },
+            uLensingStrength: { value: params.lensingStrength },
+            uDiskInner: { value: params.diskInner },
+            uDiskOuter: { value: params.diskOuter },
+            uDiskDensity: { value: params.diskDensity },
+            uDiskSpeed: { value: params.diskSpeed },
+            uDiskThickness: { value: params.diskThickness },
+            uDiskHue: { value: params.diskHue },
+            uTemperature: { value: params.temperature },
+            uDopplerFactor: { value: params.dopplerFactor },
+            uExposure: { value: params.exposure },
+            uBloomIntensity: { value: params.bloomIntensity },
+            uChromaticAberration: { value: params.chromaticAberration },
+            uMaxSteps: { value: params.rayQuality }
+        };
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            uniforms,
+            depthWrite: false,
+            depthTest: false
+        });
+
+        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+        scene.add(quad);
+
+        // 隐藏 Loading
+        setTimeout(() => {
+            loading.style.opacity = '0';
+            setTimeout(() => loading.remove(), 500);
+        }, 100);
+
+        // 5. 搭建微调 GUI 控制面板
+        const gui = new GUI({ title: '🌌 广义相对论黑洞引擎' });
+
+        // 预设集定义
+        const presets = {
+            'Gargantua (Interstellar)': {
+                rs: 1.0, spin: 0.65, lensingStrength: 1.0, diskInner: 2.6, diskOuter: 11.5,
+                diskDensity: 1.2, diskSpeed: 1.0, diskThickness: 0.14, diskHue: 0.08,
+                temperature: 1.3, dopplerFactor: 1.1, exposure: 1.4, bloomIntensity: 0.8
+            },
+            'Sagittarius A* (Milky Way)': {
+                rs: 1.1, spin: 0.3, lensingStrength: 1.1, diskInner: 3.2, diskOuter: 9.0,
+                diskDensity: 0.8, diskSpeed: 0.7, diskThickness: 0.22, diskHue: 0.04,
+                temperature: 0.9, dopplerFactor: 0.7, exposure: 1.2, bloomIntensity: 0.5
+            },
+            'High-Energy Quasar (Blazing)': {
+                rs: 1.2, spin: 0.92, lensingStrength: 1.2, diskInner: 2.0, diskOuter: 14.0,
+                diskDensity: 1.8, diskSpeed: 1.8, diskThickness: 0.09, diskHue: 0.58,
+                temperature: 2.2, dopplerFactor: 1.6, exposure: 1.6, bloomIntensity: 1.5
+            },
+            'Pure Lensing (No Disk)': {
+                rs: 1.2, spin: 0.0, lensingStrength: 1.4, diskInner: 3.0, diskOuter: 3.1,
+                diskDensity: 0.0, diskSpeed: 0.0, diskThickness: 0.01, diskHue: 0.0,
+                temperature: 0.0, dopplerFactor: 0.0, exposure: 1.3, bloomIntensity: 0.2
+            }
+        };
+
+        function applyPreset(name) {
+            const p = presets[name];
+            if (!p) return;
+            Object.assign(params, p);
+            for (const key in p) {
+                if (uniforms['u' + key.charAt(0).toUpperCase() + key.slice(1)]) {
+                    uniforms['u' + key.charAt(0).toUpperCase() + key.slice(1)].value = p[key];
+                }
+            }
+            gui.controllersRecursive().forEach(c => c.updateDisplay());
+        }
+
+        gui.add(params, 'preset', Object.keys(presets)).name('电影预设').onChange(applyPreset);
+
+        const fPhysics = gui.addFolder('时空与引力物理 (Relativity)');
+        fPhysics.add(params, 'rs', 0.5, 2.5, 0.01).name('史瓦西半径 (Mass)').onChange(v => uniforms.uRs.value = v);
+        fPhysics.add(params, 'spin', -0.99, 0.99, 0.01).name('克尔自旋 a (Spin)').onChange(v => uniforms.uSpin.value = v);
+        fPhysics.add(params, 'lensingStrength', 0.2, 2.5, 0.01).name('透镜偏折倍率').onChange(v => uniforms.uLensingStrength.value = v);
+
+        const fDisk = gui.addFolder('吸积盘形态与动力学 (Accretion Disk)');
+        fDisk.add(params, 'diskInner', 1.5, 5.0, 0.1).name('内径 ISCO').onChange(v => uniforms.uDiskInner.value = v);
+        fDisk.add(params, 'diskOuter', 6.0, 20.0, 0.1).name('外径 Outer').onChange(v => uniforms.uDiskOuter.value = v);
+        fDisk.add(params, 'diskThickness', 0.02, 0.4, 0.01).name('垂直厚度').onChange(v => uniforms.uDiskThickness.value = v);
+        fDisk.add(params, 'diskDensity', 0.0, 3.0, 0.05).name('物质密度').onChange(v => uniforms.uDiskDensity.value = v);
+        fDisk.add(params, 'diskSpeed', 0.0, 3.0, 0.05).name('开普勒转速').onChange(v => uniforms.uDiskSpeed.value = v);
+
+        const fRadiance = gui.addFolder('相对论辐射与色彩 (Radiation & Optics)');
+        fRadiance.add(params, 'temperature', 0.2, 3.0, 0.05).name('等离子色温 (K)').onChange(v => uniforms.uTemperature.value = v);
+        fRadiance.add(params, 'diskHue', 0.0, 1.0, 0.01).name('光谱色相偏置').onChange(v => uniforms.uDiskHue.value = v);
+        fRadiance.add(params, 'dopplerFactor', 0.0, 2.5, 0.05).name('多普勒增亮强度').onChange(v => uniforms.uDopplerFactor.value = v);
+        fRadiance.add(params, 'exposure', 0.5, 3.0, 0.05).name('相机曝光 (ACES)').onChange(v => uniforms.uExposure.value = v);
+        fRadiance.add(params, 'bloomIntensity', 0.0, 3.0, 0.05).name('变形镜头眩光').onChange(v => uniforms.uBloomIntensity.value = v);
+        fRadiance.add(params, 'chromaticAberration', 0.0, 0.01, 0.0005).name('边缘色散色差').onChange(v => uniforms.uChromaticAberration.value = v);
+
+        const fPerf = gui.addFolder('性能与精度 (Performance)');
+        fPerf.add(params, 'rayQuality', 40, 160, 1).name('光线步进最大次数').onChange(v => uniforms.uMaxSteps.value = v);
+
+        fPhysics.open();
+        fDisk.open();
+
+        // 6. 响应式与循环动画
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            uniforms.uResolution.value.set(w, h);
+        });
+
+        const clock = new THREE.Clock();
+
+        function renderLoop() {
+            requestAnimationFrame(renderLoop);
+            controls.update();
+
+            camera.updateMatrixWorld();
+            uniforms.uCameraPos.value.copy(camera.position);
+            uniforms.uInvViewMatrix.value.copy(camera.matrixWorld);
+            uniforms.uInvProjMatrix.value.copy(camera.projectionMatrixInverse);
+            uniforms.uTime.value = clock.getElapsedTime();
+
+            renderer.render(scene, camera);
+        }
+
+        renderLoop();
+    </script>
+</body>
+</html>
