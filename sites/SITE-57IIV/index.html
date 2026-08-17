@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chroma Tree · 种下一个链接</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Noto+Serif+SC:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 50% 15%, #FAF7F0 0%, #ECE6D8 100%);
+      --card-bg: rgba(246, 242, 233, 0.85);
+      --border: rgba(216, 210, 196, 0.6);
+      --text: #1D3425;
+      --text-sub: #7A8578;
+      --shadow: 0 20px 45px -15px rgba(29, 52, 37, 0.08), inset 0 0 0 1px rgba(255,255,255,0.6);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; justify-content: center; align-items: center; padding: 24px 16px;
+      font-family: "Plus Jakarta Sans", "PingFang SC", sans-serif; position: relative;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 99; opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .app { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 1; }
+    
+    /* 标题栏 */
+    .header-badge { display: inline-flex; align-items: center; gap: 8px; font-family: "Cinzel", serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; opacity: 0.85; margin-bottom: 6px; }
+    .badge-dot { width: 7px; height: 7px; background: #87B047; border-radius: 50%; box-shadow: 0 0 0 3px rgba(135,176,71,0.2); }
+    .header-title { font-family: "Noto Serif SC", serif; font-size: 28px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: baseline; gap: 10px; }
+    .header-seal { font-size: 11px; font-weight: 400; border: 1px solid rgba(135,176,71,0.4); color: #385E42; padding: 1px 6px; border-radius: 4px; }
+    .header-desc { font-size: 12.5px; font-family: "Noto Serif SC", serif; color: #546052; line-height: 1.6; }
+
+    /* 视口卡片 */
+    .viewport-card {
+      position: relative; width: 100%; aspect-ratio: 1 / 1.1; background: var(--card-bg);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border); border-radius: 32px; overflow: hidden; box-shadow: var(--shadow);
+      display: flex; justify-content: center; align-items: center; touch-action: none;
+    }
+    canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    .tag-badge {
+      position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px); padding: 5px 12px; border-radius: 20px; font-family: "Cinzel", serif;
+      font-size: 10.5px; font-weight: 700; letter-spacing: 1px; pointer-events: none; border: 1px solid rgba(255,255,255,0.8);
+    }
+    .toggle-btn {
+      position: absolute; top: 16px; right: 16px; background: #1D3425; color: #F7F5EE;
+      border: 1px solid rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px;
+      font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 8px 18px rgba(29,52,37,0.2); transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .toggle-btn:active { transform: scale(0.93); }
+    .viewport-bottom { position: absolute; bottom: 12px; inset-inline: 16px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+    .hint-drag { font-size: 10px; font-family: "Noto Serif SC", serif; color: rgba(29,52,37,0.45); }
+    .save-btn {
+      pointer-events: auto; background: rgba(255,255,255,0.75); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 14px;
+      font-size: 10.5px; font-family: "Noto Serif SC", serif; color: var(--text); cursor: pointer;
+    }
+
+    /* 表单与选择器 */
+    .sec-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; font-family: "Noto Serif SC", serif; font-weight: 600; }
+    .rand-btn { background: none; border: none; font-size: 11px; font-family: inherit; color: #4C7053; cursor: pointer; }
+    .input-box {
+      width: 100%; background: rgba(255,255,255,0.65); backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(206,203,192,0.8); border-radius: 16px; padding: 12px 16px;
+      font-size: 13px; font-family: monospace; color: var(--text); outline: none; transition: 0.2s;
+    }
+    .input-box:focus { border-color: var(--text); background: #FFF; box-shadow: 0 0 0 4px rgba(29,52,37,0.08); }
+    .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .theme-btn {
+      background: rgba(228,224,212,0.6); border: 1.5px solid transparent; border-radius: 14px;
+      padding: 9px 4px; display: flex; flex-direction: column; align-items: center; gap: 5px;
+      cursor: pointer; font-size: 11px; font-family: "Noto Serif SC", serif; font-weight: 600; color: var(--text);
+      transition: 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .theme-btn.active { background: #FFF; border-color: rgba(184,199,176,0.9); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(29,52,37,0.06); }
+    .color-dot { width: 13px; height: 13px; border-radius: 50%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.15); }
+    
+    /* 底栏 */
+    .footer { display: flex; justify-content: space-between; font-size: 10px; font-family: "Noto Serif SC", serif; color: #929D8F; padding-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-badge"><span class="badge-dot"></span>CHROMA TREE · 诗意生灵</div>
+      <div class="header-title">种下一个链接 <span class="header-seal">彩叶物语</span></div>
+      <p class="header-desc">以网址为种，植一株见证时光的体素之木。每一片苍翠，皆是数字世界的真实回响。</p>
+    </header>
+
+    <div class="viewport-card" id="viewportCard">
+      <span class="tag-badge" id="tagBadge">CHERRY BLOSSOM</span>
+      <button class="toggle-btn" id="toggleViewBtn">
+        <span id="btnIcon">#</span><span id="btnText">查阅二维码</span>
+      </button>
+      <canvas id="viewportCanvas"></canvas>
+      <div class="viewport-bottom">
+        <span class="hint-drag" id="hintText">✦ 拖曳感受微风视差</span>
+        <button class="save-btn" id="savePostcardBtn">📜 保存画作海报</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-row">
+        <span>想种下什么链接？</span>
+        <button class="rand-btn" id="randomSeedBtn">🎲 采撷灵感种子</button>
+      </div>
+      <input type="text" class="input-box" id="urlInput" value="https://tree-of-life.art" placeholder="输入链接，种下心意..." />
+    </div>
+
+    <div>
+      <div class="sec-row"><span>四季草木物候</span></div>
+      <div class="theme-grid" id="themeGrid">
+        <button class="theme-btn active" data-theme="pink"><span class="color-dot" style="background:#F48FB1;"></span>樱落绯红</button>
+        <button class="theme-btn" data-theme="green"><span class="color-dot" style="background:#4CAF50;"></span>松林夏木</button>
+        <button class="theme-btn" data-theme="yellow"><span class="color-dot" style="background:#FFB300;"></span>银杏金秋</button>
+        <button class="theme-btn" data-theme="rainbow"><span class="color-dot" style="background:conic-gradient(red,orange,yellow,green,cyan,blue,violet,red);"></span>暮色流光</button>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>WEB EXPERIMENT · 2026</span>
+      <i>「每一片颜色，都是通往彼端的钥匙」</i>
+    </footer>
+  </div>
+
+  <script>
+    const PALETTES = {
+      pink: { name: 'CHERRY BLOSSOM · 樱落', treeName: '樱花木', poem: '花开如雪，浮生一瞬。', leaves: ['#F8A5C2','#F78FB3','#F368E0','#FF85A2','#FFC2D4','#E84393','#FBA1B7','#FFAEC9'], accent: ['#993256','#B8416C','#D85483','#E84393'], petal: ['#F8A5C2','#FFC2D4','#FF85A2'] },
+      green: { name: 'SUMMER PINE · 夏木', treeName: '夏日松', poem: '松风水月，万物葱郁。', leaves: ['#48BB78','#38A169','#2F855A','#68D391','#276749','#9AE6B4','#52C41A','#389E0D'], accent: ['#2F855A','#38A169','#48BB78','#1C6036'], petal: ['#7BED9F','#2ED573','#A8E6CF'] },
+      yellow: { name: 'GINKGO AUTUMN · 金秋', treeName: '银杏木', poem: '秋水长天，落叶金黄。', leaves: ['#ECC94B','#D69E2E','#B7791F','#F6E05E','#DD6B20','#FAF089','#E6A23C','#F39C12'], accent: ['#B7791F','#D69E2E','#C05621','#DD6B20'], petal: ['#F6E58D','#F9CA24','#FFEAA7'] },
+      rainbow: { name: 'CHROMA TWILIGHT · 暮光', treeName: '流光木', poem: '霞光入暮，众彩归一。', leaves: ['#FF6B6B','#FFA07A','#FEEA58','#48DBFB','#1DD1A1','#FF9FF3','#54A0FF','#FD79A8'], accent: ['#D63031','#E17055','#FDCB6E','#00B894','#0984E3'], petal: ['#FF9FF3','#54A0FF','#FEEA58','#1DD1A1'] }
+    };
+    const SEEDS = [
+      { t: "https://poetry.garden/sakura" }, { t: "https://ginkgo-letter.love/2026" },
+      { t: "https://summer-forest.nature" }, { t: "https://twilight-horizon.space" }
+    ];
+    const GROUND_DARK = ['#2C5335','#3D6C48','#214028','#4E7F59'], GROUND_LIGHT = ['#F5F2E9','#EAE6DA','#E2DDCF'];
+    const TRUNK_PALETTE = ['#3D261A','#4A3324','#553B2A','#5C402E','#664835'];
+
+    // 状态管理
+    let currentTheme = 'pink', targetProgress = 0, currentProgress = 0;
+    let qrMatrix = [], voxels = [], particles = [];
+    let tiltX = 0, tiltY = 0, targetTiltX = 0, targetTiltY = 0, isDragging = false, lastX = 0, lastY = 0;
+
+    const canvas = document.getElementById('viewportCanvas'), ctx = canvas.getContext('2d');
+    const tagBadge = document.getElementById('tagBadge'), btnIcon = document.getElementById('btnIcon'), btnText = document.getElementById('btnText'), hintText = document.getElementById('hintText');
+    const urlInput = document.getElementById('urlInput');
+
+    // 数学与颜色工具库
+    const rnd = (x, y, z = 0) => { const n = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return n - Math.floor(n); };
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const hex2rgb = (h) => {
+      const c = h.replace('#', '');
+      const num = parseInt(c.length === 3 ? [...c].map(x=>x+x).join('') : c, 16);
+      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+    };
+    const rgbStr = (c) => typeof c === 'string' ? (c.startsWith('#') ? hex2rgb(c) : c.match(/\d+/g).map(Number)) : c;
+    const lerpColor = (c1, c2, t) => {
+      const [r1, g1, b1] = rgbStr(c1), [r2, g2, b2] = rgbStr(c2);
+      return `rgb(${lerp(r1, r2, t)|0},${lerp(g1, g2, t)|0},${lerp(b1, b2, t)|0})`;
+    };
+    const shadeColor = (color, pct) => {
+      const [r, g, b] = rgbStr(color), amt = (2.55 * pct)|0;
+      return `rgb(${Math.min(255, Math.max(0, r + amt))},${Math.min(255, Math.max(0, g + amt))},${Math.min(255, Math.max(0, b + amt))})`;
+    };
+
+    // 粒子系统
+    function initParticles() {
+      particles = Array.from({ length: 26 }, () => createParticle(true));
+    }
+    function createParticle(init = false) {
+      const theme = PALETTES[currentTheme];
+      return {
+        x: (Math.random() - 0.5) * 14, y: (Math.random() - 0.5) * 14,
+        z: init ? Math.random() * 16 : 14 + Math.random() * 3,
+        vx: (Math.random() - 0.5) * 0.03, vy: (Math.random() - 0.5) * 0.03, vz: -(0.03 + Math.random() * 0.04),
+        size: 0.2 + Math.random() * 0.2, rot: Math.random() * 6.28, rotSpd: (Math.random() - 0.5) * 0.05,
+        color: theme.petal[Math.floor(Math.random() * theme.petal.length)], alpha: 0.7 + Math.random() * 0.3
+      };
+    }
+
+    // 体素场景构建
+    function buildMappingScene() {
+      voxels = [];
+      const mSize = qrMatrix.length;
+      if (!mSize) return;
+      const center = mSize / 2, theme = PALETTES[currentTheme], radiusThresh = mSize * 0.32;
+      const anchors = [];
+
+      for (let r = 0; r < mSize; r++) {
+        for (let c = 0; c < mSize; c++) {
+          const dist = Math.hypot(r - center, c - center);
+          if (qrMatrix[r][c] === 1 && dist <= radiusThresh) {
+            anchors.push({ r, c, dist, x: c - center + 0.5, y: r - center + 0.5 });
+          }
+        }
+      }
+      anchors.sort((a, b) => a.dist - b.dist);
+
+      const addVoxel = (cfg) => voxels.push(Object.assign({ isDark: true, z3d: 0, z2d: 0, size3d: 1, size2d: 1, h3d: 0.8, h2d: 0, rndPhase: 0 }, cfg));
+
+      // 1. 地面模块
+      for (let r = 0; r < mSize; r++) {
+        for (let c = 0; c < mSize; c++) {
+          const isDark = qrMatrix[r][c] === 1, tx = c - center + 0.5, ty = r - center + 0.5;
+          if (isDark && Math.hypot(r - center, c - center) <= radiusThresh) continue;
+          const col = isDark ? GROUND_DARK[Math.floor(rnd(r, c) * GROUND_DARK.length)] : GROUND_LIGHT[Math.floor(rnd(r, c) * GROUND_LIGHT.length)];
+          addVoxel({ type: 'ground', isDark, x3d: tx, y3d: ty, x2d: tx, y2d: ty, h3d: 0.35, color3d: col, color2d: col });
+        }
+      }
+
+      // 2. 树干与根基
+      const trunkOffsets = [{dx:-0.45,dy:-0.45},{dx:0.45,dy:-0.45},{dx:-0.45,dy:0.45},{dx:0.45,dy:0.45},{dx:0,dy:0}];
+      for (let z = 0.8; z <= 6.8; z += 0.8) {
+        for (let off of trunkOffsets) {
+          const anc = anchors[Math.floor(rnd(off.dx, off.dy, z) * Math.min(anchors.length, 6))] || { x: 0, y: 0 };
+          const col = TRUNK_PALETTE[Math.floor(rnd(off.dx + z, off.dy) * TRUNK_PALETTE.length)];
+          const spread = z > 5.2 ? 1.25 : 1.0;
+          addVoxel({ type: 'trunk', isTree: true, x3d: off.dx * spread, y3d: off.dy * spread, z3d: z, x2d: anc.x, y2d: anc.y, color3d: col, color2d: '#422D1F' });
+        }
+      }
+
+      // 3. 树冠锚点
+      anchors.forEach(anc => {
+        const angle = Math.atan2(anc.y, anc.x), dist = Math.max(1.2, anc.dist * 1.3);
+        const norm = anc.dist / radiusThresh;
+        const z3d = 6.8 + Math.sqrt(Math.max(0, 1 - norm * norm)) * 3.8 + (rnd(anc.r, anc.c) - 0.5) * 1.2;
+        const colIdx = currentTheme === 'rainbow' ? Math.floor(((angle + Math.PI) / (2 * Math.PI)) * theme.leaves.length) % theme.leaves.length : Math.floor(rnd(anc.r, anc.c) * theme.leaves.length);
+        addVoxel({
+          type: 'anchor', isTree: true, x3d: Math.cos(angle) * dist, y3d: Math.sin(angle) * dist, z3d,
+          x2d: anc.x, y2d: anc.y, color3d: theme.leaves[colIdx], color2d: theme.accent[Math.floor(rnd(anc.r, anc.c, 1) * theme.accent.length)], rndPhase: rnd(anc.r, anc.c) * 6.28
+        });
+      });
+
+      // 4. 树冠茂密填充
+      if (anchors.length > 0) {
+        const step = 0.9, rx = 5.2, ry = 5.2, rz = 3.6;
+        for (let dx = -rx; dx <= rx; dx += step) {
+          for (let dy = -ry; dy <= ry; dy += step) {
+            for (let dz = -rz; dz <= rz; dz += step) {
+              const dNorm = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) + (dz * dz) / (rz * rz);
+              const n = rnd(dx, dy, dz);
+              if (dNorm < 0.96 && (dNorm < 0.65 || n > 0.28)) {
+                let nearest = anchors[0], minD = Infinity;
+                for (let a of anchors) { const d = Math.hypot(dx - a.x, dy - a.y); if (d < minD) { minD = d; nearest = a; } }
+                const leafColor = currentTheme === 'rainbow' ? theme.leaves[Math.floor(((Math.atan2(dy, dx) + Math.PI) / 6.28) * theme.leaves.length) % theme.leaves.length] : theme.leaves[Math.floor(n * theme.leaves.length)];
+                addVoxel({
+                  type: 'filler', isTree: true, x3d: dx, y3d: dy, z3d: 9.2 + dz, x2d: nearest.x, y2d: nearest.y,
+                  size3d: 0.9, size2d: 0, color3d: leafColor, color2d: theme.accent[Math.floor(n * theme.accent.length)], rndPhase: n * 6.28
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function updateQRMatrix(text = "https://tree-of-life.art") {
+      try {
+        const make = (type, level) => {
+          const qr = qrcode(type, level); qr.addData(text); qr.make();
+          const n = qr.getModuleCount();
+          return Array.from({ length: n }, (_, r) => Array.from({ length: n }, (_, c) => qr.isDark(r, c) ? 1 : 0));
+        };
+        qrMatrix = make(0, 'M');
+      } catch (e) {
+        try { qrMatrix = make(4, 'L'); } catch (err) { qrMatrix = []; }
+      }
+      buildMappingScene();
+      initParticles();
+    }
+
+    // 核心渲染循环
+    function render() {
+      currentProgress += (targetProgress - currentProgress) * 0.085;
+      tiltX += (targetTiltX - tiltX) * 0.1;
+      tiltY += (targetTiltY - tiltY) * 0.1;
+      if (!isDragging) { targetTiltX *= 0.95; targetTiltY *= 0.95; }
+
+      const p = currentProgress, time = Date.now() * 0.0018;
+      const dpr = window.devicePixelRatio || 1, rect = canvas.getBoundingClientRect();
+      if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+        canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const mSize = qrMatrix.length;
+      if (mSize && voxels.length) {
+        const w = rect.width, h = rect.height;
+        const wind = (1 - p), swayX = Math.sin(time * 1.5) * 0.18 * wind, swayY = Math.cos(time * 1.2) * 0.18 * wind;
+        const yaw = (45 * (1 - p)) * Math.PI / 180 + tiltX * wind;
+        const pitch = (35.264 + (90 - 35.264) * p) * Math.PI / 180 + tiltY * wind;
+        const cosY = Math.cos(yaw), sinY = Math.sin(yaw), cosP = Math.cos(pitch), sinP = Math.sin(pitch);
+        const originX = w / 2, originY = h * (0.58 - 0.08 * p);
+        const unit = lerp(Math.min(w * 0.88 / mSize, 14.5), (Math.min(w, h) * 0.72) / mSize, p);
+
+        const project = (x, y, z) => ({
+          x: originX + (x * cosY - y * sinY) * unit,
+          y: originY + ((x * sinY + y * cosY) * sinP - z * cosP) * unit
+        });
+
+        const queue = [];
+
+        for (let item of voxels) {
+          if (!item.isDark && p > 0.96) continue;
+          if (item.type === 'filler' && p > 0.92) continue;
+
+          let sx = 0, sy = 0;
+          if (item.isTree && item.type !== 'trunk') {
+            const hRatio = Math.max(0, item.z3d - 5) / 10;
+            sx = swayX * hRatio + Math.sin(time * 2 + item.rndPhase) * 0.08 * wind;
+            sy = swayY * hRatio + Math.cos(time * 2 + item.rndPhase) * 0.08 * wind;
+          }
+
+          const curX = lerp(item.x3d + sx, item.x2d, p);
+          const curY = lerp(item.y3d + sy, item.y2d, p);
+          const curZ = lerp(item.z3d, item.z2d, p);
+          const curSize = item.type === 'filler' ? lerp(item.size3d, 0.2, p) : lerp(item.size3d, item.size2d, p);
+          const opacity = item.type === 'filler' ? Math.max(0, 1 - p * 1.15) : 1;
+
+          queue.push({
+            type: 'voxel', x: curX, y: curY, z: curZ, h: lerp(item.h3d, item.h2d, p),
+            size: curSize, color: lerpColor(item.color3d, item.color2d, p), opacity,
+            depth: (curX * sinY + curY * cosY) * cosP + curZ * sinP
+          });
+        }
+
+        if (p < 0.85) {
+          for (let pt of particles) {
+            pt.x += pt.vx + Math.sin(Date.now() * 0.002 + pt.z) * 0.015;
+            pt.y += pt.vy + Math.cos(Date.now() * 0.002 + pt.x) * 0.015;
+            pt.z += pt.vz; pt.rot += pt.rotSpd;
+            if (pt.z < 0.2) Object.assign(pt, createParticle(false));
+            queue.push({
+              type: 'petal', x: pt.x, y: pt.y, z: pt.z, size: pt.size, rot: pt.rot,
+              color: pt.color, opacity: pt.alpha * (1 - p * 1.18),
+              depth: (pt.x * sinY + pt.y * cosY) * cosP + pt.z * sinP
+            });
+          }
+        }
+
+        queue.sort((a, b) => a.depth - b.depth);
+
+        for (let it of queue) {
+          if (it.opacity <= 0.01) continue;
+          if (it.type === 'voxel') {
+            ctx.globalAlpha = it.opacity;
+            const d = it.size * 0.5;
+            const p1 = project(it.x - d, it.y - d, it.z + it.h), p2 = project(it.x + d, it.y - d, it.z + it.h);
+            const p3 = project(it.x + d, it.y + d, it.z + it.h), p4 = project(it.x - d, it.y + d, it.z + it.h);
+            
+            // 顶面
+            ctx.fillStyle = it.color;
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.fill();
+
+            // 侧面阴影
+            if (it.h > 0.02 && p < 0.95) {
+              const pb2 = project(it.x + d, it.y - d, it.z), pb3 = project(it.x + d, it.y + d, it.z), pb4 = project(it.x - d, it.y + d, it.z);
+              ctx.fillStyle = shadeColor(it.color, -26);
+              ctx.beginPath(); ctx.moveTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(pb3.x, pb3.y); ctx.lineTo(pb2.x, pb2.y); ctx.fill();
+              ctx.fillStyle = shadeColor(it.color, -14);
+              ctx.beginPath(); ctx.moveTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.lineTo(pb4.x, pb4.y); ctx.lineTo(pb3.x, pb3.y); ctx.fill();
+            }
+          } else {
+            const pos = project(it.x, it.y, it.z);
+            ctx.save(); ctx.globalAlpha = it.opacity; ctx.translate(pos.x, pos.y); ctx.rotate(it.rot);
+            ctx.fillStyle = it.color; ctx.beginPath();
+            ctx.ellipse(0, 0, it.size * unit * 0.7, it.size * unit * 0.4, 0, 0, 6.28); ctx.fill();
+            ctx.restore();
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.restore();
+      requestAnimationFrame(render);
+    }
+
+    // 事件绑定与交互
+    function toggleView() {
+      targetProgress = targetProgress === 0 ? 1 : 0;
+      const isQR = targetProgress === 1;
+      tagBadge.textContent = isQR ? 'SCAN ME · 扫码体验' : PALETTES[currentTheme].name;
+      btnIcon.textContent = isQR ? '↙' : '#';
+      btnText.textContent = isQR ? `回到${PALETTES[currentTheme].treeName}` : '查阅二维码';
+      hintText.textContent = isQR ? '✦ 二维码已压平，可直接扫码' : '✦ 拖曳感受微风视差';
+    }
+
+    document.getElementById('toggleViewBtn').onclick = toggleView;
+    urlInput.oninput = () => updateQRMatrix(urlInput.value.trim());
+
+    document.getElementById('themeGrid').onclick = (e) => {
+      const btn = e.target.closest('.theme-btn');
+      if (!btn) return;
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTheme = btn.dataset.theme;
+      tagBadge.textContent = targetProgress === 0 ? PALETTES[currentTheme].name : 'SCAN ME · 扫码体验';
+      buildMappingScene();
+      initParticles();
+    };
+
+    document.getElementById('randomSeedBtn').onclick = () => {
+      const item = SEEDS[Math.floor(Math.random() * SEEDS.length)];
+      urlInput.value = item.t;
+      updateQRMatrix(item.t);
+    };
+
+    // 拖曳视差控制
+    const card = document.getElementById('viewportCard');
+    card.onpointerdown = (e) => { if (e.target.closest('button')) return; isDragging = true; lastX = e.clientX; lastY = e.clientY; };
+    window.onpointermove = (e) => {
+      if (!isDragging) return;
+      targetTiltX += (e.clientX - lastX) * 0.006;
+      targetTiltY = Math.max(-0.25, Math.min(0.25, targetTiltY - (e.clientY - lastY) * 0.006));
+      lastX = e.clientX; lastY = e.clientY;
+    };
+    window.onpointerup = () => { isDragging = false; };
+
+    // 高清画作海报保存
+    document.getElementById('savePostcardBtn').onclick = () => {
+      const exportCanvas = document.createElement('canvas');
+      const eCtx = exportCanvas.getContext('2d'), w = 900, h = 1200, vH = (w - 120) * 0.95;
+      exportCanvas.width = w; exportCanvas.height = h;
+
+      eCtx.fillStyle = '#F4EFE6'; eCtx.fillRect(0, 0, w, h);
+      eCtx.strokeStyle = 'rgba(29,52,37,0.15)'; eCtx.lineWidth = 2; eCtx.strokeRect(40, 40, w - 80, h - 80);
+      eCtx.drawImage(canvas, 60, 80, w - 120, vH);
+
+      eCtx.fillStyle = '#1D3425'; eCtx.font = 'bold 36px "Noto Serif SC", serif';
+      eCtx.fillText('Chroma Tree · 种下一个链接', 60, 80 + vH + 70);
+
+      eCtx.fillStyle = '#687766'; eCtx.font = '22px "Noto Serif SC", serif';
+      eCtx.fillText(PALETTES[currentTheme].poem, 60, 80 + vH + 115);
+
+      eCtx.fillStyle = '#8C9A8A'; eCtx.font = '18px monospace';
+      eCtx.fillText(`SEED: ${urlInput.value}`, 60, 80 + vH + 160);
+
+      // 印章
+      eCtx.strokeStyle = '#993256'; eCtx.lineWidth = 3;
+      eCtx.strokeRect(w - 180, 80 + vH + 50, 110, 110);
+      eCtx.fillStyle = '#993256'; eCtx.font = 'bold 24px "Noto Serif SC", serif';
+      eCtx.fillText('彩叶', w - 145, 80 + vH + 95);
+      eCtx.fillText('印记', w - 145, 80 + vH + 135);
+
+      const link = document.createElement('a');
+      link.download = `ChromaTree_${Date.now()}.png`;
+      link.href = exportCanvas.toDataURL('image/png');
+      link.click();
+    };
+
+    // 初始化启动
+    updateQRMatrix(urlInput.value.trim());
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
