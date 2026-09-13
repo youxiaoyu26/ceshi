@@ -622,6 +622,12 @@
       "status": "active",
       "quota": 3,
       "created": "2026/9/13 23:43:44"
+    },
+    "admin": {
+      "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
+      "status": "pending",
+      "quota": 0,
+      "created": "2026/9/13 23:59:09"
     }
   },
   "pay_requests": []
