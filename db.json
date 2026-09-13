@@ -587,6 +587,14 @@
       "note": "许愿柳 · ONE WISH WILLOW",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-64G67/index.html",
       "time": "2026/8/19 01:15:25"
+    },
+    {
+      "id": "SITE-8D28L",
+      "owner": "admin",
+      "path": "sites/SITE-8D28L/index.html",
+      "note": "按钮",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-8D28L/index.html",
+      "time": "2026/9/14 00:44:46"
     }
   ],
   "all_products": [
@@ -602,7 +610,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 1,
+      "quota": 0,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
