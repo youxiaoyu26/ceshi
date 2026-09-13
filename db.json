@@ -627,8 +627,8 @@
     },
     "柚小屿": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
-      "status": "pending",
-      "quota": 0,
+      "status": "active",
+      "quota": 3,
       "created": "2026/9/14 01:45:41"
     }
   },
