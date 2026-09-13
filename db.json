@@ -599,34 +599,11 @@
     }
   ],
   "users": {
-    "1": {
-      "password": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
-      "status": "active",
-      "quota": 9,
-      "created": "2026/9/13 23:39:43"
-    },
-    "11": {
-      "password": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
-      "status": "pending",
-      "quota": 0,
-      "created": "2026/9/13 23:56:01"
-    },
-    "柚小屿": {
-      "password": "955206949e7877906cc6c9e20ed3180574cc020c34cf6f1774dd306b0edc283f",
-      "status": "active",
-      "quota": 3,
-      "created": "2026/9/13 23:36:03"
-    },
-    "q": {
-      "password": "8e35c2cd3bf6641bdb0e2050b76932cbb2e6034a0ddacc1d9bea82a6ba57f7cf",
-      "status": "active",
-      "quota": 3,
-      "created": "2026/9/13 23:43:44"
-    },
+
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "pending",
-      "quota": 0,
+      "quota": 3,
       "created": "2026/9/13 23:59:09"
     }
   },
