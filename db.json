@@ -587,6 +587,14 @@
       "note": "许愿柳 · ONE WISH WILLOW",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-64G67/index.html",
       "time": "2026/8/19 01:15:25"
+    },
+    {
+      "id": "SITE-Q7AGE",
+      "owner": "柚小屿",
+      "path": "sites/SITE-Q7AGE/index.html",
+      "note": "柚小屿托管平台",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-Q7AGE/index.html",
+      "time": "2026/9/14 01:50:10"
     }
   ],
   "all_products": [
@@ -620,7 +628,7 @@
     "柚小屿": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 3,
+      "quota": 2,
       "created": "2026/9/14 01:45:41"
     }
   },
