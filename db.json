@@ -601,7 +601,7 @@
   "users": {
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
-      "status": "pending",
+      "status": "active",
       "quota": 0,
       "created": "2026/9/14 00:27:06"
     }
