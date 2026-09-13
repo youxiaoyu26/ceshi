@@ -605,6 +605,12 @@
       "quota": 9,
       "created": "2026/9/13 23:39:43"
     },
+    "11": {
+      "password": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+      "status": "pending",
+      "quota": 0,
+      "created": "2026/9/13 23:56:01"
+    },
     "柚小屿": {
       "password": "955206949e7877906cc6c9e20ed3180574cc020c34cf6f1774dd306b0edc283f",
       "status": "active",
