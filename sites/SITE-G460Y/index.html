@@ -1,0 +1,3289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0e0d">
+<title>ImGui 编辑器</title>
+<style>
+:root{
+  --bg:#0e0e0d;
+  --panel:#171716;
+  --panel-2:#1e1e1c;
+  --panel-3:#262624;
+  --line:#2b2b28;
+  --line-2:#383834;
+  --text:#e8e6e1;
+  --dim:#8e8b83;
+  --mute:#5d5b55;
+  --accent:#e2a355;
+  --accent-soft:rgba(226,163,85,.13);
+  --accent-line:rgba(226,163,85,.34);
+  --danger:#d65a55;
+  --ok:#7cc79c;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;
+  user-select:none;-webkit-user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+
+/* ============ 顶部栏 ============ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:44px;
+  padding-top:env(safe-area-inset-top);
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  padding-left:14px;padding-right:10px;
+  z-index:60;
+}
+.brand{display:flex;align-items:baseline;gap:7px;}
+.brand b{font-size:13px;font-weight:600;letter-spacing:.3px;font-family:var(--mono);}
+.brand em{font-style:normal;font-size:11px;color:var(--mute);letter-spacing:.6px;}
+.mode-switch{
+  display:flex;gap:1px;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;padding:2px;
+}
+.mode-switch button{
+  padding:5px 11px;border-radius:6px;font-size:11.5px;
+  color:var(--dim);font-weight:500;transition:.16s;
+}
+.mode-switch button.on{background:var(--accent-soft);color:var(--accent);}
+.topbar .right{display:flex;gap:2px;align-items:center;}
+.tb-btn{
+  width:30px;height:28px;border-radius:7px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid transparent;
+  color:var(--dim);transition:.14s;
+}
+.tb-btn svg{width:15px;height:15px;}
+.tb-btn:active{background:var(--panel-2);color:var(--text);}
+.tb-btn:disabled{opacity:.28;}
+.tb-btn.on{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-line);}
+
+/* ============ 画布 ============ */
+.stage-wrap{
+  position:absolute;top:44px;left:0;right:0;bottom:0;
+  overflow:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:110px;
+  overscroll-behavior:contain;
+}
+.stage{
+  position:relative;width:100%;min-height:100%;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size:22px 22px;
+  background-position:0 0;
+  transform-origin:0 0;
+}
+
+.el{
+  position:absolute;display:flex;
+  align-items:center;justify-content:center;
+  box-sizing:border-box;
+  word-break:break-word;text-align:center;line-height:1.3;
+  transition:box-shadow .14s, outline .14s;
+  touch-action:none;
+}
+.el.sel{
+  outline:1.5px solid var(--accent);
+  outline-offset:1px;
+  box-shadow:0 0 0 4px rgba(226,163,85,.12);
+}
+body.runmode .el{cursor:pointer;}
+body.runmode .el.sel{outline:none;box-shadow:none;}
+
+body.runmode .el[data-draggable="1"]{cursor:grab;}
+body.runmode .el[data-draggable="1"]:active{cursor:grabbing;}
+
+body:not(.runmode) .el[data-draggable="1"]::before{
+  content:'';
+  position:absolute;left:-4px;top:-4px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 2px var(--bg);
+  pointer-events:none;z-index:9999;
+}
+
+.resize-handle{
+  position:absolute;right:-6px;bottom:-6px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);border:2px solid #14140f;
+  box-shadow:0 1px 6px rgba(0,0,0,.55);
+  cursor:se-resize;touch-action:none;
+  z-index:5;
+}
+body.runmode .resize-handle{display:none;}
+
+.empty-stage{
+  position:absolute;left:50%;top:42%;
+  transform:translate(-50%,-50%);
+  text-align:center;color:var(--mute);
+  font-size:13px;line-height:2.1;pointer-events:none;
+}
+.empty-stage .big{font-size:40px;opacity:.35;margin-bottom:8px;}
+
+/* ============ 底部 Dock ============ */
+.dock{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(14px + env(safe-area-inset-bottom));
+  display:flex;gap:2px;align-items:center;
+  background:rgba(23,23,22,.94);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:5px;border-radius:14px;
+  border:1px solid var(--line);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 12px 40px rgba(0,0,0,.62);
+  z-index:70;
+}
+.dk{
+  min-width:46px;height:42px;padding:0 8px;
+  border-radius:10px;background:transparent;color:var(--mute);
+  font-size:10px;letter-spacing:.3px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  transition:background .15s, color .15s, transform .1s;
+}
+.dk svg{width:16px;height:16px;}
+.dk:active{background:var(--panel-2);transform:scale(.96);}
+.dk.on{background:var(--accent-soft);color:var(--accent);}
+#dkAdd{
+  min-width:46px;background:var(--accent);color:#1a1206;
+  box-shadow:0 3px 14px rgba(226,163,85,.3);
+}
+#dkAdd svg{width:18px;height:18px;}
+#dkAdd:active{background:#efb56e;transform:scale(.96);}
+
+/* ============ 画布缩放控件 ============ */
+.zoom-ctl{
+  position:fixed;right:12px;bottom:calc(156px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:5px;
+  z-index:65;
+}
+.zoom-ctl button{
+  width:34px;height:34px;border-radius:9px;
+  background:rgba(23,23,22,.92);border:1px solid var(--line);
+  color:var(--dim);font-size:15px;font-weight:400;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.zoom-ctl button:active{background:var(--panel-3);color:var(--text);}
+.zoom-ctl .zlvl{
+  font-size:9.5px;color:var(--mute);text-align:center;
+  font-family:var(--mono);letter-spacing:.2px;
+  background:rgba(23,23,22,.92);border:1px solid var(--line);
+  padding:4px 0;border-radius:8px;
+}
+
+/* ============ 浮动窗 ============ */
+.fw{
+  position:fixed;display:none;
+  background:rgba(23,23,22,.975);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--line);
+  border-radius:13px;
+  box-shadow:0 18px 52px rgba(0,0,0,.66), 0 0 0 1px rgba(0,0,0,.35);
+  overflow:hidden;z-index:50;
+  flex-direction:column;max-height:68vh;
+}
+.fw.open{display:flex;}
+.fw-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 5px 9px 12px;
+  background:rgba(255,255,255,.014);
+  border-bottom:1px solid var(--line);
+  touch-action:none;flex-shrink:0;cursor:grab;
+}
+.fw-head:active{cursor:grabbing;}
+.fw-title{
+  font-size:10.5px;font-weight:600;letter-spacing:1.1px;
+  color:var(--dim);text-transform:uppercase;
+}
+.fw-title small{
+  color:var(--mute);font-weight:400;margin-left:6px;
+  font-size:10px;letter-spacing:0;text-transform:none;
+}
+.fw-x{
+  width:26px;height:26px;border-radius:7px;
+  color:var(--mute);font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+}
+.fw-x:active{background:var(--panel-3);color:var(--text);}
+.fw-body{
+  padding:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+
+/* ---- 层级树 ---- */
+.tree-row{
+  display:flex;align-items:center;gap:6px;padding:6px;
+  border-radius:8px;margin-bottom:1px;
+  border:1px solid transparent;transition:background .12s;
+  position:relative;
+}
+.tree-row:active{background:var(--panel-2);}
+.tree-row.sel{background:var(--accent-soft);border-color:var(--accent-line);}
+.tree-row .arw{
+  width:14px;text-align:center;color:var(--mute);font-size:9px;
+  flex-shrink:0;padding:2px 0;
+}
+.tree-row .arw.hide{visibility:hidden;}
+.tree-row .ico{
+  width:19px;height:19px;border-radius:5px;
+  background:var(--panel-3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--mute);flex-shrink:0;
+}
+.tree-row.sel .ico{background:rgba(226,163,85,.2);color:var(--accent);}
+.tree-row .nm{
+  flex:1;font-size:12px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;color:var(--text);
+}
+.tree-row .tp{font-size:9.5px;color:var(--mute);flex-shrink:0;}
+.tree-row .acts{display:flex;gap:1px;flex-shrink:0;}
+.tree-row .acts button{
+  width:21px;height:21px;border-radius:5px;
+  color:var(--mute);font-size:10.5px;
+  display:flex;align-items:center;justify-content:center;
+}
+.tree-row .acts button:active{background:var(--panel-3);color:var(--text);}
+.tree-kids{margin-left:10px;border-left:1px solid var(--line);padding-left:3px;}
+
+/* ---- 属性面板 ---- */
+.sect{
+  font-size:9.5px;color:var(--mute);letter-spacing:1.4px;
+  font-weight:600;margin:14px 2px 8px;
+  text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.sect::after{content:'';flex:1;height:1px;background:var(--line);}
+.sect:first-child{margin-top:4px;}
+.field{margin-bottom:11px;}
+.field > label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10.5px;color:var(--dim);margin-bottom:6px;letter-spacing:.2px;
+}
+.field > label b{
+  color:var(--accent);font-weight:600;font-size:11px;
+  font-family:var(--mono);
+}
+.field input[type=text],.field input[type=number]{
+  width:100%;padding:8px 10px;border-radius:7px;
+  border:1px solid var(--line);background:var(--bg);
+  color:var(--text);font-size:12.5px;outline:none;font-family:inherit;
+}
+.field input:focus{border-color:var(--accent-line);}
+.field input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:26px;background:transparent;
+}
+.field input[type=range]::-webkit-slider-runnable-track{
+  height:3px;border-radius:2px;background:var(--panel-3);
+}
+.field input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);margin-top:-5.5px;
+  box-shadow:0 0 0 3px rgba(226,163,85,.16);
+}
+.field input[type=color]{
+  width:100%;height:34px;border:1px solid var(--line);
+  border-radius:7px;background:var(--panel-2);padding:3px;cursor:pointer;
+}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.switch-row{
+  display:flex;align-items:center;gap:9px;
+  font-size:12px;padding:3px 2px;color:var(--dim);
+}
+.switch-row input{
+  width:16px;height:16px;accent-color:var(--accent);
+}
+.switch-row .sub{font-size:10px;color:var(--mute);margin-left:auto;}
+.type-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--panel-2);border:1px solid var(--line);
+  color:var(--accent);font-size:11px;padding:4px 10px;
+  border-radius:6px;font-family:var(--mono);
+}
+.empty-msg{
+  color:var(--mute);text-align:center;padding:30px 14px;
+  font-size:12px;line-height:2;
+}
+.action-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;
+}
+.action-grid button{
+  padding:9px 3px;border-radius:7px;
+  background:var(--panel-2);border:1px solid var(--line);
+  color:var(--dim);font-size:11px;transition:.13s;
+}
+.action-grid button:active{background:var(--panel-3);color:var(--text);}
+.action-grid button.danger{color:var(--danger);border-color:rgba(214,90,85,.3);}
+.action-grid button.danger:active{background:rgba(214,90,85,.14);}
+
+/* ---- 事件面板 ---- */
+.ev-tabs{
+  display:flex;gap:3px;padding:3px;margin-bottom:9px;
+  background:var(--bg);border-radius:8px;border:1px solid var(--line);
+}
+.ev-tabs button{
+  flex:1;padding:7px;border-radius:6px;font-size:11.5px;
+  color:var(--mute);font-weight:500;transition:.14s;
+}
+.ev-tabs button.on{background:var(--accent-soft);color:var(--accent);}
+
+.bind-item{
+  background:var(--panel-2);border:1px solid var(--line);
+  border-radius:9px;padding:9px 10px;margin-bottom:6px;
+  position:relative;
+}
+.bind-item .bi-head{
+  display:flex;align-items:center;gap:6px;margin-bottom:3px;
+  flex-wrap:wrap;padding-right:22px;
+}
+.bind-item .bi-target{
+  font-size:12px;font-weight:600;color:var(--accent);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:140px;
+}
+.bind-item .bi-arrow{color:var(--mute);font-size:10px;}
+.bind-item .bi-act{
+  font-size:10.5px;color:var(--ok);
+  background:rgba(124,199,156,.1);
+  padding:2px 7px;border-radius:5px;flex-shrink:0;
+  font-family:var(--mono);
+}
+.bind-item .bi-params{
+  font-size:10px;color:var(--mute);margin-top:4px;
+  font-family:var(--mono);word-break:break-all;line-height:1.6;
+}
+.bind-item.broken{border-color:rgba(214,90,85,.34);background:rgba(214,90,85,.06);}
+.bind-item.broken .bi-target{color:var(--danger);}
+.bind-item .bi-del{
+  position:absolute;right:6px;top:6px;
+  width:22px;height:22px;border-radius:6px;
+  color:var(--mute);font-size:11px;
+  display:flex;align-items:center;justify-content:center;
+}
+.bind-item .bi-del:active{background:rgba(214,90,85,.16);color:var(--danger);}
+
+.add-bind-btn{
+  width:100%;padding:10px;border-radius:8px;
+  background:transparent;border:1px dashed var(--line-2);
+  color:var(--dim);font-size:12px;font-weight:500;
+  margin-top:4px;transition:.14s;
+}
+.add-bind-btn:active{background:var(--panel-2);border-color:var(--accent-line);color:var(--accent);}
+.ev-hint{
+  font-size:10px;color:var(--mute);line-height:1.8;
+  padding:8px 2px 2px;
+}
+
+/* ---- 代码面板 ---- */
+pre.code{
+  background:#0a0a09;border:1px solid var(--line);border-radius:8px;
+  padding:11px;font-family:var(--mono);
+  font-size:10.5px;line-height:1.75;color:#b8c9a8;
+  overflow-x:auto;white-space:pre;
+  user-select:text;-webkit-user-select:text;
+  -webkit-overflow-scrolling:touch;margin:0;
+  max-height:46vh;
+}
+.copy-btn{
+  width:100%;padding:10px;border-radius:8px;margin-top:8px;
+  background:var(--panel-2);border:1px solid var(--line-2);
+  color:var(--dim);font-size:12px;font-weight:500;transition:.14s;
+}
+.copy-btn:active{background:var(--panel-3);color:var(--accent);border-color:var(--accent-line);}
+.copy-btn.primary{
+  background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);
+}
+
+/* ============ Sheet ============ */
+.sheet-mask{
+  position:fixed;inset:0;z-index:120;
+  background:rgba(0,0,0,.62);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.sheet-mask.on{opacity:1;pointer-events:auto;}
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;
+  background:var(--panel);
+  border-radius:18px 18px 0 0;
+  border-top:1px solid var(--line);
+  max-height:78vh;display:flex;flex-direction:column;
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.22,1,.36,1);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.sheet-mask.on .sheet{transform:translateY(0);}
+.sheet-hd{
+  position:relative;
+  padding:16px 18px 10px;font-size:13.5px;font-weight:600;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--line);flex-shrink:0;
+  letter-spacing:.2px;
+}
+.sheet-hd::before{
+  content:'';position:absolute;top:7px;left:50%;
+  transform:translateX(-50%);
+  width:32px;height:3px;border-radius:2px;
+  background:var(--panel-3);
+}
+.sheet-hd .cls{color:var(--mute);font-size:13px;padding:4px 8px;}
+.sheet-bd{
+  overflow-y:auto;padding:12px 14px 26px;
+  -webkit-overflow-scrolling:touch;
+}
+.cat-name{
+  font-size:9.5px;color:var(--mute);letter-spacing:1.4px;
+  margin:14px 4px 8px;font-weight:600;text-transform:uppercase;
+}
+.cat-name:first-child{margin-top:2px;}
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.cat-grid button{
+  padding:13px 4px;border-radius:9px;
+  border:1px solid var(--line);background:var(--panel-2);
+  color:var(--dim);font-size:11px;line-height:1.4;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  transition:.14s;
+}
+.cat-grid button:active{background:var(--panel-3);border-color:var(--accent-line);color:var(--text);}
+.cat-grid .em{font-size:17px;line-height:1;opacity:.85;}
+
+/* 表单行 */
+.form-row{margin-bottom:13px;}
+.form-row > label{
+  display:block;font-size:10.5px;color:var(--dim);
+  margin-bottom:6px;letter-spacing:.2px;
+}
+.form-row select,.form-row input{
+  width:100%;padding:10px 12px;border-radius:8px;
+  border:1px solid var(--line);background:var(--bg);
+  color:var(--text);font-size:13px;outline:none;
+  font-family:inherit;-webkit-appearance:none;appearance:none;
+}
+.form-row select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%238e8b83' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:34px;
+}
+.form-row select:focus,.form-row input:focus{border-color:var(--accent-line);}
+.form-row input[type=color]{height:42px;padding:3px;cursor:pointer;}
+.preview-val{
+  font-size:11px;color:var(--accent);font-weight:600;
+  float:right;font-family:var(--mono);
+}
+.confirm-btn{
+  width:100%;padding:12px;border-radius:9px;
+  background:var(--accent);color:#1a1206;
+  font-size:13.5px;font-weight:600;
+  margin-top:8px;letter-spacing:.2px;
+  transition:transform .1s, filter .15s;
+}
+.confirm-btn:active{transform:scale(.985);filter:brightness(.93);}
+.confirm-btn.danger{
+  background:var(--danger);color:#fff;
+}
+
+/* Toast */
+.toast{
+  position:fixed;left:50%;bottom:88px;
+  transform:translate(-50%,10px);
+  background:var(--panel-3);border:1px solid var(--line-2);
+  color:var(--text);padding:8px 16px;border-radius:9px;
+  font-size:12px;z-index:999;opacity:0;
+  pointer-events:none;transition:all .2s;white-space:nowrap;
+  max-width:88vw;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 10px 30px rgba(0,0,0,.55);
+}
+.toast.on{opacity:1;transform:translate(-50%,0);}
+
+/* 运行模式标签 */
+.run-badge{
+  position:fixed;left:50%;top:50px;
+  transform:translateX(-50%);
+  background:var(--accent);color:#1a1206;
+  padding:4px 12px;border-radius:7px;
+  font-size:10.5px;font-weight:700;
+  letter-spacing:.5px;z-index:55;display:none;
+  box-shadow:0 4px 16px rgba(226,163,85,.35);
+}
+body.runmode .run-badge{display:block;}
+body.runmode .zoom-ctl{display:none;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><b>ImGui</b><em>编辑器</em></div>
+  <div class="right">
+    <button class="tb-btn" id="btnUndo" title="撤销">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6.5 3.5 3 7l3.5 3.5"/><path d="M3 7h6.5a3.5 3.5 0 0 1 0 7H7"/>
+      </svg>
+    </button>
+    <button class="tb-btn" id="btnRedo" title="重做">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.5 3.5 13 7l-3.5 3.5"/><path d="M13 7H6.5a3.5 3.5 0 0 0 0 7H9"/>
+      </svg>
+    </button>
+    <button class="tb-btn" id="btnRunDrag" title="全部元素：运行时可拖拽">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 8V4a1 1 0 0 1 2 0v4M8 8V3a1 1 0 0 1 2 0v5M10 8V4a1 1 0 0 1 2 0v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a1 1 0 0 1 2 0v1"/>
+      </svg>
+    </button>
+    <div class="mode-switch">
+      <button id="mEdit" class="on">编辑</button>
+      <button id="mRun">运行</button>
+    </div>
+    <button class="tb-btn" id="btnReset" title="重置">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9"/><path d="M2.5 3.6V7H6"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div class="run-badge">运行模式 · 点击 / 拖拽触发事件</div>
+
+<div class="stage-wrap" id="stageWrap">
+  <div class="stage" id="stage"></div>
+</div>
+
+<div class="zoom-ctl">
+  <button id="zoomIn">＋</button>
+  <div class="zlvl" id="zoomLvl">100%</div>
+  <button id="zoomOut">－</button>
+</div>
+
+<div class="dock">
+  <button class="dk on" id="dkHier">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2.5" width="5" height="4" rx="1.2"/>
+      <rect x="9" y="9.5" width="5" height="4" rx="1.2"/>
+      <path d="M4.5 6.5v3.2a1.8 1.8 0 0 0 1.8 1.8H9"/>
+    </svg>
+    <span>层级</span>
+  </button>
+  <button class="dk" id="dkProps">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <path d="M2 5h5.5"/><circle cx="9.5" cy="5" r="1.7"/><path d="M11.2 5H14"/>
+      <path d="M2 11h1.5"/><circle cx="5.5" cy="11" r="1.7"/><path d="M7.2 11H14"/>
+    </svg>
+    <span>属性</span>
+  </button>
+  <button class="dk" id="dkEvents">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 2 4.5 9H8l-1 5 4.5-7H8l1-5Z"/>
+    </svg>
+    <span>事件</span>
+  </button>
+  <button class="dk" id="dkCode">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5.5 4 2.5 8l3 4M10.5 4l3 4-3 4"/>
+    </svg>
+    <span>代码</span>
+  </button>
+  <button class="dk" id="dkAdd">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M8 3.5v9M3.5 8h9"/>
+    </svg>
+  </button>
+</div>
+
+<div class="fw" id="fwHier">
+  <div class="fw-head" data-win="hier">
+    <span class="fw-title">层级<small id="hierCount"></small></span>
+    <button class="fw-x">✕</button>
+  </div>
+  <div class="fw-body" id="hierBody"></div>
+</div>
+
+<div class="fw" id="fwProps">
+  <div class="fw-head" data-win="props">
+    <span class="fw-title">属性</span>
+    <button class="fw-x">✕</button>
+  </div>
+  <div class="fw-body" id="propsBody"></div>
+</div>
+
+<div class="fw" id="fwEvents">
+  <div class="fw-head" data-win="events">
+    <span class="fw-title">事件绑定</span>
+    <button class="fw-x">✕</button>
+  </div>
+  <div class="fw-body" id="eventsBody"></div>
+</div>
+
+<div class="fw" id="fwCode">
+  <div class="fw-head" data-win="code">
+    <span class="fw-title">代码</span>
+    <button class="fw-x">✕</button>
+  </div>
+  <div class="fw-body" id="codeBody"></div>
+</div>
+
+<div class="sheet-mask" id="sheetMask">
+  <div class="sheet">
+    <div class="sheet-hd">
+      <span id="sheetTitle">添加元素</span>
+      <button class="cls" id="sheetClose">✕</button>
+    </div>
+    <div class="sheet-bd" id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   1. 元素类型预设
+   ========================================================= */
+const TYPES = {
+  /* ---- 容器 ---- */
+  Frame:{ name:'框架', icon:'▢', w:160, h:100, bg:'#22201d', color:'#e8e6e1',
+          radius:10, borderW:1, borderC:'#33302b', fontSize:14, padding:10, text:'' },
+  Card:{  name:'卡片', icon:'▤', w:200, h:130, bg:'#1c1a18', color:'#e8e6e1',
+          radius:14, borderW:1, borderC:'#2e2b27', fontSize:14, padding:14, text:'' },
+  Row:{   name:'行容器', icon:'▥', w:260, h:52, bg:'transparent', color:'#e8e6e1',
+          radius:8, borderW:1, borderC:'#2b2b28', fontSize:13, padding:8, text:'' },
+  Toolbar:{ name:'工具栏', icon:'⬓', w:260, h:44, bg:'#1b1a18', color:'#d8d5cd',
+          radius:10, borderW:1, borderC:'#2e2b27', fontSize:12, padding:6, text:'' },
+  Panel:{ name:'面板', icon:'▣', w:220, h:160, bg:'#171614', color:'#e8e6e1',
+          radius:12, borderW:1, borderC:'#302d29', fontSize:13, padding:12, text:'' },
+  Group:{ name:'分组', icon:'▦', w:180, h:110, bg:'rgba(255,255,255,.02)', color:'#e8e6e1',
+          radius:8, borderW:1, borderC:'#2b2b28', fontSize:13, padding:8, text:'' },
+
+  /* ---- 文本 ---- */
+  Text:{  name:'文本', icon:'T',  w:140, h:30, bg:'transparent', color:'#d8d5cd',
+          radius:0, borderW:0, borderC:'transparent', fontSize:14, padding:2, text:'文本内容' },
+  Title:{ name:'标题', icon:'H',  w:180, h:36, bg:'transparent', color:'#f2efe9',
+          radius:0, borderW:0, borderC:'transparent', fontSize:20, padding:2, text:'标题' },
+  SubTitle:{ name:'副标题', icon:'h', w:160, h:28, bg:'transparent', color:'#a5a29a',
+          radius:0, borderW:0, borderC:'transparent', fontSize:15, padding:2, text:'副标题' },
+  Caption:{ name:'说明文字', icon:'·', w:160, h:22, bg:'transparent', color:'#8e8b83',
+          radius:0, borderW:0, borderC:'transparent', fontSize:11.5, padding:2, text:'辅助说明文字' },
+  Code:{  name:'代码文本', icon:'{ }', w:180, h:32, bg:'#0d0d0c', color:'#b8c9a8',
+          radius:6, borderW:1, borderC:'#2b2b28', fontSize:12, padding:6, text:'ImGui::Text()' },
+  Quote:{ name:'引用块', icon:'❝', w:200, h:56, bg:'rgba(226,163,85,.06)', color:'#c9b28c',
+          radius:6, borderW:1, borderC:'rgba(226,163,85,.25)', fontSize:12.5, padding:10, text:'引用内容…' },
+  Divider:{ name:'分割线', icon:'—', w:200, h:2, bg:'#2e2b27', color:'transparent',
+          radius:1, borderW:0, borderC:'transparent', fontSize:10, padding:0, text:'' },
+  Spacer:{ name:'间隔', icon:'⋯', w:60, h:24, bg:'transparent', color:'#5d5b55',
+          radius:0, borderW:0, borderC:'transparent', fontSize:11, padding:0, text:'' },
+
+  /* ---- 控件 ---- */
+  Button:{ name:'按钮', icon:'⬭', w:120, h:44, bg:'#e2a355', color:'#1a1206',
+          radius:9, borderW:0, borderC:'transparent', fontSize:14, padding:10, text:'按钮' },
+  Ghost:{ name:'幽灵钮', icon:'⬭', w:110, h:40, bg:'transparent', color:'#e2a355',
+          radius:9, borderW:1, borderC:'#e2a355', fontSize:13, padding:8, text:'次要按钮' },
+  IconBtn:{ name:'图标钮', icon:'✦', w:44, h:44, bg:'#22201d', color:'#e2a355',
+          radius:9, borderW:1, borderC:'#33302b', fontSize:18, padding:0, text:'✦' },
+  Circle:{ name:'圆形', icon:'●', w:80, h:80, bg:'#e2a355', color:'#1a1206',
+          radius:999, borderW:0, borderC:'transparent', fontSize:14, padding:6, text:'' },
+  Toggle:{ name:'开关', icon:'◉', w:100, h:34, bg:'#22201d', color:'#7cc79c',
+          radius:16, borderW:1, borderC:'#33302b', fontSize:13, padding:8, text:'已启用' },
+  Checkbox:{ name:'复选框', icon:'☑', w:130, h:26, bg:'transparent', color:'#d8d5cd',
+          radius:0, borderW:0, borderC:'transparent', fontSize:13, padding:4, text:'勾选项目' },
+  Radio:{ name:'单选框', icon:'◯', w:130, h:28, bg:'transparent', color:'#d8d5cd',
+          radius:0, borderW:0, borderC:'transparent', fontSize:13, padding:4, text:'单选项' },
+  Input:{ name:'输入框', icon:'⌨', w:190, h:42, bg:'#141312', color:'#6b6860',
+          radius:7, borderW:1, borderC:'#33302b', fontSize:13.5, padding:10, text:'输入内容…' },
+  TextArea:{ name:'多行输入', icon:'▤', w:200, h:90, bg:'#141312', color:'#6b6860',
+          radius:7, borderW:1, borderC:'#33302b', fontSize:12.5, padding:10, text:'多行\n输入内容…' },
+  Combo:{ name:'下拉框', icon:'▾', w:160, h:40, bg:'#141312', color:'#d8d5cd',
+          radius:7, borderW:1, borderC:'#33302b', fontSize:13, padding:8, text:'选项一,选项二,选项三' },
+  Slider:{ name:'滑块', icon:'⇔', w:180, h:38, bg:'#22201d', color:'#e2a355',
+          radius:8, borderW:1, borderC:'#33302b', fontSize:12, padding:6, text:'0.5' },
+  Stepper:{ name:'步进器', icon:'⊞', w:130, h:40, bg:'#141312', color:'#d8d5cd',
+          radius:7, borderW:1, borderC:'#33302b', fontSize:13, padding:6, text:'42' },
+  Progress:{ name:'进度条', icon:'▰', w:180, h:16, bg:'#e2a355', color:'#1a1206',
+          radius:8, borderW:0, borderC:'transparent', fontSize:10, padding:0, text:'65' },
+
+  /* ---- 展示 ---- */
+  Image:{ name:'图片', icon:'▣', w:110, h:110, bg:'#1c1a18', color:'#6b6860',
+          radius:9, borderW:1, borderC:'#2e2b27', fontSize:34, padding:6, text:'🖼' },
+  Avatar:{ name:'头像', icon:'☺', w:56, h:56, bg:'#2a2620', color:'#8e8b83',
+          radius:999, borderW:1, borderC:'#38342e', fontSize:16, padding:0, text:'头像' },
+  Badge:{ name:'角标', icon:'◍', w:28, h:28, bg:'#d65a55', color:'#ffffff',
+          radius:999, borderW:0, borderC:'transparent', fontSize:12, padding:0, text:'3' },
+  Chip:{  name:'标签', icon:'▬', w:80, h:28, bg:'#2a2620', color:'#d9b382',
+          radius:13, borderW:0, borderC:'transparent', fontSize:12, padding:8, text:'标签' },
+  ColorSwatch:{ name:'色块', icon:'◼', w:44, h:44, bg:'#e2a355', color:'transparent',
+          radius:8, borderW:1, borderC:'#33302b', fontSize:10, padding:0, text:'' },
+  Tabs:{ name:'标签栏', icon:'⧉', w:240, h:36, bg:'#171716', color:'#e2a355',
+          radius:8, borderW:1, borderC:'#2b2b28', fontSize:12.5, padding:4, text:'标签一,标签二,标签三' },
+  Table:{ name:'表格', icon:'▦', w:250, h:110, bg:'#161514', color:'#d8d5cd',
+          radius:8, borderW:1, borderC:'#2b2b28', fontSize:12, padding:6, text:'名称,数值,状态' },
+  List:{ name:'列表', icon:'☰', w:180, h:110, bg:'#141312', color:'#d8d5cd',
+          radius:8, borderW:1, borderC:'#2b2b28', fontSize:12.5, padding:6, text:'第一项\n第二项\n第三项' },
+};
+
+/* 添加面板分类 */
+const TYPE_CATS = {
+  '容器': ['Frame','Card','Panel','Group','Row','Toolbar'],
+  '文本': ['Text','Title','SubTitle','Caption','Quote','Code','Divider','Spacer'],
+  '控件': ['Button','Ghost','IconBtn','Circle','Toggle','Checkbox','Radio',
+           'Input','TextArea','Combo','Slider','Stepper','Progress'],
+  '展示': ['Image','Avatar','Badge','Chip','ColorSwatch','Tabs','Table','List'],
+};
+
+/* =========================================================
+   2. 事件动作表
+   ========================================================= */
+const ACTIONS = {
+  toggle:   { label:'显隐切换', params:[],
+    run:(el)=>{ el.style.display = el.style.display==='none' ? 'flex' : 'none'; } },
+  show:     { label:'显示',     params:[],
+    run:(el)=>{ el.style.display='flex'; el.style.opacity='1'; } },
+  hide:     { label:'隐藏',     params:[],
+    run:(el)=>{ el.style.display='none'; } },
+  setBg:    { label:'改背景色', params:[{k:'v',t:'color',label:'颜色',def:'#e2a355'}],
+    run:(el,p)=>{ el.style.background = p.v; } },
+  setColor: { label:'改文字色', params:[{k:'v',t:'color',label:'颜色',def:'#ffffff'}],
+    run:(el,p)=>{ el.style.color = p.v; } },
+  nudge:    { label:'偏移移动', params:[
+      {k:'x',t:'num',label:'X 偏移',def:20,min:-200,max:200,step:1},
+      {k:'y',t:'num',label:'Y 偏移',def:0,min:-200,max:200,step:1}],
+    run:(el,p)=>{
+      const l = parseFloat(el.style.left)||0;
+      const t = parseFloat(el.style.top)||0;
+      el.style.left = (l + (+p.x||0)) + 'px';
+      el.style.top  = (t + (+p.y||0)) + 'px';
+    } },
+  scaleTo:  { label:'缩放到',   params:[{k:'v',t:'num',label:'倍数',def:1.25,min:0.2,max:3,step:0.05}],
+    run:(el,p)=>{ el.style.transform = `rotate(${el.dataset.rot||0}deg) scale(${p.v})`; } },
+  rotate:   { label:'旋转到',   params:[{k:'v',t:'num',label:'角度',def:45,min:-360,max:360,step:5}],
+    run:(el,p)=>{ el.style.transform = `rotate(${p.v}deg) scale(${el.dataset.scale||1})`; } },
+  setOpacity:{ label:'设透明度', params:[{k:'v',t:'num',label:'透明度',def:0.5,min:0,max:1,step:0.05}],
+    run:(el,p)=>{ el.style.opacity = p.v; } },
+  moveTo:   { label:'移动到',   params:[
+      {k:'x',t:'num',label:'X 坐标',def:100,min:0,max:800,step:5},
+      {k:'y',t:'num',label:'Y 坐标',def:100,min:0,max:1200,step:5}],
+    run:(el,p)=>{ el.style.left = (p.x+'px'); el.style.top = (p.y+'px'); } },
+  alert:    { label:'弹窗提示', params:[{k:'v',t:'text',label:'提示文字',def:'事件已触发'}],
+    run:(el,p)=>{ toast(p.v || '事件已触发'); } },
+  reset:    { label:'重置样式', params:[],
+    run:(el)=>{ el.style.transform=''; el.style.opacity='1'; el.style.display='flex'; } },
+};
+
+/* =========================================================
+   3. 状态
+   ========================================================= */
+const STORE = 'imgui-editor-v7';
+const MAX_UNDO = 40;
+
+const state = {
+  root:{ id:0, type:'Root', x:0, y:0, w:0, h:0, padding:0, borderW:0,
+         scale:1, rot:0, kids:[], open:true, events:{onClick:[],onDrag:[]} },
+  sel:0, nextId:1, mode:'edit', zoom:1,
+  wins:{
+    hier:{ open:true,  x:12, y:74,  w:216 },
+    props:{ open:false, x:32, y:108, w:262 },
+    events:{ open:false, x:20, y:94, w:280 },
+    code:{ open:false, x:16, y:82, w:330 },
+  },
+  evTab:'onClick',
+  codeView:'full',
+};
+
+const elMap = new Map();
+
+/* =========================================================
+   4. 工具
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const stage = $('#stage');
+const stageWrap = $('#stageWrap');
+
+const esc = s => String(s==null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;');
+const cstr = s => String(s==null?'':s).replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+const round = v => Math.round((+v||0)*100)/100;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+function findNode(id, node){
+  node = node || state.root;
+  if(node.id === id) return node;
+  for(const c of node.kids){
+    const r = findNode(id, c);
+    if(r) return r;
+  }
+  return null;
+}
+function findParent(id, node){
+  node = node || state.root;
+  for(const c of node.kids){
+    if(c.id === id) return node;
+    const r = findParent(id, c);
+    if(r) return r;
+  }
+  return null;
+}
+function removeNode(id){
+  const p = findParent(id);
+  if(!p) return false;
+  const i = p.kids.findIndex(k => k.id === id);
+  if(i < 0) return false;
+  p.kids.splice(i,1);
+  return true;
+}
+function labelOf(n){
+  if(n.id === 0) return 'Root';
+  return n.text || n.name || (TYPES[n.type] ? TYPES[n.type].name : n.type);
+}
+function pathOf(id){
+  const parts = [];
+  let n = findNode(id);
+  while(n && n.id !== 0){
+    parts.unshift(labelOf(n));
+    n = findParent(n.id);
+  }
+  return parts.join(' / ');
+}
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(()=>t.classList.remove('on'), 1700);
+}
+
+/* 沿节点树查父级 padding（不依赖 DOM） */
+function parentPadOf(node){
+  if(!node || node.id === 0) return 0;
+  const p = findParent(node.id);
+  return p ? (p.padding || 0) : 0;
+}
+
+function screenDeltaToLocal(el, dx, dy){
+  const parent = el.parentElement;
+  if(!parent || !parent.classList || !parent.classList.contains('el')) return {dx, dy};
+  const t = getComputedStyle(parent).transform;
+  if(!t || t === 'none') return {dx, dy};
+  let m;
+  try { m = new DOMMatrix(t); } catch(e){ return {dx, dy}; }
+  const det = m.a * m.d - m.b * m.c;
+  if(Math.abs(det) < 1e-6) return {dx, dy};
+  return {
+    dx: ( m.d * dx - m.b * dy) / det,
+    dy: (-m.c * dx + m.a * dy) / det,
+  };
+}
+
+function blurActiveInput(){
+  const ae = document.activeElement;
+  if(!ae || ae === document.body) return;
+  if(/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable){
+    try{ ae.blur(); }catch(e){}
+  }
+}
+
+/* 文本 span 通用样式 */
+const TEXT_SPAN_CSS = 'pointer-events:none;display:block;width:100%;white-space:pre-line;';
+
+/* =========================================================
+   5. 数据操作
+   ========================================================= */
+function createNode(type){
+  const t = TYPES[type] || TYPES.Frame;
+  return {
+    id: state.nextId++,
+    type,
+    name: t.name,
+    x: 20, y: 20,
+    w: t.w, h: t.h,
+    bg: t.bg, color: t.color,
+    radius: t.radius,
+    borderW: t.borderW, borderC: t.borderC,
+    opacity: 1, rot: 0, scale: 1, visible: true,
+    draggable: false,
+    fontSize: t.fontSize, padding: t.padding,
+    text: t.text || '',
+    kids: [], open: true,
+    events: { onClick: [], onDrag: [] },
+  };
+}
+
+function snapshot(){
+  return JSON.stringify({ root: state.root, nextId: state.nextId });
+}
+
+/* =========================================================
+   6. 撤销 / 重做
+   ========================================================= */
+const undoStack = [];
+const redoStack = [];
+let _undoTimer = null;
+let _undoPending = null;
+
+function pushUndo(){
+  if(!_undoPending) _undoPending = snapshot();
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(() => {
+    if(_undoPending && undoStack[undoStack.length-1] !== _undoPending){
+      undoStack.push(_undoPending);
+      if(undoStack.length > MAX_UNDO) undoStack.shift();
+      redoStack.length = 0;
+    }
+    _undoPending = null;
+    syncUndoBtns();
+  }, 380);
+}
+function pushUndoNow(){
+  clearTimeout(_undoTimer);
+  _undoPending = null;
+  const snap = snapshot();
+  if(undoStack[undoStack.length-1] === snap) return;
+  undoStack.push(snap);
+  if(undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0;
+  syncUndoBtns();
+}
+function undo(){
+  if(undoStack.length === 0){ toast('无可撤销'); return; }
+  redoStack.push(snapshot());
+  applySnapshot(undoStack.pop());
+  toast('已撤销');
+}
+function redo(){
+  if(redoStack.length === 0){ toast('无可重做'); return; }
+  undoStack.push(snapshot());
+  applySnapshot(redoStack.pop());
+  toast('已重做');
+}
+function applySnapshot(snap){
+  try{
+    const d = JSON.parse(snap);
+    state.root = d.root;
+    state.nextId = d.nextId;
+    state.sel = 0;
+    renderStage();
+    renderHier();
+    if(state.wins.props.open) renderProps();
+    if(state.wins.events.open) renderEvents();
+    scheduleCode(0);
+    saveNow();
+    syncUndoBtns();
+    syncRunDragBtn();
+  }catch(e){}
+}
+function syncUndoBtns(){
+  $('#btnUndo').disabled = undoStack.length === 0 && !_undoPending;
+  $('#btnRedo').disabled = redoStack.length === 0;
+}
+
+/* =========================================================
+   7. 持久化（防抖）
+   ========================================================= */
+let _saveTimer = null;
+function save(immediate){
+  if(immediate){ saveNow(); return; }
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveNow, 400);
+}
+function saveNow(){
+  try{
+    localStorage.setItem(STORE, JSON.stringify({
+      root: state.root, nextId: state.nextId, zoom: state.zoom,
+      wins: Object.fromEntries(Object.entries(state.wins).map(([k,v]) =>
+        [k, {x:v.x, y:v.y, w:v.w, open:v.open}]))
+    }));
+  }catch(e){}
+}
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if(!d || !d.root) return false;
+    state.root = d.root;
+    state.nextId = d.nextId || 1;
+    if(typeof d.zoom === 'number') state.zoom = d.zoom;
+    if(d.wins){
+      for(const k in d.wins) if(state.wins[k]) Object.assign(state.wins[k], d.wins[k]);
+    }
+    const walk = n => {
+      if(!n.events) n.events = { onClick:[], onDrag:[] };
+      if(!n.events.onClick) n.events.onClick = [];
+      if(!n.events.onDrag) n.events.onDrag = [];
+      if(n.opacity == null) n.opacity = 1;
+      if(n.visible == null) n.visible = true;
+      if(n.rot == null) n.rot = 0;
+      if(n.scale == null) n.scale = 1;
+      if(n.padding == null) n.padding = 0;
+      if(n.borderW == null) n.borderW = 0;
+      if(n.borderC == null) n.borderC = 'transparent';
+      if(typeof n.draggable !== 'boolean') n.draggable = false;
+      n.kids.forEach(walk);
+    };
+    walk(state.root);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* =========================================================
+   8. 画布渲染
+   ========================================================= */
+function renderStage(){
+  stage.innerHTML = '';
+  elMap.clear();
+
+  if(state.root.kids.length === 0){
+    stage.innerHTML = `<div class="empty-stage">
+      <div class="big">▢</div>
+      还没有元素<br>点击底部 <b style="color:#e2a355">＋</b> 添加<br>
+      <span style="font-size:11px;opacity:.65">编辑模式拖拽移动 · 运行模式触发事件</span>
+    </div>`;
+    calcStageSize();
+    return;
+  }
+  state.root.kids.forEach(k => {
+    stage.appendChild(buildEl(k));
+  });
+  calcStageSize();
+  attachHandleToSelected();
+}
+
+function buildEl(n){
+  const el = document.createElement('div');
+  el.className = 'el';
+  el.dataset.nid = n.id;
+
+  applyStyle(el, n);
+
+  if(n.text){
+    const inner = document.createElement('span');
+    inner.style.cssText = TEXT_SPAN_CSS;
+    inner.textContent = n.text;
+    el.appendChild(inner);
+  }
+  n.kids.forEach(c => {
+    el.appendChild(buildEl(c));
+  });
+
+  if(n.id === state.sel && state.mode === 'edit') el.classList.add('sel');
+  elMap.set(n.id, el);
+  return el;
+}
+
+function applyStyle(el, n){
+  const s = el.style;
+  const parentPad = parentPadOf(n);
+
+  s.left = (n.x + parentPad) + 'px';
+  s.top  = (n.y + parentPad) + 'px';
+  s.width  = Math.max(0, n.w) + 'px';
+  s.height = Math.max(0, n.h) + 'px';
+  s.background = n.bg;
+  s.color = n.color;
+  s.borderRadius = n.radius >= 999 ? '9999px' : n.radius + 'px';
+  s.borderStyle = n.borderW > 0 ? 'solid' : 'none';
+  s.borderWidth = n.borderW + 'px';
+  s.borderColor = n.borderC;
+  s.opacity = n.opacity;
+  s.fontSize = n.fontSize + 'px';
+  s.fontWeight = (n.type === 'Title' || n.type === 'SubTitle') ? '600' : '400';
+  s.fontFamily = (n.type === 'Code') ? 'var(--mono)' : 'inherit';
+  s.padding = (n.padding || 0) + 'px';
+  s.transform = `rotate(${n.rot}deg) scale(${n.scale})`;
+  s.transformOrigin = 'center center';
+  s.display = n.visible ? 'flex' : 'none';
+  s.zIndex = n.id;
+
+  el.dataset.rot = n.rot;
+  el.dataset.scale = n.scale;
+  el.dataset.draggable = n.draggable ? '1' : '0';
+}
+
+function updateEl(n){
+  const el = elMap.get(n.id);
+  if(!el) return;
+  applyStyle(el, n);
+
+  let span = el.querySelector(':scope > span:not(.resize-handle)');
+  if(n.text){
+    if(!span){
+      span = document.createElement('span');
+      span.style.cssText = TEXT_SPAN_CSS;
+      el.insertBefore(span, el.firstChild);
+    }
+    if(span.textContent !== n.text) span.textContent = n.text;
+  } else if(span){
+    span.remove();
+  }
+}
+
+function repositionChildren(node){
+  const pad = node.padding || 0;
+  node.kids.forEach(c => {
+    const el = elMap.get(c.id);
+    if(el){
+      el.style.left = (c.x + pad) + 'px';
+      el.style.top  = (c.y + pad) + 'px';
+    }
+    repositionChildren(c);
+  });
+}
+
+let _sizeRaf = null;
+function calcStageSize(){
+  if(_sizeRaf) return;
+  _sizeRaf = requestAnimationFrame(() => {
+    _sizeRaf = null;
+    doCalcStageSize();
+  });
+}
+function doCalcStageSize(){
+  let maxX = 0, maxY = 0;
+  const walk = (node, ox, oy) => {
+    const pad = node.padding || 0;
+    node.kids.forEach(k => {
+      const x = ox + k.x + pad;
+      const y = oy + k.y + pad;
+      maxX = Math.max(maxX, x + k.w);
+      maxY = Math.max(maxY, y + k.h);
+      walk(k, x, y);
+    });
+  };
+  walk(state.root, 0, 0);
+
+  const vh = (window.innerHeight - 200) / state.zoom;
+  const vw = window.innerWidth / state.zoom;
+  stage.style.width  = Math.max(vw, maxX + 60) + 'px';
+  stage.style.height = Math.max(vh, maxY + 60) + 'px';
+  stage.style.transform = `scale(${state.zoom})`;
+  stage.style.transformOrigin = '0 0';
+}
+
+/* =========================================================
+   9. 选中与手柄
+   ========================================================= */
+function attachHandleToSelected(){
+  document.querySelectorAll('.resize-handle').forEach(h => h.remove());
+  if(state.sel === 0 || state.mode !== 'edit') return;
+  const el = elMap.get(state.sel);
+  if(!el) return;
+  const h = document.createElement('div');
+  h.className = 'resize-handle';
+  el.appendChild(h);
+  let cur = el, depth = 0;
+  while(cur && cur !== stage && depth < 20){
+    cur.style.zIndex = 5000 - depth;
+    cur = cur.parentElement;
+    depth++;
+  }
+}
+
+function selectNode(id){
+  if(state.sel === id) return;
+  const prev = elMap.get(state.sel);
+  if(prev){
+    prev.classList.remove('sel');
+    prev.style.zIndex = '';
+    let cur = prev.parentElement, d = 0;
+    while(cur && cur !== stage && d < 20){
+      cur.style.zIndex = '';
+      cur = cur.parentElement; d++;
+    }
+  }
+  state.sel = id;
+  const el = elMap.get(id);
+  if(el) el.classList.add('sel');
+  attachHandleToSelected();
+
+  renderHier();
+  if(state.wins.props.open) renderProps();
+  if(state.wins.events.open) renderEvents();
+}
+
+/* =========================================================
+   10. 画布交互
+   ========================================================= */
+let dragCtx = null;
+let _pendingMove = null;
+let _rafMove = null;
+
+stage.addEventListener('pointerdown', e => {
+  blurActiveInput();
+
+  const handle = e.target.closest('.resize-handle');
+  if(handle && state.mode === 'edit'){
+    const el = handle.parentElement;
+    const nid = +el.dataset.nid;
+    const n = findNode(nid);
+    if(!n) return;
+    e.preventDefault();
+    dragCtx = {
+      n, el, mode:'resize',
+      sx: e.clientX, sy: e.clientY,
+      ow: n.w, oh: n.h,
+    };
+    return;
+  }
+
+  const el = e.target.closest('.el');
+  if(!el){
+    if(state.mode === 'edit') selectNode(0);
+    return;
+  }
+  const nid = +el.dataset.nid;
+  const n = findNode(nid);
+  if(!n) return;
+
+  if(state.mode === 'edit'){
+    e.preventDefault();
+    selectNode(nid);
+    dragCtx = {
+      n, el, mode:'edit',
+      sx: e.clientX, sy: e.clientY,
+      ox: n.x, oy: n.y,
+      moved: false,
+    };
+  } else {
+    const canDrag = !!n.draggable;
+    dragCtx = {
+      n, el, mode:'run', canDrag,
+      sx: e.clientX, sy: e.clientY,
+      ox: n.x, oy: n.y,
+      moved: false,
+      lastFire: 0,
+      movedSelf: false,
+      _savedZ: null,
+    };
+    if(canDrag){
+      dragCtx._savedZ = el.style.zIndex;
+      el.style.zIndex = '99999';
+    }
+  }
+}, { passive:false });
+
+document.addEventListener('pointermove', e => {
+  if(!dragCtx) return;
+  _pendingMove = e;
+  if(_rafMove) return;
+  _rafMove = requestAnimationFrame(flushMove);
+}, { passive:true });
+
+function flushMove(){
+  _rafMove = null;
+  const e = _pendingMove;
+  if(!e || !dragCtx) return;
+
+  const dxS = e.clientX - dragCtx.sx;
+  const dyS = e.clientY - dragCtx.sy;
+  const dist = Math.hypot(dxS, dyS);
+
+  if(!dragCtx.moved && dist < 5) return;
+  dragCtx.moved = true;
+
+  if(dragCtx.mode === 'edit'){
+    const {dx, dy} = screenDeltaToLocal(dragCtx.el, dxS / state.zoom, dyS / state.zoom);
+    const n = dragCtx.n;
+    n.x = snap(Math.round(dragCtx.ox + dx), 8);
+    n.y = snap(Math.round(dragCtx.oy + dy), 8);
+    const pad = parentPadOf(n);
+    dragCtx.el.style.left = (n.x + pad) + 'px';
+    dragCtx.el.style.top  = (n.y + pad) + 'px';
+    return;
+  }
+
+  if(dragCtx.mode === 'resize'){
+    const {dx, dy} = screenDeltaToLocal(dragCtx.el, dxS / state.zoom, dyS / state.zoom);
+    const n = dragCtx.n;
+    n.w = Math.max(10, Math.round(dragCtx.ow + dx));
+    n.h = Math.max(2,  Math.round(dragCtx.oh + dy));
+    updateEl(n);
+    return;
+  }
+
+  if(dragCtx.canDrag){
+    const {dx, dy} = screenDeltaToLocal(dragCtx.el, dxS / state.zoom, dyS / state.zoom);
+    const n = dragCtx.n;
+    n.x = Math.round(dragCtx.ox + dx);
+    n.y = Math.round(dragCtx.oy + dy);
+    const pad = parentPadOf(n);
+    dragCtx.el.style.left = (n.x + pad) + 'px';
+    dragCtx.el.style.top  = (n.y + pad) + 'px';
+    dragCtx.movedSelf = true;
+  }
+
+  const now = Date.now();
+  if(now - dragCtx.lastFire > 80){
+    dragCtx.lastFire = now;
+    fireEvents(dragCtx.n, 'onDrag', dragCtx.el);
+  }
+}
+
+function snap(v, step){
+  const s = Math.round(v / step) * step;
+  return Math.abs(v - s) < 4 ? s : v;
+}
+
+document.addEventListener('pointerup', () => {
+  if(!dragCtx) return;
+  const ctx = dragCtx;
+  dragCtx = null;
+  _pendingMove = null;
+
+  if(ctx.mode === 'run'){
+    if(ctx._savedZ != null){
+      ctx.el.style.zIndex = ctx._savedZ;
+      ctx._savedZ = null;
+    }
+    if(!ctx.moved){
+      fireEvents(ctx.n, 'onClick', ctx.el);
+    } else if(ctx.movedSelf){
+      save();
+    }
+    return;
+  }
+
+  if(!ctx.moved) return;
+
+  if(ctx.mode === 'edit'){
+    ctx.n.x = Math.round(ctx.n.x);
+    ctx.n.y = Math.round(ctx.n.y);
+    pushUndoNow();
+    save();
+    renderHier();
+    if(state.wins.props.open) renderProps();
+    scheduleCode();
+  } else if(ctx.mode === 'resize'){
+    pushUndoNow();
+    save();
+    if(state.wins.props.open) renderProps();
+    scheduleCode();
+  }
+});
+document.addEventListener('pointercancel', () => {
+  dragCtx = null; _pendingMove = null;
+});
+
+/* =========================================================
+   11. 事件触发
+   ========================================================= */
+function fireEvents(n, type, el){
+  const binds = n.events[type] || [];
+  if(!binds.length) return;
+  binds.forEach(b => {
+    const target = findNode(b.t);
+    if(!target) return;
+    const targetEl = elMap.get(target.id);
+    if(!targetEl) return;
+    const act = ACTIONS[b.a];
+    if(!act) return;
+    try{ act.run(targetEl, b.p || {}); }catch(err){}
+  });
+}
+
+/* =========================================================
+   12. 层级面板
+   ========================================================= */
+function renderHier(){
+  const body = $('#hierBody');
+  body.innerHTML = '';
+  const cnt = countNodes(state.root);
+  $('#hierCount').textContent = cnt ? ` ${cnt}` : '';
+
+  if(state.root.kids.length === 0){
+    body.innerHTML = '<div class="empty-msg">还没有元素</div>';
+    return;
+  }
+
+  const walk = (node, host) => {
+    node.kids.forEach((child, idx) => {
+      const T = TYPES[child.type] || { icon:'?', name:child.type };
+      const hasKids = child.kids.length > 0;
+
+      const row = document.createElement('div');
+      row.className = 'tree-row' + (child.id === state.sel ? ' sel' : '');
+      row.innerHTML =
+        `<span class="arw ${hasKids ? '' : 'hide'}">${child.open ? '▾' : '▸'}</span>` +
+        `<span class="ico">${T.icon}</span>` +
+        `<span class="nm">${esc(labelOf(child))}${child.draggable ? ' <b style="color:#e2a355;font-size:9px">●</b>' : ''}</span>` +
+        `<span class="acts">
+           <button data-up title="上移">↑</button>
+           <button data-down title="下移">↓</button>
+         </span>`;
+
+      row.querySelector('.arw').addEventListener('click', e => {
+        e.stopPropagation();
+        child.open = !child.open;
+        renderHier();
+      });
+      row.querySelector('[data-up]').addEventListener('click', e => {
+        e.stopPropagation();
+        moveChild(node, idx, -1);
+      });
+      row.querySelector('[data-down]').addEventListener('click', e => {
+        e.stopPropagation();
+        moveChild(node, idx, 1);
+      });
+      row.addEventListener('click', () => selectNode(child.id));
+      host.appendChild(row);
+
+      if(child.open && hasKids){
+        const box = document.createElement('div');
+        box.className = 'tree-kids';
+        host.appendChild(box);
+        walk(child, box);
+      }
+    });
+  };
+  walk(state.root, body);
+}
+
+function moveChild(parent, idx, dir){
+  const ni = idx + dir;
+  if(ni < 0 || ni >= parent.kids.length) return;
+  pushUndoNow();
+  const [it] = parent.kids.splice(idx, 1);
+  parent.kids.splice(ni, 0, it);
+  renderStage();
+  renderHier();
+  scheduleCode();
+  save();
+}
+
+function countNodes(n){
+  let c = 0;
+  n.kids.forEach(k => { c += 1 + countNodes(k); });
+  return c;
+}
+
+/* =========================================================
+   13. 属性面板
+   ========================================================= */
+let _propRaf = null;
+function schedulePropsRender(){
+  if(_propRaf) return;
+  _propRaf = requestAnimationFrame(() => {
+    _propRaf = null;
+    if(state.wins.props.open) renderProps();
+  });
+}
+
+function renderProps(){
+  const body = $('#propsBody');
+  const n = findNode(state.sel);
+  if(!n || n.id === 0){
+    body.innerHTML = '<div class="empty-msg">未选中元素<br>点击画布或层级树选中</div>';
+    return;
+  }
+  const T = TYPES[n.type] || { name:n.type, icon:'?' };
+
+  const numF = (k, label, min, max, step) => `
+    <div class="field">
+      <label>${label} <b>${round(n[k])}</b></label>
+      <input type="range" data-k="${k}" data-t="num"
+             min="${min}" max="${max}" step="${step}" value="${n[k]}">
+    </div>`;
+
+  const colF = (k, label) => `
+    <div class="field">
+      <label>${label}</label>
+      <input type="color" data-k="${k}" data-t="color" value="${normalizeColor(n[k])}">
+    </div>`;
+
+  let html = `
+    <div class="field">
+      <label>元素类型</label>
+      <div><span class="type-badge">${T.icon} ${T.name}</span></div>
+    </div>
+    <div class="field">
+      <label>文本内容</label>
+      <input type="text" data-k="text" data-t="text" value="${esc(n.text)}" placeholder="（无文字）">
+    </div>
+
+    <div class="sect">位置与尺寸</div>
+    <div class="row2">
+      ${numF('x','X',-300,900,1)}
+      ${numF('y','Y',-300,1400,1)}
+    </div>
+    <div class="row2">
+      ${numF('w','宽',10,900,1)}
+      ${numF('h','高',2,900,1)}
+    </div>
+
+    <div class="sect">外观</div>
+    ${colF('bg','背景色')}
+    ${colF('color','文字色')}
+    ${numF('radius','圆角',0,120,1)}
+    <div class="row2">
+      ${numF('borderW','边框宽',0,12,1)}
+      ${numF('padding','内边距',0,50,1)}
+    </div>
+    ${colF('borderC','边框色')}
+    ${numF('fontSize','字号',8,72,1)}
+    ${numF('opacity','透明度',0,1,0.05)}
+
+    <div class="sect">变换</div>
+    ${numF('rot','旋转',-360,360,5)}
+    ${numF('scale','缩放',0.2,3,0.05)}
+
+    <div class="sect">状态</div>
+    <div class="switch-row">
+      <input type="checkbox" data-k="visible" data-t="bool" ${n.visible ? 'checked' : ''}>
+      <span>可见</span>
+    </div>
+    <div class="switch-row" style="padding-top:8px">
+      <input type="checkbox" data-k="draggable" data-t="bool" ${n.draggable ? 'checked' : ''}>
+      <span>运行时可拖拽</span>
+      <span class="sub">${n.draggable ? '可拖动' : '锁定位置'}</span>
+    </div>
+
+    <div class="sect">操作</div>
+    <div class="action-grid">
+      <button data-act="clone">复制</button>
+      <button data-act="toTop">置顶</button>
+      <button data-act="toBottom">置底</button>
+      <button data-act="selectParent">选父级</button>
+      <button data-act="centerX">水平居中</button>
+      <button data-act="centerY">垂直居中</button>
+      <button data-act="delete" class="danger" style="grid-column:span 3">删除元素</button>
+    </div>
+  `;
+
+  if(n.kids.length){
+    html += `<div class="sect">子元素 ${n.kids.length}</div>`;
+    n.kids.forEach(k => {
+      html += `<div class="tree-row" data-goto="${k.id}">
+        <span class="ico">${(TYPES[k.type]||{}).icon || '?'}</span>
+        <span class="nm">${esc(labelOf(k))}${k.draggable ? ' ●' : ''}</span>
+        <span class="tp">›</span>
+      </div>`;
+    });
+  }
+
+  body.innerHTML = html;
+
+  body.querySelectorAll('[data-k]').forEach(inp => {
+    const k = inp.dataset.k, t = inp.dataset.t;
+    const handler = () => {
+      const node = findNode(state.sel);
+      if(!node) return;
+      if(t === 'bool') node[k] = inp.checked;
+      else if(t === 'num'){
+        node[k] = parseFloat(inp.value);
+        const b = inp.parentElement.querySelector('b');
+        if(b) b.textContent = inp.value;
+      } else node[k] = inp.value;
+
+      if(k === 'padding' || k === 'borderW'){
+        repositionChildren(node);
+        updateEl(node);
+      } else if(k === 'text'){
+        updateEl(node);
+        renderHier();
+      } else {
+        updateEl(node);
+      }
+
+      if(k === 'draggable'){
+        const sub = inp.parentElement.querySelector('.sub');
+        if(sub) sub.textContent = node.draggable ? '可拖动' : '锁定位置';
+        syncRunDragBtn();
+        renderHier();
+      }
+
+      calcStageSize();
+      save();
+      scheduleCode();
+    };
+    inp.addEventListener('input', () => {
+      pushUndo();
+      handler();
+    });
+  });
+
+  body.querySelectorAll('[data-goto]').forEach(el => {
+    el.addEventListener('click', () => selectNode(+el.dataset.goto));
+  });
+
+  body.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      doNodeAction(btn.dataset.act, n);
+    });
+  });
+}
+
+function doNodeAction(action, n){
+  if(!n) return;
+  if(action === 'delete'){ deleteNode(n.id); return; }
+  pushUndoNow();
+  const p = findParent(n.id);
+  switch(action){
+    case 'clone': {
+      const c = cloneNode(n);
+      c.x += 16; c.y += 16;
+      const host = p || state.root;
+      host.kids.push(c);
+      state.sel = c.id;
+      break;
+    }
+    case 'toTop': {
+      if(!p) return;
+      const i = p.kids.indexOf(n);
+      p.kids.splice(i, 1);
+      p.kids.push(n);
+      break;
+    }
+    case 'toBottom': {
+      if(!p) return;
+      const i = p.kids.indexOf(n);
+      p.kids.splice(i, 1);
+      p.kids.unshift(n);
+      break;
+    }
+    case 'selectParent': {
+      if(p && p.id !== 0){ selectNode(p.id); return; }
+      else toast('已到根层级');
+      return;
+    }
+    case 'centerX': {
+      if(p && p.id !== 0) n.x = Math.round((p.w - n.w) / 2);
+      else n.x = Math.round((window.innerWidth / state.zoom - n.w) / 2);
+      break;
+    }
+    case 'centerY': {
+      if(p && p.id !== 0) n.y = Math.round((p.h - n.h) / 2);
+      else n.y = Math.round((window.innerHeight / state.zoom - n.h) / 2);
+      break;
+    }
+  }
+  renderStage();
+  renderHier();
+  renderProps();
+  renderEvents();
+  scheduleCode();
+  save();
+  syncRunDragBtn();
+}
+
+function deleteNode(id, skipConfirm){
+  const n = findNode(id);
+  if(!n || id === 0) return;
+  const total = countNodes(n) + 1;
+
+  if(total > 1 && !skipConfirm){
+    openDeleteConfirmSheet(n, total);
+    return;
+  }
+
+  pushUndoNow();
+  const toRemove = new Set();
+  const collect = x => { toRemove.add(x.id); x.kids.forEach(collect); };
+  collect(n);
+
+  removeNode(id);
+
+  const walk = node => {
+    ['onClick','onDrag'].forEach(k => {
+      node.events[k] = node.events[k].filter(b => !toRemove.has(b.t));
+    });
+    node.kids.forEach(walk);
+  };
+  walk(state.root);
+
+  if(toRemove.has(state.sel)) state.sel = 0;
+
+  renderStage();
+  renderHier();
+  renderProps();
+  renderEvents();
+  scheduleCode();
+  save();
+  syncRunDragBtn();
+  toast(total > 1 ? `已删除 ${total} 个元素` : '已删除');
+}
+
+function openDeleteConfirmSheet(n, total){
+  const html = `
+    <div style="padding:4px 2px 12px;color:#8e8b83;font-size:12.5px;line-height:1.9">
+      即将删除 <b style="color:#e8e6e1">「${esc(labelOf(n))}」</b>
+      ${total > 1 ? `及其 <b style="color:#e8e6e1">${total-1}</b> 个子元素` : ''}。<br>
+      删除后可通过顶部 <b style="color:#e2a355">↺</b> 撤销恢复。
+    </div>
+    <button class="confirm-btn danger" id="delOk">确认删除</button>
+    <button class="confirm-btn" id="delCancel"
+            style="background:#262624;color:#8e8b83;margin-top:8px">取消</button>
+  `;
+  $('#sheetTitle').textContent = '确认删除';
+  $('#sheetBody').innerHTML = html;
+  $('#sheetMask').classList.add('on');
+
+  $('#delOk').addEventListener('click', () => {
+    closeSheet();
+    deleteNode(n.id, true);
+  });
+  $('#delCancel').addEventListener('click', closeSheet);
+}
+
+function cloneNode(n){
+  const c = JSON.parse(JSON.stringify(n));
+  const walk = x => {
+    x.id = state.nextId++;
+    x.kids.forEach(walk);
+    if(x.events){
+      x.events.onClick.forEach(b => b.id = state.nextId++);
+      x.events.onDrag.forEach(b => b.id = state.nextId++);
+    }
+  };
+  walk(c);
+  return c;
+}
+
+function normalizeColor(c){
+  if(!c || c === 'transparent') return '#000000';
+  if(/^#[0-9a-fA-F]{6}$/.test(c)) return c;
+  if(/^#[0-9a-fA-F]{3}$/.test(c)){
+    return '#' + c.slice(1).split('').map(x=>x+x).join('');
+  }
+  const m = String(c).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if(m){
+    const h = x => (+x).toString(16).padStart(2,'0');
+    return '#' + h(m[1]) + h(m[2]) + h(m[3]);
+  }
+  return '#000000';
+}
+
+/* =========================================================
+   14. 事件面板
+   ========================================================= */
+function renderEvents(){
+  const body = $('#eventsBody');
+  const n = findNode(state.sel);
+  if(!n || n.id === 0){
+    body.innerHTML = '<div class="empty-msg">未选中元素<br>点击画布或层级树选中</div>';
+    return;
+  }
+  const tab = state.evTab;
+  const binds = n.events[tab] || [];
+
+  let html = `
+    <div class="ev-tabs">
+      <button data-ev="onClick" class="${tab==='onClick'?'on':''}">点击事件</button>
+      <button data-ev="onDrag"  class="${tab==='onDrag'?'on':''}">拖拽事件</button>
+    </div>
+  `;
+
+  if(binds.length === 0){
+    html += `<div class="empty-msg" style="padding:24px 10px">
+      还没有绑定${tab==='onClick'?'点击':'拖拽'}事件
+    </div>`;
+  } else {
+    binds.forEach(b => {
+      const target = findNode(b.t);
+      const act = ACTIONS[b.a];
+      const broken = !target;
+      const paramStr = act && act.params.length && b.p
+        ? act.params.map(pd => `${pd.label}: ${b.p[pd.k]}`).join(' · ')
+        : '';
+      html += `
+        <div class="bind-item ${broken ? 'broken' : ''}">
+          <button class="bi-del" data-del="${b.id}">✕</button>
+          <div class="bi-head">
+            <span class="bi-target">${broken ? '⚠ 目标已删除' : esc(labelOf(target))}</span>
+            <span class="bi-arrow">→</span>
+            <span class="bi-act">${act ? act.label : b.a}</span>
+          </div>
+          ${paramStr ? `<div class="bi-params">${esc(paramStr)}</div>` : ''}
+        </div>
+      `;
+    });
+  }
+
+  html += `<button class="add-bind-btn" id="addBindBtn">＋ 添加${tab==='onClick'?'点击':'拖拽'}绑定</button>`;
+  html += `<div class="ev-hint">
+    ${tab==='onClick'
+      ? '运行模式下点击此元素，即触发目标元素的动作。'
+      : '运行模式下拖动此元素时触发目标元素的动作。元素自身是否跟随移动，由它自己的「运行时可拖拽」开关决定。'}
+  </div>`;
+
+  body.innerHTML = html;
+
+  body.querySelectorAll('[data-ev]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.evTab = btn.dataset.ev;
+      renderEvents();
+    });
+  });
+  body.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pushUndoNow();
+      const bid = +btn.dataset.del;
+      const node = findNode(state.sel);
+      if(!node) return;
+      node.events[tab] = node.events[tab].filter(x => x.id !== bid);
+      renderEvents();
+      scheduleCode();
+      save();
+      toast('已删除绑定');
+    });
+  });
+  const addBtn = $('#addBindBtn');
+  if(addBtn) addBtn.addEventListener('click', openBindSheet);
+}
+
+let bindDraft = null;
+
+function openBindSheet(){
+  const n = findNode(state.sel);
+  if(!n || n.id === 0){ toast('请先选中元素'); return; }
+
+  const allNodes = [];
+  const walk = node => {
+    node.kids.forEach(k => { allNodes.push(k); walk(k); });
+  };
+  walk(state.root);
+  if(allNodes.length === 0){ toast('还没有其他元素可绑定'); return; }
+
+  bindDraft = { target: allNodes[0].id, action: 'toggle', params: {} };
+
+  const html = `
+    <div class="form-row">
+      <label>目标元素（被触发的元素）</label>
+      <select id="bTarget">
+        ${allNodes.map(x => `<option value="${x.id}" ${x.id===bindDraft.target?'selected':''}>
+          ${esc(pathOf(x.id))} · ${(TYPES[x.type]||{}).name||''}
+        </option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>执行动作</label>
+      <select id="bAction">
+        ${Object.entries(ACTIONS).map(([k,v]) =>
+          `<option value="${k}">${v.label}</option>`).join('')}
+      </select>
+    </div>
+    <div id="bParams"></div>
+    <button class="confirm-btn" id="bConfirm">确认绑定</button>
+  `;
+
+  $('#sheetTitle').textContent = (state.evTab === 'onClick' ? '点击事件' : '拖拽事件') + ' · 绑定动作';
+  $('#sheetBody').innerHTML = html;
+  $('#sheetMask').classList.add('on');
+
+  const renderParams = () => {
+    const act = ACTIONS[bindDraft.action];
+    const box = $('#bParams');
+    bindDraft.params = {};
+    if(!act.params.length){
+      box.innerHTML = `<div class="ev-hint" style="padding:6px 3px 12px">此动作无需参数</div>`;
+      return;
+    }
+    act.params.forEach(pd => { bindDraft.params[pd.k] = pd.def; });
+    box.innerHTML = act.params.map(pd => {
+      if(pd.t === 'color') return `
+        <div class="form-row">
+          <label>${pd.label}</label>
+          <input type="color" data-pk="${pd.k}" value="${pd.def}">
+        </div>`;
+      if(pd.t === 'num') return `
+        <div class="form-row">
+          <label>${pd.label}<span class="preview-val" id="pv_${pd.k}">${pd.def}</span></label>
+          <input type="range" data-pk="${pd.k}" data-pt="num"
+                 min="${pd.min}" max="${pd.max}" step="${pd.step}" value="${pd.def}"
+                 style="-webkit-appearance:none;width:100%;height:30px;background:transparent;padding:0;border:none;">
+        </div>`;
+      return `
+        <div class="form-row">
+          <label>${pd.label}</label>
+          <input type="text" data-pk="${pd.k}" data-pt="text" value="${esc(pd.def)}">
+        </div>`;
+    }).join('');
+
+    box.querySelectorAll('[data-pk]').forEach(inp => {
+      const k = inp.dataset.pk, t = inp.dataset.pt;
+      inp.addEventListener('input', () => {
+        bindDraft.params[k] = t === 'num' ? parseFloat(inp.value) : inp.value;
+        const pv = document.getElementById('pv_' + k);
+        if(pv) pv.textContent = inp.value;
+      });
+    });
+  };
+
+  $('#bTarget').addEventListener('change', e => bindDraft.target = +e.target.value);
+  $('#bAction').addEventListener('change', e => {
+    bindDraft.action = e.target.value;
+    renderParams();
+  });
+  renderParams();
+
+  $('#bConfirm').addEventListener('click', () => {
+    const node = findNode(state.sel);
+    if(!node) return;
+    pushUndoNow();
+    const act = ACTIONS[bindDraft.action];
+    const params = {};
+    if(act.params.length){
+      act.params.forEach(pd => {
+        params[pd.k] = bindDraft.params[pd.k] != null ? bindDraft.params[pd.k] : pd.def;
+      });
+    }
+    node.events[state.evTab].push({
+      id: state.nextId++,
+      t: bindDraft.target,
+      a: bindDraft.action,
+      p: params,
+    });
+    closeSheet();
+    renderEvents();
+    scheduleCode();
+    save();
+    toast('已绑定：' + act.label);
+  });
+}
+
+function closeSheet(){
+  $('#sheetMask').classList.remove('on');
+}
+
+/* =========================================================
+   15. 代码生成
+   ========================================================= */
+let _codeTimer = null;
+let _codeDirty = true;
+
+function scheduleCode(delay){
+  _codeDirty = true;
+  if(!state.wins.code.open) return;
+  clearTimeout(_codeTimer);
+  _codeTimer = setTimeout(() => {
+    if(state.wins.code.open && _codeDirty) renderCode();
+  }, delay != null ? delay : 200);
+}
+
+function hex(c){
+  if(!c || c === 'transparent') return [0,0,0,0];
+  const h = normalizeColor(c).replace('#','');
+  return [
+    parseInt(h.slice(0,2),16)/255,
+    parseInt(h.slice(2,4),16)/255,
+    parseInt(h.slice(4,6),16)/255,
+    1
+  ];
+}
+const f2 = v => (Math.round((+v||0)*100)/100).toFixed(2) + 'f';
+
+/* ---- 颜色 → ImVec4 字面量 ---- */
+function v4(c){
+  const [r,g,b,a] = hex(c);
+  return `ImVec4(${f2(r)}, ${f2(g)}, ${f2(b)}, ${f2(a)})`;
+}
+function v4l(c, d){
+  let [r,g,b,a] = hex(c);
+  r = Math.min(1, Math.max(0, r + d));
+  g = Math.min(1, Math.max(0, g + d));
+  b = Math.min(1, Math.max(0, b + d));
+  return `ImVec4(${f2(r)}, ${f2(g)}, ${f2(b)}, ${f2(a)})`;
+}
+
+/* ---- 工具：把文本切成若干项 ---- */
+function splitItems(text, byNewline){
+  return String(text || '')
+    .split(byNewline ? /\r?\n/ : ',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+/* ---- 工具：把进度条数值规整到 0..1 ---- */
+function fracOf(text){
+  let v = parseFloat(String(text).replace(/[^0-9.\-]/g, ''));
+  if(!isFinite(v)) return 0.5;
+  if(v > 1) v /= 100;
+  return Math.max(0, Math.min(1, v));
+}
+
+/* ---- 点击事件注释 ---- */
+function bindComments(n, ind){
+  const binds = (n.events && n.events.onClick) || [];
+  if(!binds.length) return `${ind}// TODO: 在此写点击逻辑\n`;
+  let s = `${ind}// 点击事件 →\n`;
+  binds.forEach(b => {
+    const t = findNode(b.t);
+    const act = ACTIONS[b.a];
+    let line = `//   · ${t ? labelOf(t) : '(目标已删除)'} : ${act ? act.label : b.a}`;
+    if(act && act.params && act.params.length && b.p){
+      line += ' [' + act.params.map(pd => `${pd.k}=${b.p[pd.k]}`).join(', ') + ']';
+    }
+    s += ind + line + '\n';
+  });
+  return s;
+}
+
+/* =========================================================
+   15-A. 代码片段（快速参考）
+   ========================================================= */
+function generateCode(){
+  const lines = [];
+
+  function gen(n, ind){
+    const p = '    '.repeat(ind);
+    let out = '';
+    out += `${p}// ── ${labelOf(n)} (${(TYPES[n.type]||{}).name || n.type}) ──\n`;
+    out += `${p}ImGui::PushID(${n.id});\n`;
+
+    switch(n.type){
+      /* ---------- 容器 ---------- */
+      case 'Frame':
+      case 'Card':
+      case 'Panel':
+      case 'Group':
+      case 'Toolbar': {
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_ChildBg, ${v4(n.bg)});\n`;
+        if(n.padding) out += `${p}ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(${f2(n.padding)}, ${f2(n.padding)}));\n`;
+        out += `${p}ImGui::BeginChild("##${cstr(labelOf(n))}_${n.id}", ImVec2(${f2(n.w)}, ${f2(n.h)}), true);\n`;
+        n.kids.forEach(c => out += gen(c, ind + 1));
+        out += `${p}ImGui::EndChild();\n`;
+        if(n.padding) out += `${p}ImGui::PopStyleVar();\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      }
+      case 'Row': {
+        out += `${p}// 横向行容器\n`;
+        if(!n.kids.length){
+          out += `${p}ImGui::TextDisabled("(空行)");\n`;
+        } else {
+          n.kids.forEach((c, i) => {
+            if(i > 0) out += `${p}ImGui::SameLine();\n`;
+            out += gen(c, ind);
+          });
+        }
+        break;
+      }
+
+      /* ---------- 文本 ---------- */
+      case 'Text':
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+        out += `${p}ImGui::TextUnformatted("${cstr(n.text)}");\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      case 'Title':
+      case 'SubTitle': {
+        const scale = n.type === 'Title'
+          ? Math.max(0.6, n.fontSize / 14) : Math.max(0.5, n.fontSize / 14);
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+        out += `${p}ImGui::SetWindowFontScale(${f2(scale)});\n`;
+        out += `${p}ImGui::TextUnformatted("${cstr(n.text)}");\n`;
+        out += `${p}ImGui::SetWindowFontScale(1.0f);\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      }
+      case 'Caption':
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+        out += `${p}ImGui::TextDisabled("${cstr(n.text)}");\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      case 'Code':
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+        out += `${p}ImGui::TextUnformatted("${cstr(n.text)}");\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      case 'Quote':
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+        out += `${p}ImGui::TextWrapped("${cstr(n.text)}");\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      case 'Divider':
+        out += `${p}ImGui::Separator();\n`;
+        break;
+      case 'Spacer':
+        out += `${p}ImGui::Dummy(ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+        break;
+
+      /* ---------- 按钮类 ---------- */
+      case 'Button':
+      case 'Ghost': {
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Button,        ${v4(n.bg)});\n`;
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ${v4l(n.bg, 0.10)});\n`;
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text,          ${v4(n.color)});\n`;
+        out += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(n.radius >= 999 ? Math.min(n.w,n.h)/2 : n.radius)});\n`;
+        out += `${p}if (ImGui::Button("${cstr(n.text)}", ImVec2(${f2(n.w)}, ${f2(n.h)}))) {\n`;
+        out += bindComments(n, p + '    ');
+        out += `${p}}\n`;
+        out += `${p}ImGui::PopStyleVar();\n${p}ImGui::PopStyleColor(3);\n`;
+        break;
+      }
+      case 'IconBtn': {
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Button, ${v4(n.bg)});\n`;
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text,   ${v4(n.color)});\n`;
+        out += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(n.radius)});\n`;
+        out += `${p}if (ImGui::Button("${cstr(n.text)}", ImVec2(${f2(n.w)}, ${f2(n.h)}))) {\n`;
+        out += bindComments(n, p + '    ');
+        out += `${p}}\n`;
+        out += `${p}ImGui::PopStyleVar();\n${p}ImGui::PopStyleColor(2);\n`;
+        break;
+      }
+      case 'Circle':
+      case 'Avatar': {
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Button, ${v4(n.bg)});\n`;
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text,   ${v4(n.color)});\n`;
+        out += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(Math.min(n.w,n.h)/2)});\n`;
+        out += `${p}if (ImGui::Button("${cstr(n.text || '##circle')}_${n.id}", ImVec2(${f2(n.w)}, ${f2(n.h)}))) {\n`;
+        out += bindComments(n, p + '    ');
+        out += `${p}}\n`;
+        out += `${p}ImGui::PopStyleVar();\n${p}ImGui::PopStyleColor(2);\n`;
+        break;
+      }
+      case 'Badge':
+      case 'Chip': {
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Button, ${v4(n.bg)});\n`;
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_Text,   ${v4(n.color)});\n`;
+        out += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(Math.min(n.radius, Math.min(n.w,n.h)/2))});\n`;
+        out += `${p}ImGui::SmallButton("${cstr(n.text)}");\n`;
+        out += `${p}ImGui::PopStyleVar();\n${p}ImGui::PopStyleColor(2);\n`;
+        break;
+      }
+
+      /* ---------- 输入类 ---------- */
+      case 'Toggle': {
+        const v = `on_${n.id}`;
+        out += `${p}static bool ${v} = true;\n`;
+        out += `${p}ImGui::Checkbox("${cstr(n.text)}", &${v});\n`;
+        break;
+      }
+      case 'Checkbox': {
+        const v = `chk_${n.id}`;
+        out += `${p}static bool ${v} = false;\n`;
+        out += `${p}ImGui::Checkbox("${cstr(n.text)}", &${v});\n`;
+        break;
+      }
+      case 'Radio': {
+        out += `${p}static int radio_${n.id} = 0;\n`;
+        out += `${p}ImGui::RadioButton("${cstr(n.text)}", &radio_${n.id}, 0);\n`;
+        break;
+      }
+      case 'Input': {
+        const v = `buf_${n.id}`;
+        out += `${p}static char ${v}[128] = "";\n`;
+        out += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+        out += `${p}ImGui::InputTextWithHint("##in_${n.id}", "${cstr(n.text)}", ${v}, IM_ARRAYSIZE(${v}));\n`;
+        break;
+      }
+      case 'TextArea': {
+        const v = `buf_${n.id}`;
+        out += `${p}static char ${v}[1024] = "";\n`;
+        out += `${p}ImGui::InputTextMultiline("##ta_${n.id}", ${v}, IM_ARRAYSIZE(${v}), ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+        break;
+      }
+      case 'Combo': {
+        const items = splitItems(n.text, false);
+        out += `${p}static int combo_${n.id} = 0;\n`;
+        out += `${p}const char* combo_items_${n.id}[] = { ${items.map(i=>`"${cstr(i)}"`).join(', ') || '""'} };\n`;
+        out += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+        out += `${p}ImGui::Combo("##combo_${n.id}", &combo_${n.id}, combo_items_${n.id}, IM_ARRAYSIZE(combo_items_${n.id}));\n`;
+        break;
+      }
+      case 'Slider': {
+        let v = parseFloat(n.text);
+        if(!isFinite(v)) v = 0.5;
+        out += `${p}static float slider_${n.id} = ${f2(v)};\n`;
+        out += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+        out += `${p}ImGui::SliderFloat("##slider_${n.id}", &slider_${n.id}, 0.0f, 1.0f, "%.2f");\n`;
+        break;
+      }
+      case 'Stepper': {
+        let v = parseInt(n.text, 10);
+        if(!isFinite(v)) v = 0;
+        out += `${p}static int step_${n.id} = ${v};\n`;
+        out += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+        out += `${p}ImGui::InputInt("##step_${n.id}", &step_${n.id});\n`;
+        break;
+      }
+      case 'Progress': {
+        const frac = fracOf(n.text);
+        out += `${p}ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ${v4(n.bg)});\n`;
+        out += `${p}ImGui::ProgressBar(${frac.toFixed(2)}f, ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+        out += `${p}ImGui::PopStyleColor();\n`;
+        break;
+      }
+
+      /* ---------- 展示类 ---------- */
+      case 'Image':
+        out += `${p}// 图片占位：替换为你的纹理\n`;
+        out += `${p}ImGui::Button("${cstr(n.text || '[图片]')}", ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+        break;
+      case 'ColorSwatch':
+        out += `${p}ImGui::ColorButton("##swatch_${n.id}", ${v4(n.bg)}, ImGuiColorEditFlags_None, ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+        break;
+      case 'Tabs': {
+        const items = splitItems(n.text, false);
+        out += `${p}if (ImGui::BeginTabBar("##tabs_${n.id}"))\n${p}{\n`;
+        items.forEach(it => {
+          out += `${p}    if (ImGui::BeginTabItem("${cstr(it)}"))\n${p}    {\n`;
+          out += `${p}        // TODO: ${it} 页面内容\n`;
+          out += `${p}        ImGui::EndTabItem();\n${p}    }\n`;
+        });
+        out += `${p}    ImGui::EndTabBar();\n${p}}\n`;
+        break;
+      }
+      case 'Table': {
+        const cols = splitItems(n.text, false);
+        const cc = Math.max(1, cols.length);
+        out += `${p}if (ImGui::BeginTable("##table_${n.id}", ${cc}, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))\n${p}{\n`;
+        cols.forEach(cn => { out += `${p}    ImGui::TableSetupColumn("${cstr(cn)}");\n`; });
+        out += `${p}    ImGui::TableHeadersRow();\n`;
+        out += `${p}    for (int r = 0; r < 3; r++)\n${p}    {\n`;
+        out += `${p}        ImGui::TableNextRow();\n`;
+        cols.forEach((cn, i) => {
+          out += `${p}        ImGui::TableSetColumnIndex(${i});\n`;
+          out += `${p}        ImGui::Text("%s", "-");\n`;
+        });
+        out += `${p}    }\n${p}    ImGui::EndTable();\n${p}}\n`;
+        break;
+      }
+      case 'List': {
+        const items = splitItems(n.text, true);
+        out += `${p}ImGui::BeginChild("##list_${n.id}", ImVec2(${f2(n.w)}, ${f2(n.h)}), true);\n`;
+        out += `${p}    static int sel_${n.id} = 0;\n`;
+        out += `${p}    const char* items_${n.id}[] = { ${items.map(i=>`"${cstr(i)}"`).join(', ') || '""'} };\n`;
+        out += `${p}    for (int i = 0; i < IM_ARRAYSIZE(items_${n.id}); i++)\n`;
+        out += `${p}        if (ImGui::Selectable(items_${n.id}[i], sel_${n.id} == i)) sel_${n.id} = i;\n`;
+        out += `${p}ImGui::EndChild();\n`;
+        break;
+      }
+
+      default:
+        out += `${p}ImGui::TextUnformatted("${cstr(labelOf(n))}");\n`;
+    }
+    out += `${p}ImGui::PopID();\n`;
+    return out;
+  }
+  state.root.kids.forEach(k => lines.push(gen(k, 0)));
+
+  return `// ===== 由手机端 ImGui 编辑器生成 · 代码片段 =====\n` +
+         `// 放在你的 ImGui 渲染循环中直接使用\n\n` +
+         (lines.join('\n') || '// 暂无元素\n');
+}
+
+/* =========================================================
+   15-B. 完整可运行工程代码
+   ========================================================= */
+function genFull(n, ind){
+  const p = '    '.repeat(ind);
+  const T = TYPES[n.type] || {};
+  const radius = (n.radius >= 999) ? Math.min(n.w, n.h) / 2 : n.radius;
+  let s = '';
+
+  s += `\n${p}// ────────── ${labelOf(n)} · ${T.name || n.type} ──────────\n`;
+  s += `${p}ImGui::PushID(${n.id});\n`;
+  if(!n.visible) s += `${p}// 注意：该元素在编辑器中设为「不可见」\n`;
+  s += `${p}ImGui::SetCursorPos(ImVec2(${f2(n.x)}, ${f2(n.y)}));\n`;
+
+  switch(n.type){
+    /* ---------- 容器 ---------- */
+    case 'Frame':
+    case 'Card':
+    case 'Panel':
+    case 'Group':
+    case 'Toolbar': {
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_ChildBg, ${v4(n.bg)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Border,  ${v4(n.borderC)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding,   ${f2(radius)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, ${f2(n.borderW)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,   ImVec2(${f2(n.padding)}, ${f2(n.padding)}));\n`;
+      s += `${p}ImGui::BeginChild("##child_${n.id}", ImVec2(${f2(n.w)}, ${f2(n.h)}), true);\n`;
+      if(n.kids.length){
+        n.kids.forEach(k => { s += genFull(k, ind + 1); });
+      } else {
+        s += `${p}    // 空容器\n`;
+      }
+      s += `${p}ImGui::EndChild();\n`;
+      s += `${p}ImGui::PopStyleVar(3);\n`;
+      s += `${p}ImGui::PopStyleColor(2);\n`;
+      break;
+    }
+    case 'Row': {
+      s += `${p}// 横向行：子元素依次 SameLine 排列\n`;
+      if(!n.kids.length){
+        s += `${p}ImGui::TextDisabled("(空行)");\n`;
+      } else {
+        n.kids.forEach((k, i) => {
+          if(i > 0) s += `${p}ImGui::SameLine();\n`;
+          s += genFull(k, ind + 1);
+        });
+      }
+      break;
+    }
+
+    /* ---------- 文本 ---------- */
+    case 'Text':
+    case 'Caption':
+    case 'Code':
+    case 'Quote': {
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      if(n.type === 'Quote'){
+        s += `${p}ImGui::TextWrapped("${cstr(n.text)}");\n`;
+      } else {
+        s += `${p}ImGui::TextUnformatted("${cstr(n.text)}");\n`;
+      }
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    }
+    case 'Title':
+    case 'SubTitle': {
+      const scale = Math.max(0.5, n.fontSize / 14);
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      s += `${p}ImGui::SetWindowFontScale(${f2(scale)});\n`;
+      s += `${p}ImGui::TextUnformatted("${cstr(n.text)}");\n`;
+      s += `${p}ImGui::SetWindowFontScale(1.0f);\n`;
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    }
+    case 'Divider':
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Separator, ${v4(n.bg)});\n`;
+      s += `${p}ImGui::Separator();\n`;
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    case 'Spacer':
+      s += `${p}ImGui::Dummy(ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+      break;
+
+    /* ---------- 按钮类 ---------- */
+    case 'Button':
+    case 'Ghost': {
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Button,        ${v4(n.bg)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ${v4l(n.bg,  0.10)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ${v4l(n.bg, -0.08)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text,          ${v4(n.color)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      if(n.borderW > 0){
+        s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, ${f2(n.borderW)});\n`;
+        s += `${p}ImGui::PushStyleColor(ImGuiCol_Border, ${v4(n.borderC)});\n`;
+      }
+      s += `${p}if (ImGui::Button("${cstr(n.text)}", ImVec2(${f2(n.w)}, ${f2(n.h)})))\n`;
+      s += `${p}{\n`;
+      s += bindComments(n, p + '    ');
+      s += `${p}}\n`;
+      if(n.borderW > 0){
+        s += `${p}ImGui::PopStyleColor();   // Border\n`;
+        s += `${p}ImGui::PopStyleVar();     // FrameBorderSize\n`;
+      }
+      s += `${p}ImGui::PopStyleVar();     // FrameRounding\n`;
+      s += `${p}ImGui::PopStyleColor(4);  // Button/Hovered/Active/Text\n`;
+      break;
+    }
+    case 'IconBtn': {
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Button, ${v4(n.bg)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ${v4l(n.bg, 0.10)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      s += `${p}if (ImGui::Button("${cstr(n.text)}", ImVec2(${f2(n.w)}, ${f2(n.h)})))\n`;
+      s += `${p}{\n`;
+      s += bindComments(n, p + '    ');
+      s += `${p}}\n`;
+      s += `${p}ImGui::PopStyleVar();\n${p}ImGui::PopStyleColor(3);\n`;
+      break;
+    }
+    case 'Circle':
+    case 'Avatar': {
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Button, ${v4(n.bg)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ${v4l(n.bg, 0.10)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(Math.min(n.w, n.h) / 2)});\n`;
+      s += `${p}if (ImGui::Button("${cstr(n.text || '')}##round_${n.id}", ImVec2(${f2(n.w)}, ${f2(n.h)})))\n`;
+      s += `${p}{\n`;
+      s += bindComments(n, p + '    ');
+      s += `${p}}\n`;
+      s += `${p}ImGui::PopStyleVar();\n`;
+      s += `${p}ImGui::PopStyleColor(3);\n`;
+      break;
+    }
+    case 'Badge':
+    case 'Chip': {
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Button, ${v4(n.bg)});\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text,   ${v4(n.color)});\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      s += `${p}ImGui::SmallButton("${cstr(n.text)}");\n`;
+      s += `${p}ImGui::PopStyleVar();\n`;
+      s += `${p}ImGui::PopStyleColor(2);\n`;
+      break;
+    }
+
+    /* ---------- 输入类 ---------- */
+    case 'Toggle': {
+      const v = `g_toggle_${n.id}`;
+      s += `${p}static bool ${v} = true;\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      s += `${p}ImGui::Checkbox("${cstr(n.text)}", &${v});\n`;
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    }
+    case 'Checkbox': {
+      const v = `g_check_${n.id}`;
+      s += `${p}static bool ${v} = false;\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      s += `${p}ImGui::Checkbox("${cstr(n.text)}", &${v});\n`;
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    }
+    case 'Radio': {
+      s += `${p}static int g_radio_${n.id} = 0;\n`;
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_Text, ${v4(n.color)});\n`;
+      s += `${p}ImGui::RadioButton("${cstr(n.text)}", &g_radio_${n.id}, 0);\n`;
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    }
+    case 'Input': {
+      const buf = `g_input_${n.id}`;
+      s += `${p}static char ${buf}[128] = "";\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      s += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+      s += `${p}ImGui::InputTextWithHint("##input_${n.id}", "${cstr(n.text)}", ${buf}, IM_ARRAYSIZE(${buf}));\n`;
+      s += `${p}ImGui::PopStyleVar();\n`;
+      break;
+    }
+    case 'TextArea': {
+      const buf = `g_text_${n.id}`;
+      s += `${p}static char ${buf}[1024] = "";\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      s += `${p}ImGui::InputTextMultiline("##textarea_${n.id}", ${buf}, IM_ARRAYSIZE(${buf}), ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+      s += `${p}ImGui::PopStyleVar();\n`;
+      break;
+    }
+    case 'Combo': {
+      const items = splitItems(n.text, false);
+      s += `${p}static int g_combo_${n.id} = 0;\n`;
+      s += `${p}const char* g_combo_items_${n.id}[] = { ${items.map(i=>`"${cstr(i)}"`).join(', ') || '""'} };\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      s += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+      s += `${p}ImGui::Combo("##combo_${n.id}", &g_combo_${n.id}, g_combo_items_${n.id}, IM_ARRAYSIZE(g_combo_items_${n.id}));\n`;
+      s += `${p}ImGui::PopStyleVar();\n`;
+      break;
+    }
+    case 'Slider': {
+      let v = parseFloat(n.text);
+      if(!isFinite(v)) v = 0.5;
+      s += `${p}static float g_slider_${n.id} = ${f2(v)};\n`;
+      s += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+      s += `${p}ImGui::SliderFloat("##slider_${n.id}", &g_slider_${n.id}, 0.0f, 1.0f, "%.2f");\n`;
+      break;
+    }
+    case 'Stepper': {
+      let v = parseInt(n.text, 10);
+      if(!isFinite(v)) v = 0;
+      s += `${p}static int g_step_${n.id} = ${v};\n`;
+      s += `${p}ImGui::SetNextItemWidth(${f2(n.w)});\n`;
+      s += `${p}ImGui::InputInt("##step_${n.id}", &g_step_${n.id});\n`;
+      break;
+    }
+    case 'Progress': {
+      const frac = fracOf(n.text);
+      s += `${p}ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ${v4(n.bg)});\n`;
+      s += `${p}ImGui::ProgressBar(${frac.toFixed(2)}f, ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+      s += `${p}ImGui::PopStyleColor();\n`;
+      break;
+    }
+
+    /* ---------- 展示类 ---------- */
+    case 'Image': {
+      s += `${p}// 图片占位：把下面这行换成你的纹理\n`;
+      s += `${p}// ImGui::Image((ImTextureID)(intptr_t)myTexture, ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+      s += `${p}ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ${f2(radius)});\n`;
+      s += `${p}ImGui::Button("${cstr(n.text || '[图片]')}", ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+      s += `${p}ImGui::PopStyleVar();\n`;
+      break;
+    }
+    case 'ColorSwatch': {
+      s += `${p}ImGui::ColorButton("##swatch_${n.id}", ${v4(n.bg)}, ImGuiColorEditFlags_None, ImVec2(${f2(n.w)}, ${f2(n.h)}));\n`;
+      break;
+    }
+    case 'Tabs': {
+      const items = splitItems(n.text, false);
+      s += `${p}if (ImGui::BeginTabBar("##tabs_${n.id}"))\n${p}{\n`;
+      items.forEach(it => {
+        s += `${p}    if (ImGui::BeginTabItem("${cstr(it)}"))\n${p}    {\n`;
+        s += `${p}        // TODO: ${it} 页面内容\n`;
+        s += `${p}        ImGui::EndTabItem();\n${p}    }\n`;
+      });
+      s += `${p}    ImGui::EndTabBar();\n${p}}\n`;
+      break;
+    }
+    case 'Table': {
+      const cols = splitItems(n.text, false);
+      const cc = Math.max(1, cols.length);
+      s += `${p}if (ImGui::BeginTable("##table_${n.id}", ${cc}, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))\n${p}{\n`;
+      cols.forEach(cn => { s += `${p}    ImGui::TableSetupColumn("${cstr(cn)}");\n`; });
+      s += `${p}    ImGui::TableHeadersRow();\n`;
+      s += `${p}    for (int r = 0; r < 3; r++)\n${p}    {\n`;
+      s += `${p}        ImGui::TableNextRow();\n`;
+      cols.forEach((cn, i) => {
+        s += `${p}        ImGui::TableSetColumnIndex(${i});\n`;
+        s += `${p}        ImGui::Text("%s", "-");\n`;
+      });
+      s += `${p}    }\n${p}    ImGui::EndTable();\n${p}}\n`;
+      break;
+    }
+    case 'List': {
+      const items = splitItems(n.text, true);
+      s += `${p}ImGui::BeginChild("##list_${n.id}", ImVec2(${f2(n.w)}, ${f2(n.h)}), true);\n`;
+      s += `${p}    static int g_list_sel_${n.id} = 0;\n`;
+      s += `${p}    const char* g_list_${n.id}[] = { ${items.map(i=>`"${cstr(i)}"`).join(', ') || '""'} };\n`;
+      s += `${p}    for (int i = 0; i < IM_ARRAYSIZE(g_list_${n.id}); i++)\n`;
+      s += `${p}        if (ImGui::Selectable(g_list_${n.id}[i], g_list_sel_${n.id} == i))\n`;
+      s += `${p}            g_list_sel_${n.id} = i;\n`;
+      s += `${p}ImGui::EndChild();\n`;
+      break;
+    }
+
+    default:
+      s += `${p}ImGui::TextUnformatted("${cstr(labelOf(n))}");\n`;
+  }
+
+  s += `${p}ImGui::PopID();\n`;
+  return s;
+}
+
+function generateFullCode(){
+  /* ---- 计算画布尺寸 ---- */
+  let maxX = 0, maxY = 0;
+  const walkSize = (node, ox, oy) => {
+    const pad = node.padding || 0;
+    node.kids.forEach(k => {
+      const x = ox + k.x + pad, y = oy + k.y + pad;
+      maxX = Math.max(maxX, x + k.w);
+      maxY = Math.max(maxY, y + k.h);
+      walkSize(k, x, y);
+    });
+  };
+  walkSize(state.root, 0, 0);
+
+  const winW = Math.max(360, Math.ceil((maxX + 40) / 10) * 10);
+  const winH = Math.max(480, Math.ceil((maxY + 40) / 10) * 10);
+
+  const body = state.root.kids.length
+    ? state.root.kids.map(k => genFull(k, 2)).join('\n')
+    : '        // 画布为空：先在编辑器里添加元素，这里会自动生成代码\n';
+
+  const L = [];
+  const P = (...xs) => xs.forEach(x => L.push(x));
+
+  P('// ============================================================',
+    '//  ImGui 应用 · 由「ImGui 编辑器」自动生成',
+    '//  完整可运行版本（可直接保存为 main.cpp 编译运行）',
+    '//',
+    '//  依赖：Dear ImGui  +  GLFW  +  OpenGL3',
+    '//',
+    '//  目录结构：',
+    '//      main.cpp                                   ← 本文件',
+    '//      imgui/                                     ← Dear ImGui 源码',
+    '//      imgui/backends/imgui_impl_glfw.cpp',
+    '//      imgui/backends/imgui_impl_opengl3.cpp',
+    '//',
+    '//  编译（Linux / macOS）：',
+    '//      g++ main.cpp imgui/*.cpp \\',
+    '//          imgui/backends/imgui_impl_glfw.cpp \\',
+    '//          imgui/backends/imgui_impl_opengl3.cpp \\',
+    '//          -Iimgui -Iimgui/backends \\',
+    '//          $(pkg-config --cflags --libs glfw3) -lGL -ldl -o imgui_app',
+    '//',
+    '//  编译（Windows / MSVC）：',
+    '//      把上述 .cpp 全部加入工程，链接 glfw3.lib 与 opengl32.lib',
+    '// ============================================================',
+    '',
+    '#include "imgui.h"',
+    '#include "imgui_impl_glfw.h"',
+    '#include "imgui_impl_opengl3.h"',
+    '',
+    '#include <GLFW/glfw3.h>',
+    '',
+    '#include <cstdio>',
+    '#include <cmath>',
+    '',
+    '// ---------------------- 画布尺寸 ----------------------',
+    `static const float kCanvasW = ${winW.toFixed(1)}f;`,
+    `static const float kCanvasH = ${winH.toFixed(1)}f;`,
+    '',
+    '',
+    '// ============================================================',
+    '//  深色主题（与编辑器预览保持一致）',
+    '// ============================================================',
+    'static void ApplyDarkStyle()',
+    '{',
+    '    ImGuiStyle& style = ImGui::GetStyle();',
+    '    style.WindowRounding    = 10.0f;',
+    '    style.ChildRounding     = 12.0f;',
+    '    style.FrameRounding     = 8.0f;',
+    '    style.GrabRounding      = 8.0f;',
+    '    style.PopupRounding     = 8.0f;',
+    '    style.ScrollbarRounding = 8.0f;',
+    '    style.WindowBorderSize  = 1.0f;',
+    '    style.FrameBorderSize   = 0.0f;',
+    '    style.WindowPadding     = ImVec2(12.0f, 12.0f);',
+    '    style.FramePadding      = ImVec2(10.0f, 6.0f);',
+    '    style.ItemSpacing       = ImVec2(8.0f, 8.0f);',
+    '',
+    '    ImVec4* c = style.Colors;',
+    '    c[ImGuiCol_WindowBg]         = ImVec4(0.055f, 0.055f, 0.051f, 1.00f);',
+    '    c[ImGuiCol_ChildBg]          = ImVec4(0.106f, 0.102f, 0.094f, 1.00f);',
+    '    c[ImGuiCol_PopupBg]          = ImVec4(0.090f, 0.090f, 0.086f, 0.98f);',
+    '    c[ImGuiCol_Border]           = ImVec4(0.169f, 0.169f, 0.157f, 1.00f);',
+    '    c[ImGuiCol_Text]             = ImVec4(0.910f, 0.902f, 0.882f, 1.00f);',
+    '    c[ImGuiCol_TextDisabled]     = ImVec4(0.365f, 0.357f, 0.333f, 1.00f);',
+    '    c[ImGuiCol_FrameBg]          = ImVec4(0.078f, 0.075f, 0.071f, 1.00f);',
+    '    c[ImGuiCol_FrameBgHovered]   = ImVec4(0.137f, 0.133f, 0.125f, 1.00f);',
+    '    c[ImGuiCol_FrameBgActive]    = ImVec4(0.176f, 0.169f, 0.157f, 1.00f);',
+    '    c[ImGuiCol_TitleBg]          = ImVec4(0.055f, 0.055f, 0.051f, 1.00f);',
+    '    c[ImGuiCol_TitleBgActive]    = ImVec4(0.086f, 0.086f, 0.078f, 1.00f);',
+    '    c[ImGuiCol_Button]           = ImVec4(0.886f, 0.639f, 0.333f, 1.00f);',
+    '    c[ImGuiCol_ButtonHovered]    = ImVec4(0.937f, 0.710f, 0.431f, 1.00f);',
+    '    c[ImGuiCol_ButtonActive]     = ImVec4(0.800f, 0.561f, 0.271f, 1.00f);',
+    '    c[ImGuiCol_CheckMark]        = ImVec4(0.886f, 0.639f, 0.333f, 1.00f);',
+    '    c[ImGuiCol_SliderGrab]       = ImVec4(0.886f, 0.639f, 0.333f, 1.00f);',
+    '    c[ImGuiCol_SliderGrabActive] = ImVec4(0.937f, 0.710f, 0.431f, 1.00f);',
+    '    c[ImGuiCol_Header]           = ImVec4(0.886f, 0.639f, 0.333f, 0.25f);',
+    '    c[ImGuiCol_HeaderHovered]    = ImVec4(0.886f, 0.639f, 0.333f, 0.35f);',
+    '    c[ImGuiCol_HeaderActive]     = ImVec4(0.886f, 0.639f, 0.333f, 0.50f);',
+    '    c[ImGuiCol_Separator]        = ImVec4(0.180f, 0.176f, 0.165f, 1.00f);',
+    '    c[ImGuiCol_ScrollbarBg]      = ImVec4(0.055f, 0.055f, 0.051f, 0.60f);',
+    '    c[ImGuiCol_ScrollbarGrab]    = ImVec4(0.220f, 0.216f, 0.204f, 1.00f);',
+    '}',
+    '',
+    '',
+    '// ============================================================',
+    '//  界面绘制（由编辑器生成）',
+    '// ============================================================',
+    'static void DrawUI()',
+    '{',
+    '    ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiCond_FirstUseEver);',
+    '    ImGui::SetNextWindowSize(ImVec2(kCanvasW, kCanvasH), ImGuiCond_FirstUseEver);',
+    '',
+    '    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));',
+    '    ImGui::Begin("ImGui App", nullptr,',
+    '                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);',
+    '');
+  P(body);
+  P('',
+    '    ImGui::End();',
+    '    ImGui::PopStyleVar();',
+    '}',
+    '',
+    '',
+    '// ============================================================',
+    '//  主循环',
+    '// ============================================================',
+    'int main(int, char**)',
+    '{',
+    '    // ---- 初始化 GLFW ----',
+    '    if (!glfwInit())',
+    '    {',
+    '        std::printf("glfwInit() failed\\n");',
+    '        return 1;',
+    '    }',
+    '',
+    '    const char* glsl_version = "#version 130";',
+    '    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);',
+    '    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);',
+    '',
+    '    GLFWwindow* window = glfwCreateWindow(',
+    '        (int)kCanvasW + 40, (int)kCanvasH + 40, "ImGui App", nullptr, nullptr);',
+    '    if (!window)',
+    '    {',
+    '        std::printf("glfwCreateWindow() failed\\n");',
+    '        glfwTerminate();',
+    '        return 1;',
+    '    }',
+    '    glfwMakeContextCurrent(window);',
+    '    glfwSwapInterval(1); // 垂直同步',
+    '',
+    '    // ---- 初始化 Dear ImGui ----',
+    '    IMGUI_CHECKVERSION();',
+    '    ImGui::CreateContext();',
+    '    ImGuiIO& io = ImGui::GetIO();',
+    '    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;',
+    '',
+    '    ApplyDarkStyle();',
+    '',
+    '    ImGui_ImplGlfw_InitForOpenGL(window, true);',
+    '    ImGui_ImplOpenGL3_Init(glsl_version);',
+    '',
+    '    // ---- 渲染循环 ----',
+    '    while (!glfwWindowShouldClose(window))',
+    '    {',
+    '        glfwPollEvents();',
+    '',
+    '        ImGui_ImplOpenGL3_NewFrame();',
+    '        ImGui_ImplGlfw_NewFrame();',
+    '        ImGui::NewFrame();',
+    '',
+    '        // ===== 绘制界面 =====',
+    '        DrawUI();',
+    '',
+    '        ImGui::Render();',
+    '        int fb_w = 0, fb_h = 0;',
+    '        glfwGetFramebufferSize(window, &fb_w, &fb_h);',
+    '        glViewport(0, 0, fb_w, fb_h);',
+    '        glClearColor(0.055f, 0.055f, 0.051f, 1.00f);',
+    '        glClear(GL_COLOR_BUFFER_BIT);',
+    '        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());',
+    '',
+    '        glfwSwapBuffers(window);',
+    '    }',
+    '',
+    '    // ---- 清理 ----',
+    '    ImGui_ImplOpenGL3_Shutdown();',
+    '    ImGui_ImplGlfw_Shutdown();',
+    '    ImGui::DestroyContext();',
+    '',
+    '    glfwDestroyWindow(window);',
+    '    glfwTerminate();',
+    '    return 0;',
+    '}',
+    '');
+
+  return L.join('\n');
+}
+
+/* =========================================================
+   15-C. 代码面板渲染 + 复制 / 下载
+   ========================================================= */
+function renderCode(){
+  _codeDirty = false;
+  const body = $('#codeBody');
+  const isFull = state.codeView === 'full';
+  const code = isFull ? generateFullCode() : generateCode();
+  const lines = code.split('\n').length;
+
+  body.innerHTML =
+    `<div class="ev-tabs" style="margin-bottom:8px">
+       <button data-cv="full"    class="${isFull ? 'on' : ''}">完整可运行</button>
+       <button data-cv="snippet" class="${!isFull ? 'on' : ''}">代码片段</button>
+     </div>
+     <div style="font-size:10px;color:#5d5b55;margin:0 2px 7px;font-family:var(--mono)">
+       ${isFull ? 'main.cpp' : 'snippet'} · ${lines} 行
+     </div>
+     <pre class="code" id="codePre">${esc(code)}</pre>
+     <button class="copy-btn primary" id="copyBtn">复制${isFull ? '完整代码' : '代码片段'}</button>
+     ${isFull ? '<button class="copy-btn" id="dlBtn">下载 main.cpp</button>' : ''}`;
+
+  body.querySelectorAll('[data-cv]').forEach(b => {
+    b.addEventListener('click', () => {
+      if(state.codeView === b.dataset.cv) return;
+      state.codeView = b.dataset.cv;
+      renderCode();
+    });
+  });
+
+  $('#copyBtn').addEventListener('click', () => {
+    copyText(code, isFull ? '完整代码' : '代码片段');
+  });
+
+  const dl = $('#dlBtn');
+  if(dl){
+    dl.addEventListener('click', () => downloadText('main.cpp', code));
+  }
+}
+
+/* ---- 复制（多级降级，保证成功） ---- */
+function copyText(text, name){
+  const tip = name ? ('：' + name) : '';
+  const done = () => toast('已复制' + tip + '（' + text.length + ' 字符）');
+  const fail = () => toast('复制失败，请长按代码区手动全选');
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => {
+      if(legacyCopy(text)) done(); else fail();
+    });
+    return;
+  }
+  if(legacyCopy(text)) done(); else fail();
+}
+
+function legacyCopy(text){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText =
+      'position:fixed;top:0;left:0;width:1px;height:1px;' +
+      'padding:0;border:none;outline:none;box-shadow:none;' +
+      'background:transparent;opacity:0;';
+    document.body.appendChild(ta);
+
+    const sel = document.getSelection();
+    const prevRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+
+    let ok = false;
+    try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+
+    document.body.removeChild(ta);
+    if(prevRange && sel){
+      sel.removeAllRanges();
+      sel.addRange(prevRange);
+    }
+    return ok;
+  }catch(e){
+    return false;
+  }
+}
+
+/* ---- 下载 ---- */
+function downloadText(filename, text){
+  try{
+    const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 300);
+    toast('已开始下载 ' + filename);
+  }catch(e){
+    toast('下载失败，请改用「复制」');
+  }
+}
+
+/* =========================================================
+   16. 添加元素
+   ========================================================= */
+function openAddSheet(){
+  let html = '';
+  for(const cat in TYPE_CATS){
+    html += `<div class="cat-name">${cat}</div><div class="cat-grid">`;
+    TYPE_CATS[cat].forEach(k => {
+      const T = TYPES[k];
+      if(!T) return;
+      html += `<button data-type="${k}">
+                 <span class="em">${T.icon}</span>${T.name}
+               </button>`;
+    });
+    html += `</div>`;
+  }
+  $('#sheetTitle').textContent = '添加元素';
+  $('#sheetBody').innerHTML = html;
+  $('#sheetMask').classList.add('on');
+
+  $('#sheetBody').querySelectorAll('[data-type]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      closeSheet();
+      addNode(btn.dataset.type);
+    });
+  });
+}
+
+function addNode(type){
+  pushUndoNow();
+  const n = createNode(type);
+  const sel = findNode(state.sel);
+
+  if(sel && sel.id !== 0){
+    const existingCount = sel.kids.length;
+    sel.kids.push(n);
+    sel.open = true;
+    n.x = 12;
+    n.y = 12 + existingCount * 10;
+    n.w = Math.min(n.w, Math.max(40, sel.w - 24));
+  } else {
+    const count = state.root.kids.length;
+    n.x = 24 + (count % 5) * 14;
+    n.y = 40 + count * 18;
+    state.root.kids.push(n);
+  }
+
+  state.sel = n.id;
+  renderStage();
+  renderHier();
+  if(state.wins.props.open) renderProps();
+  if(state.wins.events.open) renderEvents();
+  scheduleCode();
+  save();
+  syncRunDragBtn();
+
+  requestAnimationFrame(() => {
+    const el = elMap.get(n.id);
+    if(el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+  });
+  toast('已添加：' + (TYPES[type] || {}).name);
+}
+
+/* =========================================================
+   17. 浮动窗管理
+   ========================================================= */
+const WIN_EL = {
+  hier: '#fwHier', props: '#fwProps', events: '#fwEvents', code: '#fwCode',
+};
+
+function applyWin(name){
+  const w = state.wins[name];
+  const el = $(WIN_EL[name]);
+  if(!el) return;
+  el.classList.toggle('open', w.open);
+  el.style.left = w.x + 'px';
+  el.style.top  = w.y + 'px';
+  el.style.width = w.w + 'px';
+}
+function openWin(name){
+  const w = state.wins[name];
+  w.open = true;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  w.x = Math.max(6, Math.min(vw - 110, w.x));
+  w.y = Math.max(54, Math.min(vh - 200, w.y));
+  applyWin(name);
+  if(name === 'hier') renderHier();
+  if(name === 'props') renderProps();
+  if(name === 'events') renderEvents();
+  if(name === 'code') renderCode();
+  syncDock();
+  save();
+}
+function closeWin(name){
+  state.wins[name].open = false;
+  applyWin(name);
+  syncDock();
+  save();
+}
+function syncDock(){
+  $('#dkHier').classList.toggle('on', state.wins.hier.open);
+  $('#dkProps').classList.toggle('on', state.wins.props.open);
+  $('#dkEvents').classList.toggle('on', state.wins.events.open);
+  $('#dkCode').classList.toggle('on', state.wins.code.open);
+}
+
+let winDrag = null;
+document.querySelectorAll('.fw-head').forEach(head => {
+  head.addEventListener('pointerdown', e => {
+    if(e.target.closest('.fw-x')) return;
+    const name = head.dataset.win;
+    const fw = head.parentElement;
+    const r = fw.getBoundingClientRect();
+    winDrag = { name, ox: e.clientX - r.left, oy: e.clientY - r.top };
+    head.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+});
+document.addEventListener('pointermove', e => {
+  if(!winDrag) return;
+  const w = state.wins[winDrag.name];
+  const vw = window.innerWidth, vh = window.innerHeight;
+  w.x = Math.max(-12, Math.min(vw - 70, e.clientX - winDrag.ox));
+  w.y = Math.max(48, Math.min(vh - 58, e.clientY - winDrag.oy));
+  applyWin(winDrag.name);
+});
+document.addEventListener('pointerup', () => {
+  if(winDrag){ winDrag = null; save(); }
+});
+
+document.querySelectorAll('.fw-x').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    closeWin(btn.closest('.fw-head').dataset.win);
+  });
+});
+
+/* =========================================================
+   18. Dock / 模式 / 缩放
+   ========================================================= */
+$('#dkHier').addEventListener('click', () =>
+  state.wins.hier.open ? closeWin('hier') : openWin('hier'));
+$('#dkProps').addEventListener('click', () =>
+  state.wins.props.open ? closeWin('props') : openWin('props'));
+$('#dkEvents').addEventListener('click', () =>
+  state.wins.events.open ? closeWin('events') : openWin('events'));
+$('#dkCode').addEventListener('click', () =>
+  state.wins.code.open ? closeWin('code') : openWin('code'));
+$('#dkAdd').addEventListener('click', openAddSheet);
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#sheetMask').addEventListener('click', e => {
+  if(e.target.id === 'sheetMask') closeSheet();
+});
+
+let _savedWins = null;
+let _savedSel = 0;
+
+function setMode(m){
+  if(m === state.mode) return;
+  state.mode = m;
+  document.body.classList.toggle('runmode', m === 'run');
+  $('#mEdit').classList.toggle('on', m === 'edit');
+  $('#mRun').classList.toggle('on', m === 'run');
+
+  if(m === 'run'){
+    _savedWins = {};
+    for(const k in state.wins){
+      _savedWins[k] = state.wins[k].open;
+      if(state.wins[k].open) closeWin(k);
+    }
+    _savedSel = state.sel;
+    state.sel = 0;
+  } else {
+    if(_savedWins){
+      for(const k in _savedWins){
+        if(_savedWins[k]) openWin(k);
+      }
+      _savedWins = null;
+    }
+    state.sel = _savedSel || 0;
+  }
+  renderStage();
+}
+$('#mEdit').addEventListener('click', () => setMode('edit'));
+$('#mRun').addEventListener('click', () => setMode('run'));
+
+$('#btnUndo').addEventListener('click', undo);
+$('#btnRedo').addEventListener('click', redo);
+
+function walkAll(fn){ const w = n => n.kids.forEach(k => { fn(k); w(k); }); w(state.root); }
+
+function allDraggable(){
+  let total = 0, on = 0;
+  walkAll(k => { total++; if(k.draggable) on++; });
+  return total > 0 && on === total;
+}
+function anyDraggable(){
+  let on = 0;
+  walkAll(k => { if(k.draggable) on++; });
+  return on > 0;
+}
+function syncRunDragBtn(){
+  const all = allDraggable();
+  const any = anyDraggable();
+  const b = $('#btnRunDrag');
+  b.classList.toggle('on', all);
+  b.style.opacity = any ? '1' : '.75';
+  b.title = all
+    ? '全部元素：运行时可拖拽（点击全部锁定）'
+    : '点击让全部元素在运行时都可拖拽';
+}
+
+$('#btnRunDrag').addEventListener('click', () => {
+  const v = !allDraggable();
+  pushUndoNow();
+  walkAll(k => { k.draggable = v; });
+  renderStage();
+  if(state.wins.props.open) renderProps();
+  renderHier();
+  syncRunDragBtn();
+  save();
+  toast(v ? '全部元素：运行时可拖拽' : '全部元素：运行时锁定');
+});
+
+$('#btnReset').addEventListener('click', () => {
+  const html = `
+    <div style="padding:4px 2px 12px;color:#8e8b83;font-size:12.5px;line-height:1.9">
+      清空全部元素并恢复为默认示例？<br>
+      此操作也可用顶部 <b style="color:#e2a355">↺</b> 撤销。
+    </div>
+    <button class="confirm-btn danger" id="rstOk">确认重置</button>
+    <button class="confirm-btn" id="rstCancel"
+            style="background:#262624;color:#8e8b83;margin-top:8px">取消</button>
+  `;
+  $('#sheetTitle').textContent = '确认重置';
+  $('#sheetBody').innerHTML = html;
+  $('#sheetMask').classList.add('on');
+
+  $('#rstOk').addEventListener('click', () => {
+    closeSheet();
+    pushUndoNow();
+    localStorage.removeItem(STORE);
+    buildDemo();
+    state.sel = state.root.kids[0] ? state.root.kids[0].id : 0;
+    renderStage();
+    renderHier();
+    if(state.wins.props.open) renderProps();
+    if(state.wins.events.open) renderEvents();
+    scheduleCode(0);
+    save();
+    syncRunDragBtn();
+    toast('已重置');
+  });
+  $('#rstCancel').addEventListener('click', closeSheet);
+});
+
+function setZoom(z){
+  state.zoom = clamp(Math.round(z * 100) / 100, 0.3, 2.5);
+  $('#zoomLvl').textContent = Math.round(state.zoom * 100) + '%';
+  doCalcStageSize();
+  save();
+}
+$('#zoomIn').addEventListener('click', () => setZoom(state.zoom + 0.15));
+$('#zoomOut').addEventListener('click', () => setZoom(state.zoom - 0.15));
+$('#zoomLvl').addEventListener('click', () => setZoom(1));
+
+window.addEventListener('keydown', e => {
+  if(state.mode !== 'edit') return;
+
+  const ae = document.activeElement;
+  if(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName)) return;
+  if(ae && ae.isContentEditable) return;
+
+  const meta = e.metaKey || e.ctrlKey;
+  if(meta && e.key === 'z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
+  if(meta && (e.key === 'y' || (e.key === 'z' && e.shiftKey))){ e.preventDefault(); redo(); return; }
+  if(meta && e.key === 'd' && state.sel){
+    e.preventDefault();
+    const n = findNode(state.sel);
+    if(n && n.id !== 0) doNodeAction('clone', n);
+    return;
+  }
+
+  const isDel = e.key === 'Delete' || e.key === 'Backspace'
+             || e.keyCode === 46 || e.keyCode === 8;
+  if(isDel && state.sel){
+    e.preventDefault();
+    deleteNode(state.sel, e.shiftKey);
+    return;
+  }
+
+  if(e.key === 'Escape'){ selectNode(0); return; }
+
+  const step = e.shiftKey ? 10 : 1;
+  if(state.sel && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+    e.preventDefault();
+    const n = findNode(state.sel);
+    if(!n || n.id === 0) return;
+    pushUndo();
+    if(e.key === 'ArrowUp') n.y -= step;
+    if(e.key === 'ArrowDown') n.y += step;
+    if(e.key === 'ArrowLeft') n.x -= step;
+    if(e.key === 'ArrowRight') n.x += step;
+    updateEl(n);
+    scheduleCode();
+    save();
+    schedulePropsRender();
+  }
+});
+
+/* =========================================================
+   19. 示例数据
+   ========================================================= */
+function buildDemo(){
+  state.root = { id:0, type:'Root', x:0, y:0, w:0, h:0, padding:0, borderW:0,
+                 scale:1, rot:0, kids:[], open:true, events:{onClick:[],onDrag:[]} };
+  state.nextId = 1;
+
+  const card = createNode('Card');
+  card.x = 20; card.y = 40; card.w = 310; card.h = 270;
+  card.bg = '#1b1a18'; card.radius = 16;
+
+  const title = createNode('Title');
+  title.text = '控制面板';
+  title.x = 16; title.y = 14; title.w = 180; title.h = 32;
+
+  const desc = createNode('Text');
+  desc.text = '编辑拖拽 · 运行触发事件';
+  desc.x = 16; desc.y = 50; desc.w = 260; desc.h = 22;
+  desc.color = '#8e8b83'; desc.fontSize = 12;
+
+  const slider = createNode('Slider');
+  slider.text = '0.6';
+  slider.x = 16; slider.y = 80; slider.w = 200; slider.h = 34;
+
+  const progress = createNode('Progress');
+  progress.text = '65';
+  progress.x = 16; progress.y = 122; progress.w = 200; progress.h = 14;
+
+  const toggle = createNode('Toggle');
+  toggle.text = '已启用';
+  toggle.x = 228; toggle.y = 80; toggle.w = 66; toggle.h = 30;
+
+  const btn = createNode('Button');
+  btn.text = '触发变色';
+  btn.x = 16; btn.y = 156; btn.w = 130; btn.h = 46;
+
+  const btn2 = createNode('Ghost');
+  btn2.text = '切换圆形';
+  btn2.x = 156; btn2.y = 156; btn2.w = 128; btn2.h = 46;
+
+  const chip = createNode('Chip');
+  chip.text = '绑定目标';
+  chip.x = 16; chip.y = 218; chip.w = 100; chip.h = 26;
+  chip.bg = '#2a2620'; chip.color = '#d9b382';
+
+  card.kids.push(title, desc, slider, progress, toggle, btn, btn2, chip);
+  state.root.kids.push(card);
+
+  /* 独立浮层元素 */
+  const circle = createNode('Circle');
+  circle.x = 250; circle.y = 340; circle.w = 70; circle.h = 70;
+  circle.bg = '#e2a355';
+  circle.color = '#1a1206';
+  circle.draggable = true;
+  state.root.kids.push(circle);
+
+  const badge = createNode('Badge');
+  badge.text = '9';
+  badge.x = 300; badge.y = 320; badge.w = 26; badge.h = 26;
+  badge.bg = '#d65a55'; badge.color = '#ffffff';
+  state.root.kids.push(badge);
+
+  const push = (src, ev, target, action, params) => {
+    src.events[ev].push({
+      id: state.nextId++, t: target.id, a: action, p: params || {},
+    });
+  };
+  push(btn, 'onClick', chip, 'setBg', { v: '#d65a55' });
+  push(btn, 'onClick', chip, 'setColor', { v: '#ffffff' });
+  push(btn, 'onClick', chip, 'alert', { v: '按钮事件已触发！' });
+  push(btn2, 'onClick', circle, 'toggle');
+  push(circle, 'onDrag', chip, 'scaleTo', { v: 1.15 });
+  push(slider, 'onClick', progress, 'setOpacity', { v: 1 });
+}
+
+/* =========================================================
+   20. 初始化
+   ========================================================= */
+(function init(){
+  const loaded = load();
+  if(!loaded){
+    buildDemo();
+    state.wins.hier.open = true;
+  }
+
+  applyWin('hier');
+  applyWin('props');
+  applyWin('events');
+  applyWin('code');
+  syncDock();
+  syncRunDragBtn();
+  $('#zoomLvl').textContent = Math.round(state.zoom * 100) + '%';
+  syncUndoBtns();
+
+  if(!state.sel && state.root.kids[0]){
+    state.sel = state.root.kids[0].id;
+  }
+
+  renderStage();
+  renderHier();
+  renderProps();
+  if(state.wins.code.open) renderCode();
+
+  if(state.mode === 'run') setMode('edit');
+
+  window.addEventListener('resize', () => {
+    doCalcStageSize();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    for(const k in state.wins){
+      const w = state.wins[k];
+      w.x = Math.max(0, Math.min(vw - 80, w.x));
+      w.y = Math.max(48, Math.min(vh - 60, w.y));
+      if(w.open) applyWin(k);
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden) saveNow();
+  });
+})();
+</script>
+</body>
+</html>
