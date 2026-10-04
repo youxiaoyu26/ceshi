@@ -596,6 +596,14 @@
       "note": "lmgui编辑器",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-G460Y/index.html",
       "time": "2026/9/30 14:16:03"
+    },
+    {
+      "id": "SITE-FPQMF",
+      "owner": "admin",
+      "path": "sites/SITE-FPQMF/index.html",
+      "note": "柚小屿个人导航网",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-FPQMF/index.html",
+      "time": "2026/10/4 19:58:43"
     }
   ],
   "all_products": [
@@ -611,7 +619,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 3,
+      "quota": 2,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
