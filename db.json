@@ -611,7 +611,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 0,
+      "quota": 3,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
@@ -673,7 +673,7 @@
     {
       "id": "PAY-84I9HF",
       "username": "admin",
-      "status": "pending",
+      "status": "approved",
       "time": "2026/10/4 19:58:12"
     }
   ]
