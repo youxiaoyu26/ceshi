@@ -604,6 +604,14 @@
       "note": "柚小屿个人导航网",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-FPQMF/index.html",
       "time": "2026/10/4 19:58:43"
+    },
+    {
+      "id": "SITE-CYK24",
+      "owner": "admin",
+      "path": "sites/SITE-CYK24/index.html",
+      "note": "个人导航网",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-CYK24/index.html",
+      "time": "2026/10/6 20:39:47"
     }
   ],
   "all_products": [
@@ -619,7 +627,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 2,
+      "quota": 1,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
