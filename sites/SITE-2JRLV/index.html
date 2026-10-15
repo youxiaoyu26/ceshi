@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>服务器被暴打了</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: #f4f4f2;
+    color: #1c1c1c;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* 拳头，偶尔抖一下 */
+  .icon {
+    display: inline-block;
+    font-size: 40px;
+    line-height: 1;
+    margin-bottom: 24px;
+    animation: hit 3.6s ease-in-out infinite;
+  }
+
+  @keyframes hit {
+    0%, 86%, 100% { transform: translate(0, 0) rotate(0); }
+    88% { transform: translate(-3px, 2px) rotate(-9deg); }
+    91% { transform: translate(3px, -3px) rotate(9deg); }
+    94% { transform: translate(-2px, 1px) rotate(-5deg); }
+    97% { transform: translate(1px, 0) rotate(2deg); }
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+  }
+
+  .sub {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #7a7a74;
+  }
+
+  hr {
+    margin: 28px 0;
+    border: 0;
+    border-top: 1px solid #e2e2dd;
+  }
+
+  dl {
+    font-size: 13px;
+  }
+
+  dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 0;
+  }
+
+  dt {
+    color: #8a8a84;
+  }
+
+  dd {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .red {
+    color: #d92d20;
+  }
+
+  button {
+    margin-top: 28px;
+    width: 100%;
+    padding: 12px;
+    font: inherit;
+    font-size: 14px;
+    color: #fff;
+    background: #1c1c1c;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  button:hover {
+    background: #333;
+  }
+
+  button:active {
+    background: #000;
+  }
+</style>
+</head>
+<body>
+
+  <div class="wrap">
+    <div class="icon">👊</div>
+
+    <h1>服务器被暴打了</h1>
+    <p class="sub">它现在说不出话，等它缓一缓。</p>
+
+    <hr>
+
+    <dl>
+      <div>
+        <dt>状态码</dt>
+        <dd>502</dd>
+      </div>
+      <div>
+        <dt>状态</dt>
+        <dd class="red">挨打中</dd>
+      </div>
+      <div>
+        <dt>原因</dt>
+        <dd>流量太猛</dd>
+      </div>
+      <div>
+        <dt>运维</dt>
+        <dd>正在赶来</dd>
+      </div>
+      <div>
+        <dt>时间</dt>
+        <dd id="time">--:--:--</dd>
+      </div>
+    </dl>
+
+    <button onclick="location.reload()">再试一次</button>
+  </div>
+
+<script>
+  (function () {
+    var el = document.getElementById('time');
+
+    function pad(n) {
+      return n < 10 ? '0' + n : '' + n;
+    }
+
+    function tick() {
+      var d = new Date();
+      el.textContent =
+        pad(d.getHours()) + ':' +
+        pad(d.getMinutes()) + ':' +
+        pad(d.getSeconds());
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>
+
+</body>
+</html>
