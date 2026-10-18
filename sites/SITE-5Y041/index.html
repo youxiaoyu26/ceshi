@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ONNX YOLOv5n 物体检测｜灵动岛连线</title>
+<!-- ONNX Runtime Web CDN -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#000;color:#fff;font-family:system-ui, sans-serif;overflow:hidden;}
+
+/* ========== 预加载全屏页面 ========== */
+#preloadWrap{
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:99;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.preload-title{
+  font-size:22px;
+  margin-bottom:24px;
+}
+.progress-box{
+  width:min(90%,360px);
+  height:14px;
+  background:#222;
+  border-radius:99px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:#39ff88;
+  transition:0.08s linear;
+}
+.progress-text{
+  margin-top:12px;
+  font-size:16px;
+}
+#retryBtn{
+  margin-top:20px;
+  padding:8px 18px;
+  background:#2563eb;
+  border:none;
+  color:#fff;
+  border-radius:8px;
+  font-size:16px;
+  display:none;
+}
+
+/* ========== 主检测页面 ========== */
+#mainApp{
+  display:none;
+  position:relative;
+  width:100vw;
+  height:100vh;
+}
+video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+#canvas{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+}
+#tip{
+  position:fixed;
+  top:16px;
+  left:16px;
+  background:rgba(0,0,0,0.75);
+  padding:10px 14px;
+  border-radius:10px;
+  z-index:10;
+}
+/* 灵动岛胶囊 */
+#island{
+  position:fixed;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  width:120px;
+  height:34px;
+  background:#000;
+  border-radius:999px;
+  z-index:8;
+  border:1px solid #333;
+}
+
+/* 悬浮按钮 */
+.float-btn{
+  position:fixed;
+  right:20px;
+  bottom:40px;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  background:#3b82f6;
+  border:none;
+  color:#fff;
+  font-size:24px;
+  z-index:20;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+/* 设置面板 */
+.set-panel{
+  position:fixed;
+  right:16px;
+  bottom:100px;
+  background:rgba(0,0,0,0.78);
+  padding:16px;
+  border-radius:14px;
+  z-index:19;
+  display:none;
+  min-width:240px;
+}
+.set-panel label{
+  display:block;
+  margin:8px 0;
+  font-size:15px;
+}
+.slider-wrap{
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+<!-- 预加载界面 -->
+<div id="preloadWrap">
+  <div class="preload-title">YOLOv5n ONNX模型正在下载</div>
+  <div class="progress-box">
+    <div id="progressBar" class="progress-bar"></div>
+  </div>
+  <div class="progress-text" id="progressText">0%</div>
+  <button id="retryBtn">重新下载</button>
+</div>
+
+<!-- 主应用 -->
+<div id="mainApp">
+  <div id="tip">✅模型加载完成，启动摄像头</div>
+  <video id="video" autoplay playsinline webkit-playsinline x5-video-player-type="h5" muted></video>
+  <canvas id="canvas"></canvas>
+  <div id="island"></div>
+</div>
+
+<button class="float-btn" id="openSet">⚙</button>
+<div class="set-panel" id="panel">
+  <div>识别选项</div>
+  <label><input type="checkbox" checked disabled>person（人，强制开启）</label>
+  <label><input type="checkbox" checked id="opt-cellphone">cell phone 手机</label>
+  <label><input type="checkbox" checked id="opt-cup">cup 杯子</label>
+  <label><input type="checkbox" checked id="opt-book">book 书本</label>
+  <label><input type="checkbox" checked id="opt-chair">chair 椅子</label>
+  <div class="slider-wrap">
+    <label>置信阈值：<span id="valThresh">0.50</span></label>
+    <input type="range" id="thresholdSlider" min="0.1" max="0.9" step="0.01" value="0.5" style="width:100%">
+  </div>
+</div>
+
+<script>
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+const preloadWrap = document.getElementById('preloadWrap');
+const mainApp = document.getElementById('mainApp');
+const retryBtn = document.getElementById('retryBtn');
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tip = document.getElementById('tip');
+const panel = document.getElementById('panel');
+const openSetBtn = document.getElementById('openSet');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const valThreshText = document.getElementById('valThresh');
+const islandDom = document.getElementById("island");
+
+const filterMap = {
+  "cell phone": document.getElementById('opt-cellphone'),
+  "cup": document.getElementById('opt-cup'),
+  "book": document.getElementById('opt-book'),
+  "chair": document.getElementById('opt-chair'),
+};
+
+let session;
+let isDetecting = false;
+let scoreThreshold = 0.5;
+const modelUrl = "https://cdn.jsdelivr.net/npm/yolo-onnx-js@1.0.0/models/yolov5n.onnx";
+
+thresholdSlider.oninput = ()=>{
+  scoreThreshold = parseFloat(thresholdSlider.value);
+  valThreshText.textContent = scoreThreshold.toFixed(2);
+}
+
+const container = document.getElementById("mainApp");
+const resizeObserver = new ResizeObserver(()=>{
+  updateCanvasSize();
+});
+resizeObserver.observe(container);
+
+function updateCanvasSize(){
+  const rect = container.getBoundingClientRect();
+  canvas.style.width = rect.width + "px";
+  canvas.style.height = rect.height + "px";
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+
+// Fetch 带真实下载进度
+async function fetchWithProgress(url, onProgress) {
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error("请求失败:"+resp.status);
+  const total = parseInt(resp.headers.get('content-length')) || 0;
+  const reader = resp.body.getReader();
+  let received = 0;
+  let chunks = [];
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    chunks.push(value);
+    received += value.length;
+    if(total) onProgress(received / total);
+  }
+  const all = new Uint8Array(chunks.reduce((a,b)=>a+b.length,0));
+  let pos=0;
+  for(const c of chunks){
+    all.set(c,pos); pos+=c.length;
+  }
+  return all;
+}
+
+async function loadOnnxYolo(){
+  retryBtn.style.display = "none";
+  progressBar.style.width = "0%";
+  progressText.textContent = "0%";
+  try{
+    progressText.textContent = "下载YOLOv5n ONNX模型";
+    const modelData = await fetchWithProgress(modelUrl, (p)=>{
+      const pct = Math.round(p * 100);
+      progressBar.style.width = pct + "%";
+      progressText.textContent = `${pct}%`;
+    });
+
+    progressBar.style.width = "100%";
+    progressText.textContent = "100%，初始化推理引擎";
+    session = await ort.InferenceSession.create(modelData);
+
+    setTimeout(async ()=>{
+      preloadWrap.style.display = "none";
+      mainApp.style.display = "block";
+      await startCamera();
+    },400);
+  }catch(err){
+    console.error(err);
+    progressText.textContent = "模型下载失败";
+    retryBtn.style.display = "block";
+  }
+}
+
+async function startCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"environment"}
+    })
+    video.srcObject = stream;
+    video.onloadedmetadata = ()=>{
+      updateCanvasSize();
+      startDetectLoop();
+    }
+  }catch(e){
+    tip.textContent="❌摄像头权限被拒绝";
+    console.error(e);
+  }
+}
+
+const COCO_NAMES = [
+  'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat','traffic light',
+  'fire hydrant','stop sign','parking meter','bench','bird','cat','dog','horse','sheep','cow',
+  'elephant','bear','zebra','giraffe','backpack','umbrella','handbag','tie','suitcase','frisbee',
+  'skis','snowboard','sports ball','kite','baseball bat','baseball glove','skateboard','surfboard',
+  'tennis racket','bottle','wine glass','cup','fork','knife','spoon','bowl','banana','apple',
+  'sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake','chair','couch',
+  'potted plant','bed','dining table','toilet','tv','laptop','mouse','remote','keyboard','cell phone',
+  'microwave','oven','toaster','sink','refrigerator','book','clock','vase','scissors','teddy bear',
+  'hair drier','toothbrush'
+];
+
+// 图像预处理
+function preprocess(img, inputSize=640) {
+  const canvasTmp = document.createElement('canvas');
+  canvasTmp.width = inputSize;
+  canvasTmp.height = inputSize;
+  const ctxTmp = canvasTmp.getContext('2d');
+  ctxTmp.drawImage(img,0,0,inputSize,inputSize);
+  const imgData = ctxTmp.getImageData(0,0,inputSize,inputSize);
+  const float32 = new Float32Array(3 * inputSize * inputSize);
+  let idx=0;
+  for(let i=0;i<imgData.data.length;i+=4){
+    float32[idx++] = imgData.data[i]/255.0;
+    float32[idx++] = imgData.data[i+1]/255.0;
+    float32[idx++] = imgData.data[i+2]/255.0;
+  }
+  const tensor = new ort.Tensor('float32', float32, [1,3,inputSize,inputSize]);
+  return tensor;
+}
+
+// NMS后处理
+function nms(boxes, iouThresh=0.45){
+  boxes.sort((a,b)=>b.score - a.score);
+  const keep = [];
+  for(let i=0;i<boxes.length;i++){
+    let discard = false;
+    for(const k of keep){
+      const boxA = boxes[i];
+      const boxB = k;
+      const x1 = Math.max(boxA.x, boxB.x);
+      const y1 = Math.max(boxA.y, boxB.y);
+      const x2 = Math.min(boxA.x+boxA.w, boxB.x+boxB.w);
+      const y2 = Math.min(boxA.y+boxA.h, boxB.y+boxB.h);
+      const inter = Math.max(0,x2-x1)*Math.max(0,y2-y1);
+      const areaA = boxA.w*boxA.h;
+      const areaB = boxB.w*boxB.h;
+      const iou = inter/(areaA+areaB-inter);
+      if(iou>iouThresh){discard=true;break;}
+    }
+    if(!discard) keep.push(boxes[i]);
+  }
+  return keep;
+}
+
+async function startDetectLoop(){
+  if(!session || isDetecting){
+    requestAnimationFrame(startDetectLoop);
+    return;
+  }
+  isDetecting = true;
+  const origW = canvas.width;
+  const origH = canvas.height;
+  const tensor = preprocess(video,640);
+  const output = await session.run({images: tensor});
+  const outData = output.output0.data;
+  const boxesRaw = [];
+  const scaleX = origW/640;
+  const scaleY = origH/640;
+  for(let i=0;i<outData.length;i+=85){
+    const cx = outData[i];
+    const cy = outData[i+1];
+    const bw = outData[i+2];
+    const bh = outData[i+3];
+    const scores = outData.slice(i+5,i+85);
+    const maxScore = Math.max(...scores);
+    if(maxScore < scoreThreshold) continue;
+    const clsIdx = scores.indexOf(maxScore);
+    const x = (cx - bw/2)*scaleX;
+    const y = (cy - bh/2)*scaleY;
+    const w = bw*scaleX;
+    const h = bh*scaleY;
+    boxesRaw.push({x,y,w,h,score:maxScore, cls:clsIdx});
+  }
+  const boxes = nms(boxesRaw,0.45);
+  ctx.clearRect(0,0,origW,origH);
+  const islandRect = islandDom.getBoundingClientRect();
+  const islandCenterX = islandRect.left + islandRect.width/2;
+  const islandCenterY = islandRect.top + islandRect.height/2;
+
+  boxes.forEach(item=>{
+    const clsName = COCO_NAMES[item.cls];
+    let show = false;
+    if(clsName === "person") show = true;
+    else{
+      const ck = filterMap[clsName];
+      if(ck && ck.checked) show=true;
+    }
+    if(!show) return;
+    const {x,y,w,h,score} = item;
+    ctx.strokeStyle="#39ff88";
+    ctx.lineWidth=3;
+    ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle="#39ff88";
+    ctx.font="16px sans-serif";
+    const text = `${clsName} ${(score*100).toFixed(1)}%`;
+    const tw = ctx.measureText(text).width;
+    ctx.fillRect(x, y-22, tw+6, 20);
+    ctx.fillStyle="#000";
+    ctx.fillText(text, x+3, y-6);
+
+    if(clsName === "person"){
+      const personCenterX = x + w/2;
+      const personCenterY = y;
+      ctx.beginPath();
+      ctx.moveTo(personCenterX, personCenterY);
+      ctx.lineTo(islandCenterX, islandCenterY);
+      ctx.strokeStyle="#39ff88";
+      ctx.lineWidth=2;
+      ctx.setLineDash([6,4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  })
+  isDetecting=false;
+  requestAnimationFrame(startDetectLoop);
+}
+
+openSetBtn.onclick = ()=>{
+  panel.style.display = panel.style.display==="block" ? "none" : "block";
+}
+
+let drag = false;
+let dx, dy;
+openSetBtn.addEventListener('touchstart',(e)=>{
+  drag=true;
+  const t = e.touches[0];
+  dx = t.clientX - openSetBtn.getBoundingClientRect().left;
+  dy = t.clientY - openSetBtn.getBoundingClientRect().top;
+})
+document.addEventListener('touchmove',(e)=>{
+  if(!drag) return;
+  const t = e.touches[0];
+  openSetBtn.style.left = (t.clientX - dx)+"px";
+  openSetBtn.style.right="unset";
+  openSetBtn.style.bottom="unset";
+  openSetBtn.style.top = (t.clientY - dy)+"px";
+})
+document.addEventListener('touchend',()=>drag=false);
+
+retryBtn.onclick = loadOnnxYolo;
+window.addEventListener('resize',updateCanvasSize);
+loadOnnxYolo();
+</script>
+</body>
+</html>
