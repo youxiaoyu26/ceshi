@@ -620,6 +620,14 @@
       "note": "绘制",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-FRCBS/index.html",
       "time": "2026/10/18 21:28:15"
+    },
+    {
+      "id": "SITE-QGE0N",
+      "owner": "admin",
+      "path": "sites/SITE-QGE0N/index.html",
+      "note": "绘制1",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-QGE0N/index.html",
+      "time": "2026/10/18 21:33:22"
     }
   ],
   "all_products": [
@@ -635,7 +643,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 3,
+      "quota": 2,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
