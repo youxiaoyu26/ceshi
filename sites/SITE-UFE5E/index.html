@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>摄像头物体检测 真实模型下载进度</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#000;color:#fff;font-family:system-ui, sans-serif;overflow:hidden;}
+
+/* ========== 预加载全屏页面 ========== */
+#preloadWrap{
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:99;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.preload-title{
+  font-size:22px;
+  margin-bottom:24px;
+}
+.progress-box{
+  width:min(90%,360px);
+  height:14px;
+  background:#222;
+  border-radius:99px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:#39ff88;
+  transition:0.08s linear;
+}
+.progress-text{
+  margin-top:12px;
+  font-size:16px;
+}
+#retryBtn{
+  margin-top:20px;
+  padding:8px 18px;
+  background:#2563eb;
+  border:none;
+  color:#fff;
+  border-radius:8px;
+  font-size:16px;
+  display:none;
+}
+
+/* ========== 主检测页面（默认隐藏，加载完成才显示） ========== */
+#mainApp{
+  display:none;
+  position:relative;
+  width:100vw;
+  height:100vh;
+}
+video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+#canvas{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+}
+#tip{
+  position:fixed;
+  top:16px;
+  left:16px;
+  background:rgba(0,0,0,0.75);
+  padding:10px 14px;
+  border-radius:10px;
+  z-index:10;
+}
+/* 灵动岛胶囊 */
+#island{
+  position:fixed;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  width:120px;
+  height:34px;
+  background:#000;
+  border-radius:999px;
+  z-index:8;
+  border:1px solid #333;
+}
+
+/* 悬浮按钮 */
+.float-btn{
+  position:fixed;
+  right:20px;
+  bottom:40px;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  background:#3b82f6;
+  border:none;
+  color:#fff;
+  font-size:24px;
+  z-index:20;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+/* 设置面板 */
+.set-panel{
+  position:fixed;
+  right:16px;
+  bottom:100px;
+  background:rgba(0,0,0,0.78);
+  padding:16px;
+  border-radius:14px;
+  z-index:19;
+  display:none;
+  min-width:240px;
+}
+.set-panel label{
+  display:block;
+  margin:8px 0;
+  font-size:15px;
+}
+.slider-wrap{
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<!-- 预加载界面 -->
+<div id="preloadWrap">
+  <div class="preload-title">模型正在下载</div>
+  <div class="progress-box">
+    <div id="progressBar" class="progress-bar"></div>
+  </div>
+  <div class="progress-text" id="progressText">0%</div>
+  <button id="retryBtn">重新下载</button>
+</div>
+
+<!-- 主应用（摄像头检测页面） -->
+<div id="mainApp">
+  <div id="tip">✅模型加载完成，启动摄像头</div>
+  <video id="video" autoplay playsinline webkit-playsinline x5-video-player-type="h5" muted></video>
+  <canvas id="canvas"></canvas>
+  <div id="island"></div>
+</div>
+
+<button class="float-btn" id="openSet">⚙</button>
+<div class="set-panel" id="panel">
+  <div>识别选项</div>
+  <label><input type="checkbox" checked disabled>person（人，强制开启）</label>
+  <label><input type="checkbox" checked id="opt-cellphone">cellphone 手机</label>
+  <label><input type="checkbox" checked id="opt-cup">cup 杯子</label>
+  <label><input type="checkbox" checked id="opt-book">book 书本</label>
+  <label><input type="checkbox" checked id="opt-chair">chair 椅子</label>
+  <div class="slider-wrap">
+    <label>置信阈值：<span id="valThresh">0.50</span></label>
+    <input type="range" id="thresholdSlider" min="0.1" max="0.9" step="0.01" value="0.5" style="width:100%">
+  </div>
+</div>
+
+<script>
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+const preloadWrap = document.getElementById('preloadWrap');
+const mainApp = document.getElementById('mainApp');
+const retryBtn = document.getElementById('retryBtn');
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tip = document.getElementById('tip');
+const panel = document.getElementById('panel');
+const openSetBtn = document.getElementById('openSet');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const valThreshText = document.getElementById('valThresh');
+const islandDom = document.getElementById("island");
+
+const filterMap = {
+  cellphone: document.getElementById('opt-cellphone'),
+  cup: document.getElementById('opt-cup'),
+  book: document.getElementById('opt-book'),
+  chair: document.getElementById('opt-chair'),
+};
+
+let model;
+let isDetecting = false;
+let scoreThreshold = 0.5;
+
+thresholdSlider.oninput = ()=>{
+  scoreThreshold = parseFloat(thresholdSlider.value);
+  valThreshText.textContent = scoreThreshold.toFixed(2);
+}
+
+const container = document.getElementById("mainApp");
+const resizeObserver = new ResizeObserver(()=>{
+  updateCanvasSize();
+});
+resizeObserver.observe(container);
+
+function updateCanvasSize(){
+  const rect = container.getBoundingClientRect();
+  canvas.style.width = rect.width + "px";
+  canvas.style.height = rect.height + "px";
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+
+// ====== 核心：带真实下载字节进度的fetch函数 ======
+async function fetchWithProgress(url, onProgress) {
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error("请求失败:"+resp.status);
+  const total = parseInt(resp.headers.get('content-length')) || 0;
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let chunks = [];
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    chunks.push(value);
+    received += value.length;
+    if(total) onProgress(received / total);
+  }
+  const all = new Uint8Array(chunks.reduce((a,b)=>a+b.length,0));
+  let pos=0;
+  for(const c of chunks){
+    all.set(c,pos); pos+=c.length;
+  }
+  return all;
+}
+
+async function loadModelRealProgress(){
+  retryBtn.style.display = "none";
+  progressBar.style.width = "0%";
+  progressText.textContent = "0%";
+  try{
+    // mobilenet_v1 模型地址
+    const baseUrl = "https://storage.googleapis.com/tfjs-models/savedmodel/ssdmobilenet_v1/";
+    // 先拉model.json
+    progressText.textContent = "正在获取模型清单";
+    const jsonBuf = await fetchWithProgress(baseUrl+"model.json",(p)=>{
+      const per = p * 20;
+      progressBar.style.width = per+"%";
+      progressText.textContent = `清单 ${Math.round(p*100)}%`;
+    });
+    const modelJson = JSON.parse(new TextDecoder().decode(jsonBuf));
+
+    // 读取所有分片文件
+    const weightsManifest = modelJson.weightsManifest;
+    let totalBytes = 0;
+    const shardList = [];
+    for(const m of weightsManifest){
+      for(const path of m.paths){
+        shardList.push(baseUrl + path);
+      }
+      for(const s of m.weights){
+        totalBytes += s.dtype === "float32" ? s.shape.reduce((a,b)=>a*b,1)*4 : s.shape.reduce((a,b)=>a*b,1)*1;
+      }
+    }
+    let loadedBytes = 0;
+    // 循环下载每个分片
+    for(let i=0;i<shardList.length;i++){
+      const shardUrl = shardList[i];
+      progressText.textContent = `分片${i+1}/${shardList.length}`;
+      await fetchWithProgress(shardUrl, (p)=>{
+        const currentShardLoaded = p * totalBytes/shardList.length;
+        loadedBytes = (totalBytes/shardList.length)*i + currentShardLoaded;
+        const totalPercent = loadedBytes / totalBytes;
+        const displayPct = 20 + totalPercent * 80;
+        progressBar.style.width = displayPct + "%";
+        progressText.textContent = `${Math.round(totalPercent*100)}%`;
+      });
+    }
+
+    // 全部下载完成，加载模型
+    progressBar.style.width = "100%";
+    progressText.textContent = "100%，初始化模型...";
+    model = await cocoSsd.load({base:"mobilenet_v1", modelUrl:baseUrl});
+
+    setTimeout(async ()=>{
+      preloadWrap.style.display = "none";
+      mainApp.style.display = "block";
+      await startCamera();
+    },400);
+  }catch(err){
+    progressText.textContent = "下载失败";
+    retryBtn.style.display = "block";
+    console.error(err);
+  }
+}
+
+async function startCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"environment"}
+    })
+    video.srcObject = stream;
+    video.onloadedmetadata = ()=>{
+      updateCanvasSize();
+      startDetect();
+    }
+  }catch(e){
+    tip.textContent="❌摄像头权限被拒绝";
+    console.error(e);
+  }
+}
+
+async function startDetect(){
+  if(!model || isDetecting){
+    requestAnimationFrame(startDetect);
+    return;
+  }
+  isDetecting = true;
+  const predictions = await model.detect(video);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const islandRect = islandDom.getBoundingClientRect();
+  const islandCenterX = islandRect.left + islandRect.width/2;
+  const islandCenterY = islandRect.top + islandRect.height/2;
+
+  predictions.forEach(item=>{
+    if(item.score < scoreThreshold) return;
+
+    let show = false;
+    if(item.class === "person") show=true;
+    else{
+      const ck = filterMap[item.class];
+      if(ck && ck.checked) show=true;
+    }
+    if(!show) return;
+
+    const [x,y,w,h] = item.bbox;
+    ctx.strokeStyle="#39ff88";
+    ctx.lineWidth=3;
+    ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle="#39ff88";
+    ctx.font="16px sans-serif";
+    const text = `${item.class} ${(item.score*100).toFixed(1)}%`;
+    const tw = ctx.measureText(text).width;
+    ctx.fillRect(x, y-22, tw+6, 20);
+    ctx.fillStyle="#000";
+    ctx.fillText(text, x+3, y-6);
+
+    if(item.class === "person"){
+      const personCenterX = x + w/2;
+      const personCenterY = y;
+      ctx.beginPath();
+      ctx.moveTo(personCenterX, personCenterY);
+      ctx.lineTo(islandCenterX, islandCenterY);
+      ctx.strokeStyle="#39ff88";
+      ctx.lineWidth=2;
+      ctx.setLineDash([6,4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  })
+  isDetecting=false;
+  requestAnimationFrame(startDetect);
+}
+
+openSetBtn.onclick = ()=>{
+  panel.style.display = panel.style.display==="block" ? "none" : "block";
+}
+
+let drag = false;
+let dx, dy;
+openSetBtn.addEventListener('touchstart',(e)=>{
+  drag=true;
+  const t = e.touches[0];
+  dx = t.clientX - openSetBtn.getBoundingClientRect().left;
+  dy = t.clientY - openSetBtn.getBoundingClientRect().top;
+})
+document.addEventListener('touchmove',(e)=>{
+  if(!drag) return;
+  const t = e.touches[0];
+  openSetBtn.style.left = (t.clientX - dx)+"px";
+  openSetBtn.style.right="unset";
+  openSetBtn.style.bottom="unset";
+  openSetBtn.style.top = (t.clientY - dy)+"px";
+})
+document.addEventListener('touchend',()=>drag=false);
+
+retryBtn.onclick = loadModelRealProgress;
+
+window.addEventListener('resize',updateCanvasSize);
+//启动真实进度加载
+loadModelRealProgress();
+</script>
+</body>
+</html>
