@@ -612,6 +612,14 @@
       "note": "服务器被打了",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-2JRLV/index.html",
       "time": "2026/10/15 21:52:47"
+    },
+    {
+      "id": "SITE-5Y041",
+      "owner": "admin",
+      "path": "sites/SITE-5Y041/index.html",
+      "note": "人生外挂",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-5Y041/index.html",
+      "time": "2026/10/18 21:47:10"
     }
   ],
   "all_products": [
@@ -627,7 +635,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 9,
+      "quota": 8,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
