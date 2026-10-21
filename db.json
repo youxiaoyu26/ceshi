@@ -620,6 +620,14 @@
       "note": "人生外挂",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-5Y041/index.html",
       "time": "2026/10/18 21:47:10"
+    },
+    {
+      "id": "SITE-2ZMXI",
+      "owner": "admin",
+      "path": "sites/SITE-2ZMXI/index.html",
+      "note": "个人导航网",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-2ZMXI/index.html",
+      "time": "2026/10/21 21:01:36"
     }
   ],
   "all_products": [
@@ -635,7 +643,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 8,
+      "quota": 7,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
