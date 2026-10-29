@@ -612,6 +612,14 @@
       "note": "个人导航网",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-2ZMXI/index.html",
       "time": "2026/10/21 21:01:36"
+    },
+    {
+      "id": "SITE-1ID25",
+      "owner": "admin",
+      "path": "sites/SITE-1ID25/index.html",
+      "note": "个人日志",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-1ID25/index.html",
+      "time": "2026/10/30 01:15:22"
     }
   ],
   "all_products": [
@@ -627,7 +635,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 7,
+      "quota": 6,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
