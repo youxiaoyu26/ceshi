@@ -620,6 +620,14 @@
       "note": "个人日志",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-1ID25/index.html",
       "time": "2026/10/30 01:15:22"
+    },
+    {
+      "id": "SITE-0S5PA",
+      "owner": "admin",
+      "path": "sites/SITE-0S5PA/index.html",
+      "note": "生日祝福/生日蛋糕",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-0S5PA/index.html",
+      "time": "2026/11/10 05:41:39"
     }
   ],
   "all_products": [
@@ -635,7 +643,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 6,
+      "quota": 5,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
