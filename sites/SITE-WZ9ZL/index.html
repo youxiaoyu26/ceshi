@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2027 倒计时</title>
+    <style>
+        /* 干净基底 + 极简过渡 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f5f7fa;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #1d1d1f;
+            padding: 20px;
+            transition: background 0.6s ease;
+        }
+
+        /* 柔和光晕背景 (保持干净但有一点层次) */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 75% 30%, rgba(230, 240, 250, 0.3) 0%, transparent 60%),
+                        radial-gradient(circle at 20% 70%, rgba(210, 225, 245, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 56px;
+            padding: 44px 36px 38px;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* 悬停微动 (可选) */
+        .container:hover {
+            transform: scale(1.005);
+            box-shadow: 0 40px 70px -20px rgba(0, 0, 0, 0.12);
+        }
+
+        /* 头部区域 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 28px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .year {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            color: #86868b;
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+
+        .main-title {
+            font-size: 34px;
+            font-weight: 650;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            color: #111;
+            transition: all 0.3s ease;
+        }
+
+        .zodiac {
+            font-size: 16px;
+            font-weight: 450;
+            color: #6e6e73;
+            background: rgba(0, 0, 0, 0.03);
+            padding: 4px 14px;
+            border-radius: 120px;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(2px);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* 核心倒计时卡片 (网格) */
+        .countdown-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            margin: 24px 0 12px;
+        }
+
+        .time-block {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border-radius: 26px;
+            padding: 16px 6px 12px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .time-block:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.06);
+        }
+
+        .number {
+            font-size: 54px;
+            font-weight: 550;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            color: #000;
+            transition: all 0.3s ease;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .label {
+            font-size: 12px;
+            font-weight: 420;
+            color: #8e8e93;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-top: 6px;
+            transition: color 0.3s;
+        }
+
+        /* 进度条 (极简过渡) */
+        .progress-section {
+            margin-top: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #6e6e73;
+            letter-spacing: 0.2px;
+            padding: 0 2px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 140px;
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #1d1d1f;
+            border-radius: 140px;
+            transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* 底部 footer */
+        .footer-note {
+            margin-top: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #a1a1a6;
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+            padding-top: 18px;
+            letter-spacing: 0.4px;
+        }
+
+        .footer-note span {
+            transition: opacity 0.4s;
+        }
+
+        .badge {
+            background: rgba(0, 0, 0, 0.02);
+            padding: 4px 12px;
+            border-radius: 180px;
+            font-size: 11px;
+            color: #6e6e73;
+        }
+
+        /* 入场动画 (所有块) */
+        .container > * {
+            animation: fadeSlideUp 0.8s ease forwards;
+            opacity: 0;
+        }
+
+        .container > *:nth-child(1) { animation-delay: 0.05s; }
+        .container > *:nth-child(2) { animation-delay: 0.15s; }
+        .container > *:nth-child(3) { animation-delay: 0.25s; }
+        .container > *:nth-child(4) { animation-delay: 0.33s; }
+
+        @keyframes fadeSlideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 数字刷新过渡 (微闪) */
+        .number-flash {
+            animation: softPop 0.17s ease-out;
+        }
+
+        @keyframes softPop {
+            0% { opacity: 0.7; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 28px 18px 24px;
+                border-radius: 40px;
+            }
+            .main-title {
+                font-size: 27px;
+            }
+            .number {
+                font-size: 38px;
+            }
+            .countdown-grid {
+                gap: 8px;
+            }
+            .time-block {
+                padding: 12px 4px 10px;
+            }
+            .header {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+        }
+
+        /* 干净滚动条 */
+        ::-webkit-scrollbar {
+            width: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- header -->
+    <div class="header">
+        <div class="title-group">
+            <span class="year">Countdown to 2027</span>
+            <div class="main-title">元旦 · 新年</div>
+        </div>
+        <div class="zodiac">丁未 · 羊</div>
+    </div>
+
+    <!-- 倒计时网格 -->
+    <div class="countdown-grid">
+        <div class="time-block" id="block-days">
+            <div class="number" id="days">00</div>
+            <div class="label">天</div>
+        </div>
+        <div class="time-block" id="block-hours">
+            <div class="number" id="hours">00</div>
+            <div class="label">时</div>
+        </div>
+        <div class="time-block" id="block-mins">
+            <div class="number" id="mins">00</div>
+            <div class="label">分</div>
+        </div>
+        <div class="time-block" id="block-secs">
+            <div class="number" id="secs">00</div>
+            <div class="label">秒</div>
+        </div>
+    </div>
+
+    <!-- 进度条 (显示年份百分比) -->
+    <div class="progress-section">
+        <div class="progress-meta">
+            <span>2026 → 2027</span>
+            <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+        </div>
+    </div>
+
+    <!-- footer -->
+    <div class="footer-note">
+        <span>距元旦还有</span>
+        <span class="badge" id="totalDaysRemain">-- 天</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // 目标: 2027-01-01 00:00:00 (东八区)
+        const TARGET = new Date('2027-01-01T00:00:00+08:00').getTime();
+
+        // DOM 引用
+        const daysEl = document.getElementById('days');
+        const hoursEl = document.getElementById('hours');
+        const minsEl = document.getElementById('mins');
+        const secsEl = document.getElementById('secs');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const totalDaysRemain = document.getElementById('totalDaysRemain');
+
+        // 辅助: 添加微闪效果 (过渡动画)
+        function flashElement(el) {
+            if (!el) return;
+            el.classList.remove('number-flash');
+            // 强制回流触发重绘
+            void el.offsetWidth;
+            el.classList.add('number-flash');
+        }
+
+        // 更新所有数值 & 进度
+        function tick() {
+            const now = Date.now();
+            let diff = TARGET - now;
+
+            // 如果倒计时结束
+            if (diff <= 0) {
+                diff = 0;
+            }
+
+            // 计算天、时、分、秒
+            const secondsTotal = Math.floor(diff / 1000);
+            const days = Math.floor(secondsTotal / 86400);
+            const hours = Math.floor((secondsTotal % 86400) / 3600);
+            const minutes = Math.floor((secondsTotal % 3600) / 60);
+            const secs = secondsTotal % 60;
+
+            // 格式化双位
+            const dStr = days.toString().padStart(2, '0');
+            const hStr = hours.toString().padStart(2, '0');
+            const mStr = minutes.toString().padStart(2, '0');
+            const sStr = secs.toString().padStart(2, '0');
+
+            // 更新文本 (只有变化时才触发flash)
+            if (daysEl.innerText !== dStr) {
+                daysEl.innerText = dStr;
+                flashElement(daysEl);
+            }
+            if (hoursEl.innerText !== hStr) {
+                hoursEl.innerText = hStr;
+                flashElement(hoursEl);
+            }
+            if (minsEl.innerText !== mStr) {
+                minsEl.innerText = mStr;
+                flashElement(minsEl);
+            }
+            if (secsEl.innerText !== sStr) {
+                secsEl.innerText = sStr;
+                flashElement(secsEl);
+            }
+
+            // 总剩余天数 (用于footer)
+            totalDaysRemain.innerText = days + ' 天';
+
+            // 计算年度进度 (基于2026年总天数)
+            const year2026Start = new Date('2026-01-01T00:00:00+08:00').getTime();
+            const year2027Start = TARGET;
+            const totalYearDuration = year2027Start - year2026Start; // 365天或366? 2026非闰, 365天
+
+            // 已经过去的时间 (从2026开始)
+            const elapsed = now - year2026Start;
+            let percent = Math.min(100, Math.max(0, (elapsed / totalYearDuration) * 100));
+
+            // 如果还没到2026年 (极小概率) 或者已经过了2027
+            if (now < year2026Start) percent = 0;
+            if (now >= year2027Start) percent = 100;
+
+            // 更新进度条 (四舍五入保留一位小数)
+            const percentFixed = percent.toFixed(1);
+            progressFill.style.width = percentFixed + '%';
+            progressPercent.innerText = percentFixed + '%';
+
+            // 如果倒计时归零，额外显示
+            if (diff === 0) {
+                progressPercent.innerText = '100%';
+                progressFill.style.width = '100%';
+                totalDaysRemain.innerText = '0 天 · 新年快乐!';
+            }
+        }
+
+        // 首次立刻执行
+        tick();
+
+        // 每秒更新一次 (setInterval 精确到秒)
+        setInterval(tick, 800); // 稍微快于1秒，使过渡更顺滑
+    })();
+</script>
+
+</body>
+</html>
