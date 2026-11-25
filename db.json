@@ -636,6 +636,14 @@
       "note": "2048",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-R1V5B/index.html",
       "time": "2026/11/20 10:30:09"
+    },
+    {
+      "id": "SITE-WZ9ZL",
+      "owner": "admin",
+      "path": "sites/SITE-WZ9ZL/index.html",
+      "note": "2027年倒计时",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-WZ9ZL/index.html",
+      "time": "2026/11/25 11:54:02"
     }
   ],
   "all_products": [
@@ -651,7 +659,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 4,
+      "quota": 3,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
