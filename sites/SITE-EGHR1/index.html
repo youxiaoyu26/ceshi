@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>交互页面</title>
+<style>
+  :root {
+    --bg-color: #f5f6f8;
+    --card-bg: #ffffff;
+    --accent: #3b82f6;
+    --sidebar-bg: #3b82f6;
+    --text-main: #1f2937;
+    --text-sub: #6b7280;
+    --radius: 16px;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; background: #e5e5ea; display: flex; justify-content: center; }
+  .app-container { width: 100%; max-width: 414px; min-height: 100vh; background: var(--bg-color); position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+
+  /* 侧边栏 */
+  .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10; opacity: 0; visibility: hidden; transition: 0.3s; backdrop-filter: blur(2px); }
+  .overlay.show { opacity: 1; visibility: visible; }
+  .sidebar { position: absolute; top: 0; left: 0; width: 75%; height: 100%; background: var(--sidebar-bg); color: #fff; z-index: 20; transform: translateX(-100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); padding: 50px 24px; display: flex; flex-direction: column; }
+  .sidebar.open { transform: translateX(0); }
+  
+  .side-profile { text-align: center; margin-bottom: 40px; }
+  .side-avatar { width: 72px; height: 72px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 14px; backdrop-filter: blur(4px); }
+  .side-name { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .side-bio { font-size: 13px; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 12px; display: inline-block; }
+  
+  .side-menu { list-style: none; flex: 1; overflow-y: auto; }
+  .side-menu li { padding: 16px 0; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.12); cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; justify-content: space-between; }
+  .side-menu li:active { opacity: 0.6; }
+  .side-menu li:last-child { border-bottom: none; }
+  .side-menu li::after { content: '›'; font-size: 20px; opacity: 0.5; }
+
+  /* 主内容区 */
+  .content { transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s; width: 100%; min-height: 100vh; position: absolute; top: 0; left: 0; background: var(--bg-color); }
+  .content.shrink { transform: translateX(75%); filter: brightness(0.95); border-radius: 12px 0 0 12px; box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
+
+  .header { padding: 20px 16px 10px; display: flex; align-items: center; gap: 12px; }
+  .menu-btn { width: 28px; height: 22px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; padding: 4px 0; flex-shrink: 0; }
+  .menu-btn span { display: block; width: 100%; height: 2px; background: var(--text-main); border-radius: 2px; transition: 0.3s; }
+  .search-bar { flex: 1; background: #fff; height: 38px; border-radius: 19px; display: flex; align-items: center; padding: 0 14px; color: #9ca3af; font-size: 14px; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+  .search-bar svg { width: 16px; height: 16px; stroke: #9ca3af; }
+
+  /* 列表页 */
+  #listView { padding: 10px 16px 80px; }
+  .card { background: var(--card-bg); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+  .avatar-circle { width: 42px; height: 42px; border-radius: 50%; background: #eff6ff; color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; flex-shrink: 0; }
+  .card-body { flex: 1; }
+  .card-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 6px; }
+  .card-text { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
+
+  /* 子页面通用 */
+  .sub-page { display: none; padding: 20px 16px; min-height: 100vh; background: var(--bg-color); position: absolute; top: 0; left: 0; width: 100%; z-index: 5; }
+  .sub-page.active { display: block; animation: fadeIn 0.3s ease; }
+  .page-header { display: flex; align-items: center; margin-bottom: 20px; gap: 12px; }
+  .back-btn { font-size: 24px; color: var(--text-main); cursor: pointer; line-height: 1; padding-right: 10px; }
+  .page-title { font-size: 18px; font-weight: 600; color: var(--text-main); }
+  .page-content { background: #fff; border-radius: var(--radius); padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); color: var(--text-sub); font-size: 15px; line-height: 1.6; }
+  
+  .placeholder-box { height: 120px; background: #f9fafb; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #d1d5db; margin-top: 16px; border: 1px dashed #e5e7eb; }
+
+  /* 悬浮按钮 */
+  .float-play { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; background: var(--accent); border-radius: 12px 0 0 12px; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: -2px 0 8px rgba(59,130,246,0.3); cursor: pointer; z-index: 4; }
+  .float-play svg { width: 24px; height: 24px; fill: currentColor; margin-left: -4px; }
+
+  /* 弹窗 */
+  .modal-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; backdrop-filter: blur(3px); }
+  .modal-mask.show { opacity: 1; visibility: visible; }
+  .modal-box { width: 80%; background: #fff; border-radius: 16px; padding: 24px 20px 20px; transform: scale(0.9); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+  .modal-mask.show .modal-box { transform: scale(1); }
+  .modal-title { font-size: 17px; font-weight: 600; color: var(--text-main); margin-bottom: 12px; text-align: center; }
+  .modal-desc { font-size: 14px; color: var(--text-sub); text-align: center; margin-bottom: 24px; line-height: 1.5; }
+  .modal-close { display: block; width: 100%; padding: 12px 0; background: var(--accent); color: #fff; text-align: center; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; border: none; }
+  .modal-footer { margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-sub); display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; user-select: none; }
+  .modal-footer input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- 侧边栏 -->
+  <div class="overlay" id="overlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="side-profile">
+      <div class="side-avatar">头像/自定义</div>
+      <div class="side-name">用户名</div>
+      <div class="side-bio">个人签名</div>
+    </div>
+    <ul class="side-menu" id="sideMenu">
+      <li data-page="countdown">倒计时页面按钮</li>
+      <li data-page="settings">设置按钮</li>
+      <li data-page="collab">共创名单按钮</li>
+      <li data-page="about">关于作者</li>
+      <li data-page="sponsor">赞助</li>
+    </ul>
+  </aside>
+
+  <!-- 主内容 -->
+  <div class="content" id="mainContent">
+    <header class="header">
+      <div class="menu-btn" id="menuBtn"><span></span><span></span><span></span></div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        搜索
+      </div>
+    </header>
+
+    <div id="listView">
+      <div class="card">
+        <div class="avatar-circle">头</div>
+        <div class="card-body">
+          <div class="card-title">标题</div>
+          <div class="card-text">正文</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="avatar-circle" style="background:#f0e8fe;color:#8e44ad;">A</div>
+        <div class="card-body">
+          <div class="card-title">日常记录</div>
+          <div class="card-text">保持简洁，去除冗余边框，让内容本身成为视觉焦点。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 子页面容器 -->
+  <div id="subPages">
+    <div class="sub-page" id="page-countdown">
+      <div class="page-header"><div class="back-btn">‹</div><div class="page-title">倒计时</div></div>
+      <div class="page-content">距离目标时间还有：<br><strong style="font-size:24px;color:var(--accent);">23 天 15 小时</strong>
+        <div class="placeholder-box">倒计时设置区域</div>
+      </div>
+    </div>
+    <div class="sub-page" id="page-settings">
+      <div class="page-header"><div class="back-btn">‹</div><div class="page-title">设置</div></div>
+      <div class="page-content">应用偏好设置、通知管理、主题切换等功能将展示在此处。
+        <div class="placeholder-box">设置项列表</div>
+      </div>
+    </div>
+    <div class="sub-page" id="page-collab">
+      <div class="page-header"><div class="back-btn">‹</div><div class="page-title">共创名单</div></div>
+      <div class="page-content">感谢以下伙伴的参与与支持：<br>1. 用户A<br>2. 用户B<br>3. 用户C
+        <div class="placeholder-box">贡献者列表</div>
+      </div>
+    </div>
+    <div class="sub-page" id="page-about">
+      <div class="page-header"><div class="back-btn">‹</div><div class="page-title">关于作者</div></div>
+      <div class="page-content">独立开发者 / 设计师<br>致力于打造简洁高效的工具应用。
+        <div class="placeholder-box">联系方式与版本信息</div>
+      </div>
+    </div>
+    <div class="sub-page" id="page-sponsor">
+      <div class="page-header"><div class="back-btn">‹</div><div class="page-title">赞助</div></div>
+      <div class="page-content">如果本应用对你有帮助，欢迎请作者喝杯咖啡 ☕️
+        <div class="placeholder-box">扫码支付 / 赞赏码</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧悬浮播放 -->
+  <div class="float-play">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </div>
+
+  <!-- 进入弹窗 -->
+  <div class="modal-mask" id="welcomeModal">
+    <div class="modal-box">
+      <div class="modal-title">欢迎使用</div>
+      <div class="modal-desc">公告页面测试</div>
+      <button class="modal-close" id="modalCloseBtn">我知道了</button>
+      <label class="modal-footer">
+        <input type="checkbox" id="noShowCheck"> 不再提示
+      </label>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const mainContent = document.getElementById('mainContent');
+  const sideMenu = document.getElementById('sideMenu');
+  const welcomeModal = document.getElementById('welcomeModal');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
+  const noShowCheck = document.getElementById('noShowCheck');
+
+  // 侧边栏开关
+  function toggleSidebar(forceClose = false) {
+    if (forceClose) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+      mainContent.classList.remove('shrink');
+    } else {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+      mainContent.classList.toggle('shrink');
+    }
+  }
+
+  menuBtn.addEventListener('click', () => toggleSidebar());
+  overlay.addEventListener('click', () => toggleSidebar(true));
+  sidebar.addEventListener('click', (e) => e.stopPropagation());
+
+  // 子页面路由切换
+  sideMenu.addEventListener('click', (e) => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    const pageId = li.getAttribute('data-page');
+    
+    // 隐藏所有子页面并关闭侧边栏
+    document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+    toggleSidebar(true);
+    
+    // 延迟展示页面内容，等待侧边栏收起动画
+    setTimeout(() => {
+      const targetPage = document.getElementById(`page-${pageId}`);
+      if (targetPage) targetPage.classList.add('active');
+    }, 300);
+  });
+
+  // 返回主页
+  document.querySelectorAll('.back-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+    });
+  });
+
+  // 弹窗逻辑 (localStorage 记录不再提示)
+  window.addEventListener('DOMContentLoaded', () => {
+    const neverShow = localStorage.getItem('hideWelcomeModal');
+    if (!neverShow) {
+      setTimeout(() => welcomeModal.classList.add('show'), 400); // 页面加载后稍作延迟弹出
+    }
+  });
+
+  function closeModal() {
+    welcomeModal.classList.remove('show');
+    if (noShowCheck.checked) {
+      localStorage.setItem('hideWelcomeModal', 'true');
+    }
+  }
+
+  modalCloseBtn.addEventListener('click', closeModal);
+  // 点击遮罩也可关闭，但依然受“不再提示”控制
+  welcomeModal.addEventListener('click', (e) => {
+    if (e.target === welcomeModal) closeModal();
+  });
+</script>
+</body>
+</html>
