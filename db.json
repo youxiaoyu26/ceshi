@@ -630,6 +630,14 @@
       "note": "2027年倒计时",
       "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-WZ9ZL/index.html",
       "time": "2026/11/25 11:54:02"
+    },
+    {
+      "id": "SITE-EGHR1",
+      "owner": "admin",
+      "path": "sites/SITE-EGHR1/index.html",
+      "note": "页面测试",
+      "url": "https://youxiaoyu26.github.io/ceshi/sites/SITE-EGHR1/index.html",
+      "time": "2026/11/26 09:34:41"
     }
   ],
   "all_products": [
@@ -645,7 +653,7 @@
     "admin": {
       "password": "8a819f1ff6fe25da1dd5428c7c0067a490551d1489f8945216fcedb8a56a7470",
       "status": "active",
-      "quota": 3,
+      "quota": 2,
       "created": "2026/9/14 00:27:06"
     },
     "作者": {
